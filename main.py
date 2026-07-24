@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from parser import group_articles, is_complete
 from database import create_db, save_release, get_releases
+from nntp_client import NNTPClient
 
 @dataclass
 class Article:
@@ -13,42 +14,35 @@ class Article:
     bytes: int
     lines: int
 
+host = input("Host: ")
+username = input("Username: ")
+password = input("Password: ")
+group = input("Newsgroup: ")
+port = int(input("Port default:(563): <Press enter>") or "563")
 
-articles = [
-    Article(
-        number=12345601,
-        subject='"ahh.smthin.part01.rar" yEnc (1/3)',
-        author="narendramodi@gmail.com",
-        date="23 Jul 2026 12:30:00 GMT",
-        message_id="<smthing@example.com>",
-        references="",
-        bytes=750000,
-        lines=10000
-    )
-]
+client = NNTPClient(
+    host=host,
+    username=username,
+    password=password,
+    port=port
+)
 
-releases = group_articles(articles)
+client.connect()
 
-for name, release in releases.items():
-    print(f"Release: {name}")
-    print(f"Size: {release['size']:,} bytes")
-    print(f"Complete: {is_complete(release)}")
-    print("Articles:")
+count, first, last, name = client.select_group(group)
 
-    for article in release["articles"]:
-        print(
-            f"Part {article['part']}/{article['total_parts']} "
-            f"{article['message_id']}"
-        )
+print(f"Group: {name}")
+print(f"Articles: {count}")
+print(f"First: {first}")
+print(f"Last: {last}")
 
-create_db()
+start = max(int(first), int(last) - 100)
 
-for release in releases.values():
-    save_release(
-        release["name"],
-        release["size"],
-        is_complete(release)
-    )
+headers = list(client.fetch_headers(start, int(last)))
+print(f"Fetched {len(headers)} headers.")
 
-for release in get_releases():
-    print(release)
+for number, header in headers[:5]:
+    print(number)
+    print(header)
+
+client.disconnect()
