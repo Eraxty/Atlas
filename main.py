@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from parser import group_articles, is_complete
+from database import create_db, save_release, get_releases
 
 @dataclass
 class Article:
@@ -39,3 +40,15 @@ for name, release in releases.items():
             f"Part {article['part']}/{article['total_parts']} "
             f"{article['message_id']}"
         )
+
+create_db()
+
+for release in releases.values():
+    save_release(
+        release["name"],
+        release["size"],
+        is_complete(release)
+    )
+
+for release in get_releases():
+    print(release)
