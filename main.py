@@ -1,18 +1,6 @@
-from dataclasses import dataclass
-from parser import group_articles, is_complete
-from database import create_db, save_release, get_releases
 from nntp_client import NNTPClient
-
-@dataclass
-class Article:
-    number: int
-    subject: str
-    author: str
-    date: str
-    message_id: str
-    references: str
-    bytes: int
-    lines: int
+from mapper import headers_to_articles
+from parser import group_articles
 
 host = input("Host: ")
 username = input("Username: ")
@@ -41,8 +29,14 @@ start = max(int(first), int(last) - 100)
 headers = list(client.fetch_headers(start, int(last)))
 print(f"Fetched {len(headers)} headers.")
 
-for number, header in headers[:5]:
-    print(number)
-    print(header)
+articles = headers_to_articles(headers)
+releases = group_articles(articles)
+
+for release in releases.values():
+    print(release["name"])
+    print(f"Articles: {len(release['articles'])}")
+    print(f"Size: {release['size']}")
+    print()
+
 
 client.disconnect()
