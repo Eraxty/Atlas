@@ -16,11 +16,24 @@ def create_db():
         )
     """)
 
+    cursor.execute("""
+        create table if not exists articles (
+            id int primary key autoincrement,
+            release_id int,
+            message_id text unique,
+            filename text,
+            part int,
+            total_parts int,
+            bytes int,
+            foreign key (release_id) references releases(id)
+        )
+    """)
+
     conn.commit()
     conn.close()
 
 
-def save_release(name, size, complete):
+def save_release(release):
     conn = sqlite3.connect(database)
     cursor = conn.cursor()
 
@@ -28,7 +41,28 @@ def save_release(name, size, complete):
         insert or replace into releases
         (name, size, complete)
         values (?, ?, ?)
-    """, (name, size, int(complete)))
+    """, (release["name"],release["size"],int(release["complete"])))
+
+    cursor.execute("""
+        select id from releases
+        where name = ?
+    """, (release["name"],))
+
+    release_id = cursor.fetchone()[0]
+
+    for article in release["articles"]:
+        cursor.execute("""
+            insert or replace into articles
+            (release_id, message_id, filename, part, total_parts, bytes)
+            values (?,?,?,?,?,?)
+        """, (
+            release_id,
+            article.message_id,
+            article.filename,
+            article.part,
+            article.total_parts,
+            article.bytes
+        ))
 
     conn.commit()
     conn.close()
@@ -47,4 +81,3 @@ def get_releases():
     releases = cursor.fetchall()
     conn.close()
     return releases
-

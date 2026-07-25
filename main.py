@@ -36,11 +36,8 @@ try:
     releases = group_articles(articles)
 
     for release in releases.values():
-        save_release(
-            release["name"],
-            release["size"],
-            is_complete(release)
-        )
+        release["complete"] = is_complete(release)
+        save_release(release)
 
         print(release["name"])
         print(f"Articles: {len(release['articles'])}")
