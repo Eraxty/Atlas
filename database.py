@@ -29,6 +29,13 @@ def create_db():
         )
     """)
 
+    cursor.execute('''
+        create table if not exists groups(
+        name text primary key,
+        last_article int
+        )
+    ''')
+
     conn.commit()
     conn.close()
 
@@ -81,3 +88,38 @@ def get_releases():
     releases = cursor.fetchall()
     conn.close()
     return releases
+
+
+def get_last_article(group):
+    conn = sqlite3.connect(database)
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        select last_article 
+        from groups
+        where name = ?
+    ''', (group,)
+    )
+
+    result = cursor.fetchone()
+    conn.close()
+
+    if result is None:
+        return None
+
+    return result[0]
+
+
+def update_last_article(group, article):
+    conn = sqlite3.connect(database)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        insert or replace into groups
+        (name, last_article)
+        values (?, ?)
+    """, (group, article)
+    )
+
+    conn.commit()
+    conn.close()
