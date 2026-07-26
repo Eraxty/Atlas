@@ -1,13 +1,26 @@
 from nntp_client import NNTPClient
 from database import create_db
 from indexer import Indexer
-from search import search_releases
+from config import load_config, save_config
 
-host = input("Host: ")
-username = input("Username: ")
-password = input("Password: ")
-group = input("Newsgroup: ")
-port = int(input("Port default:(563): <Press enter>") or "563")
+create_db()
+
+config = load_config()
+
+if config is None:
+    host = input("Host: ")
+    username = input("Username: ")
+    password = input("Password: ")
+    group = input("Newsgroup: ")
+    port = int(input("Port default (563): ") or "563")
+
+    save_config(host, username, password, port, group)
+else:
+    host = config["host"]
+    username = config["username"]
+    password = config["password"]
+    group = config["group"]
+    port = config["port"]
 
 client = NNTPClient(
     host=host,
@@ -19,8 +32,6 @@ client = NNTPClient(
 client.connect()
 
 try:
-    create_db()
-
     indexer = Indexer(client)
     indexer.index_group(group)
 
