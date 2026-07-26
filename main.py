@@ -1,7 +1,6 @@
 from nntp_client import NNTPClient
-from mapper import headers_to_articles
-from parser import group_articles, is_complete
-from database import create_db, save_release, get_releases
+from database import create_db
+from indexer import Indexer
 
 host = input("Host: ")
 username = input("Username: ")
@@ -17,33 +16,12 @@ client = NNTPClient(
 )
 
 client.connect()
+
 try:
     create_db()
 
-    count, first, last, name = client.select_group(group)
-
-    print(f"Group: {name}")
-    print(f"Articles: {count}")
-    print(f"First: {first}")
-    print(f"Last: {last}")
-
-    start = max(int(first), int(last) - 100)
-
-    headers = list(client.fetch_headers(start, int(last)))
-    print(f"Fetched {len(headers)} headers.")
-
-    articles = headers_to_articles(headers)
-    releases = group_articles(articles)
-
-    for release in releases.values():
-        release["complete"] = is_complete(release)
-        save_release(release)
-
-        print(release["name"])
-        print(f"Articles: {len(release['articles'])}")
-        print(f"Size: {release['size']}")
-        print(f"Complete: {is_complete(release)}")
-        print()
+    indexer = Indexer(client)
+    indexer.index_group(group)
 
 finally:
     client.disconnect()
