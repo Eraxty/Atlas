@@ -1,6 +1,7 @@
 from nntp_client import NNTPClient
 from database import create_db
 from indexer import Indexer
+from search import search_releases
 
 host = input("Host: ")
 username = input("Username: ")
