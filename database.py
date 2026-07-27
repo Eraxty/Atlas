@@ -36,6 +36,21 @@ def create_db():
         )
     ''')
 
+    cursor.execute("""
+        create index if not exists idx_release_name
+        on releases(name)
+    """)
+
+    cursor.execute("""
+        create index if not exists idx_release_group
+        on releases(group_name)
+    """)
+
+    cursor.execute("""
+        create index if not exists idx_release_date
+        on releases(posted_date)
+    """)
+
     conn.commit()
     conn.close()
 
@@ -46,9 +61,16 @@ def save_release(release):
 
     cursor.execute("""
         insert or replace into releases
-        (name, size, complete)
-        values (?, ?, ?)
-    """, (release["name"],release["size"],int(release["complete"])))
+        (name, size, complete, group_name, poster, posted_date)
+        values (?, ?, ?, ?, ?, ?)
+    """, (
+        release["name"],
+        release["size"],
+        int(release["complete"]),
+        release["group"],
+        release["poster"],
+        release["date"]
+    ))
 
     cursor.execute("""
         select id from releases
@@ -61,7 +83,7 @@ def save_release(release):
         cursor.execute("""
             insert or replace into articles
             (release_id, message_id, filename, part, total_parts, bytes)
-            values (?,?,?,?,?,?)
+            values (?, ?, ?, ?, ?, ?)
         """, (
             release_id,
             article.message_id,
@@ -80,9 +102,9 @@ def get_releases():
     cursor = conn.cursor()
 
     cursor.execute("""
-        select id, name, size, complete
+        select id, name, size, complete, group_name, poster, posted_date
         from releases
-        order by id
+        order by posted_date desc
     """)
 
     releases = cursor.fetchall()
