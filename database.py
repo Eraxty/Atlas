@@ -1,3 +1,4 @@
+import os
 import sqlite3
 
 database = "atlas.db"
@@ -8,23 +9,39 @@ def create_db():
     cursor = conn.cursor()
 
     cursor.execute("""
+        select name from sqlite_master
+        where type = 'table' and name = 'releases'
+    """)
+    if cursor.fetchone() is not None:
+        cursor.execute("pragma table_info(releases)")
+        release_columns = {column[1] for column in cursor.fetchall()}
+        if not {"group_name", "poster", "posted_date"}.issubset(release_columns):
+            conn.close()
+            os.remove(database)
+            conn = sqlite3.connect(database)
+            cursor = conn.cursor()
+
+    cursor.execute("""
         create table if not exists releases (
-            id integer primary key autoincrement,
-            name text unique,
-            size integer,
-            complete integer
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE,
+            group_name TEXT,
+            poster TEXT,
+            posted_date TEXT,
+            size INTEGER,
+            complete INTEGER
         )
     """)
 
     cursor.execute("""
         create table if not exists articles (
-            id int primary key autoincrement,
-            release_id int,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            release_id INTEGER,
             message_id text unique,
             filename text,
-            part int,
-            total_parts int,
-            bytes int,
+            part INTEGER,
+            total_parts INTEGER,
+            bytes INTEGER,
             foreign key (release_id) references releases(id)
         )
     """)
@@ -32,7 +49,7 @@ def create_db():
     cursor.execute('''
         create table if not exists groups(
         name text primary key,
-        last_article int
+        last_article INTEGER
         )
     ''')
 

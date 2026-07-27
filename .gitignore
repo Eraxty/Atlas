@@ -1,3 +1,6 @@
 __pycache__/
 *.pyc
 atlas.db
+mock_nntp_server.py
+config.json
+

@@ -7,7 +7,7 @@ def search_releases(query):
     cur = conn.cursor()
 
     cur.execute("""
-        select id, name, size, complete
+        select id, name, group_name, poster, posted_date, size, complete
         from releases
         where name like ?
         order by name
@@ -25,7 +25,7 @@ def get_release(id):
     cur = conn.cursor()
 
     cur.execute("""
-        select id, name, size, complete
+        select id, name, group_name, poster, posted_date, size, complete
         from releases
         where id = ?
     """, (id,)
@@ -53,3 +53,7 @@ def get_articles(release_id):
     conn.close()
 
     return articles
+
+# release tuple:
+# 0=id, 1=name, 2=group_name, 3=poster,
+# 4=posted_date, 5=size, 6=complete

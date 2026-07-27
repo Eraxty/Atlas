@@ -10,3 +10,7 @@ class Article:
     references: str
     bytes: int
     lines: int
+    filename: str | None = None
+    release_name: str | None = None
+    part: int | None = None
+    total_parts: int | None = None

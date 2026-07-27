@@ -30,7 +30,14 @@ class Indexer:
         
         for release in releases.values():
             release["complete"] = is_complete(release)
+            release["group"] = group
+            print(type(release["articles"][0]))
+            print(release["articles"][0])
+            release["poster"] = release["articles"][0].author
+            release["date"] = release["articles"][0].date
+
             save_release(release)
+
             print(release["name"])
             print(f"Articles: {len(release['articles'])}")
             print(f"Size: {release['size']}")

@@ -42,12 +42,11 @@ def group_articles(articles):
                 "size": 0
             }
     
-        releases[name]["articles"].append({
-            "filename": parsed["filename"],
-            "part": parsed["part"],
-            "total_parts": parsed["total_parts"],
-            "message_id": article.message_id
-        })
+        article.filename = parsed["filename"]
+        article.release_name = parsed["release_name"]
+        article.part = parsed["part"]
+        article.total_parts = parsed["total_parts"]
+        releases[name]["articles"].append(article)
         releases[name]["size"] += article.bytes
     return releases
 
@@ -58,9 +57,9 @@ def is_complete(release):
     if not articles:
         return False
     
-    expected = articles[0]["total_parts"]
+    expected = articles[0].total_parts
     parts = {
-        article["part"]
+        article.part
         for article in articles
     }
 
