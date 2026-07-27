@@ -1,5 +1,6 @@
 from search import get_release, get_articles
 import xml.etree.ElementTree as et
+from email.utils import parsedate_to_datetime
 
 def generate_nzb(release_id):
     release = get_release(release_id)
@@ -9,17 +10,35 @@ def generate_nzb(release_id):
         print("Release not found")
         return
 
-    nzb = et.Element("nzb")
+    if not articles:
+        print("No articles found")
+        return
 
-    file = et.SubElement(nzb, "file", subject=release[1])
+    first = articles[0]
+
+    nzb = et.Element("nzb", {"xmlns": "http://www.newzbin.com/DTD/2003/nzb"})
+
+    head = et.SubElement(nzb, "head")
+    meta = et.SubElement(head, "meta", {"type": "category"})
+    meta.text = first[6]  # group name
+
+    timestamp = int(parsedate_to_datetime(first[5]).timestamp())
+
+    file = et.SubElement(
+        nzb,
+        "file",
+        poster=first[4],
+        date=str(timestamp),
+        subject=first[3]
+    )
 
     groups = et.SubElement(file, "groups")
     group = et.SubElement(groups, "group")
-    group.text = "alt.binaries.test"
+    group.text = first[6]
 
     segments = et.SubElement(file, "segments")
 
-    for article in articles:
+    for article in sorted(articles, key=lambda x: x[2]):
         segment = et.SubElement(
             segments,
             "segment",
@@ -27,9 +46,24 @@ def generate_nzb(release_id):
             number=str(article[2])
         )
 
-        segment.text = article[0]
+        segment.text = article[0].strip("<>")
 
     tree = et.ElementTree(nzb)
-    tree.write(f"{release[1]}.nzb", encoding="utf-8", xml_declaration=True)
+    et.indent(tree, space="  ")
 
-    print(f"Saved {release[1]}.nzb")
+    filename = f"{release[1]}.nzb"
+    tree.write(filename, encoding="utf-8", xml_declaration=True)
+
+    # DOCTYPE
+    with open(filename, "r+", encoding="utf-8") as f:
+        xml = f.read()
+        f.seek(0)
+        f.write(
+            '<?xml version="1.0" encoding="utf-8"?>\n'
+            '<!DOCTYPE nzb PUBLIC "-//newzBin//DTD NZB 1.1//EN" '
+            '"http://www.newzbin.com/DTD/nzb/nzb-1.1.dtd">\n'
+            + xml.split("\n", 1)[1]
+        )
+        f.truncate()
+
+    print(f"Saved {filename}")
