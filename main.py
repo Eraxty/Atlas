@@ -2,18 +2,39 @@ from nntp_client import NNTPClient
 from database import create_db
 from indexer import Indexer
 from config import load_config, save_config
+from search import search_releases
+from nzb import generate_nzb
 
 create_db()
 
-config = load_config()
+choice = input("1. Index\n2. Search\nChoice: ")
 
-if config:
-    print(f"Using saved server: {config['host']}")
-    print(f"Newsgroup: {config['group']}")
+if choice == "1":
 
-    use_saved = input("Use saved config? (Y/n): ").lower()
+    config = load_config()
 
-    if use_saved == "n":
+    if config:
+        print(f"Using saved server: {config['host']}")
+        print(f"Newsgroup: {config['group']}")
+
+        use_saved = input("Use saved config? (Y/n): ").lower()
+
+        if use_saved == "n":
+            host = input("Host: ")
+            username = input("Username: ")
+            password = input("Password: ")
+            group = input("Newsgroup: ")
+            port = int(input("Port (563): ") or "563")
+
+            save_config(host, username, password, port, group)
+        else:
+            host = config["host"]
+            username = config["username"]
+            password = config["password"]
+            group = config["group"]
+            port = config["port"]
+
+    else:
         host = input("Host: ")
         username = input("Username: ")
         password = input("Password: ")
@@ -21,49 +42,49 @@ if config:
         port = int(input("Port (563): ") or "563")
 
         save_config(host, username, password, port, group)
-    else:
-        host = config["host"]
-        username = config["username"]
-        password = config["password"]
-        group = config["group"]
-        port = config["port"]
 
-else:
-    host = input("Host: ")
-    username = input("Username: ")
-    password = input("Password: ")
-    group = input("Newsgroup: ")
-    port = int(input("Port (563): ") or "563")
+    while True:
+        client = NNTPClient(
+            host=host,
+            username=username,
+            password=password,
+            port=port
+        )
 
-    save_config(host, username, password, port, group)
+        try:
+            client.connect()
+            break
 
+        except Exception as e:
+            print(f"\nConnection failed: {e}\n")
 
-while True:
-    client = NNTPClient(
-        host=host,
-        username=username,
-        password=password,
-        port=port
-    )
+            host = input("Host: ")
+            username = input("Username: ")
+            password = input("Password: ")
+            group = input("Newsgroup: ")
+            port = int(input("Port (563): ") or "563")
+
+            save_config(host, username, password, port, group)
 
     try:
-        client.connect()
-        break
+        indexer = Indexer(client)
+        indexer.index_group(group)
 
-    except Exception as e:
-        print(f"\nConnection failed: {e}\n")
+    finally:
+        client.disconnect()
 
-        host = input("Host: ")
-        username = input("Username: ")
-        password = input("Password: ")
-        group = input("Newsgroup: ")
-        port = int(input("Port (563): ") or "563")
+elif choice == "2":
 
-        save_config(host, username, password, port, group)
+    query = input("Search: ")
 
-try:
-    indexer = Indexer(client)
-    indexer.index_group(group)
+    releases = search_releases(query)
 
-finally:
-    client.disconnect()
+    if not releases:
+        print("No releases found.")
+
+    else:
+        for release in releases:
+            print(f"[{release[0]}] {release[1]}")
+
+        release_id = int(input("Release ID: "))
+        generate_nzb(release_id)
