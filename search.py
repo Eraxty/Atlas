@@ -42,18 +42,22 @@ def get_articles(release_id):
     cur = conn.cursor()
 
     cur.execute("""
-        select message_id, filename, part, total_parts, bytes
-        from articles
-        where release_id = ?
+        select message_id, filename, part, total_parts,
+        bytes, subject, author, posted_date
+        from articles where release_id = ?
         order by part
-    """, (release_id,)
-    )
+    """, (release_id,))
 
     articles = cur.fetchall()
     conn.close()
 
     return articles
 
-# release tuple:
-# 0=id, 1=name, 2=group_name, 3=poster,
-# 4=posted_date, 5=size, 6=complete
+#0 message_id
+#1 filename
+#2 part
+#3 total_parts
+#4 bytes
+#5 subject
+#6 author
+#7 posted_date

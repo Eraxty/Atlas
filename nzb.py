@@ -19,26 +19,29 @@ def generate_nzb(release_id):
     nzb = et.Element("nzb", {"xmlns": "http://www.newzbin.com/DTD/2003/nzb"})
 
     head = et.SubElement(nzb, "head")
+    
     meta = et.SubElement(head, "meta", {"type": "category"})
-    meta.text = first[6]  # group name
 
-    timestamp = int(parsedate_to_datetime(first[5]).timestamp())
+    meta.text = release[2]  # group name
+
+    timestamp = int(parsedate_to_datetime(first[7]).timestamp())
 
     file = et.SubElement(
         nzb,
         "file",
-        poster=first[4],
+        poster=first[6],
         date=str(timestamp),
-        subject=first[3]
+        subject=first[5]
     )
 
     groups = et.SubElement(file, "groups")
     group = et.SubElement(groups, "group")
-    group.text = first[6]
+    group.text = release[2]
+
 
     segments = et.SubElement(file, "segments")
 
-    for article in sorted(articles, key=lambda x: x[2]):
+    for article in articles: #already sorted
         segment = et.SubElement(
             segments,
             "segment",
