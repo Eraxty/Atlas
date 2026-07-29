@@ -14,18 +14,21 @@ def generate_nzb(release_id):
         print("No articles found")
         return
 
+    #first article
     first = articles[0]
 
+    #root tag
     nzb = et.Element("nzb", {"xmlns": "http://www.newzbin.com/DTD/2003/nzb"})
 
+    #optional metadata
     head = et.SubElement(nzb, "head")
-    
     meta = et.SubElement(head, "meta", {"type": "category"})
+    meta.text = release[2]
 
-    meta.text = release[2]  # group name
-
+    #nzb uses unix timestamps
     timestamp = int(parsedate_to_datetime(first[7]).timestamp())
 
+    #release info
     file = et.SubElement(
         nzb,
         "file",
@@ -34,14 +37,16 @@ def generate_nzb(release_id):
         subject=first[5]
     )
 
+    #newsgroup
     groups = et.SubElement(file, "groups")
     group = et.SubElement(groups, "group")
     group.text = release[2]
 
-
+    #all the message ids go here
     segments = et.SubElement(file, "segments")
 
-    for article in articles: #already sorted
+    #already sorted
+    for article in articles:
         segment = et.SubElement(
             segments,
             "segment",
@@ -49,15 +54,18 @@ def generate_nzb(release_id):
             number=str(article[2])
         )
 
+        #nzb doesnt want the <>
         segment.text = article[0].strip("<>")
 
     tree = et.ElementTree(nzb)
     et.indent(tree, space="  ")
 
     filename = f"{release[1]}.nzb"
+
+    #save xml
     tree.write(filename, encoding="utf-8", xml_declaration=True)
 
-    # DOCTYPE
+    #elementtree cant write doctype
     with open(filename, "r+", encoding="utf-8") as f:
         xml = f.read()
         f.seek(0)
@@ -70,3 +78,25 @@ def generate_nzb(release_id):
         f.truncate()
 
     print(f"Saved {filename}")
+
+
+'''
+release tuple
+0 id
+1 name
+2 group_name
+3 poster
+4 posted_date
+5 size
+6 complete
+
+article tuple
+0 message_id
+1 filename
+2 part
+3 total_parts
+4 bytes
+5 subject
+6 author
+7 posted_date
+'''

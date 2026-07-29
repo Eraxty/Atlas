@@ -22,7 +22,12 @@ class Indexer:
         else:
             start = last_saved + 1
 
+        if start > int(last):
+            print("No new articles.")
+            return
+
         headers = list(self.client.fetch_headers(start, int(last)))
+
         print(f"Fetched {len(headers)} headers.")
 
         articles = headers_to_articles(headers)

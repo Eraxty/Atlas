@@ -7,19 +7,35 @@ from nzb import generate_nzb
 
 create_db()
 
-choice = input("1. Index\n2. Search\nChoice: ")
+while True:
+    choice = input("1. Index\n2. Search\nChoice: ")
 
-if choice == "1":
+    if choice == "1":
 
-    config = load_config()
+        config = load_config()
 
-    if config:
-        print(f"Using saved server: {config['host']}")
-        print(f"Newsgroup: {config['group']}")
+        if config:
+            print(f"Using saved server: {config['host']}")
+            print(f"Newsgroup: {config['group']}")
 
-        use_saved = input("Use saved config? (Y/n): ").lower()
+            use_saved = input("Use saved config? (Y/n): ").lower()
 
-        if use_saved == "n":
+            if use_saved == "n":
+                host = input("Host: ")
+                username = input("Username: ")
+                password = input("Password: ")
+                group = input("Newsgroup: ")
+                port = int(input("Port (563): ") or "563")
+
+                save_config(host, username, password, port, group)
+            else:
+                host = config["host"]
+                username = config["username"]
+                password = config["password"]
+                group = config["group"]
+                port = config["port"]
+
+        else:
             host = input("Host: ")
             username = input("Username: ")
             password = input("Password: ")
@@ -27,64 +43,49 @@ if choice == "1":
             port = int(input("Port (563): ") or "563")
 
             save_config(host, username, password, port, group)
-        else:
-            host = config["host"]
-            username = config["username"]
-            password = config["password"]
-            group = config["group"]
-            port = config["port"]
 
-    else:
-        host = input("Host: ")
-        username = input("Username: ")
-        password = input("Password: ")
-        group = input("Newsgroup: ")
-        port = int(input("Port (563): ") or "563")
+        while True:
+            client = NNTPClient(
+                host=host,
+                username=username,
+                password=password,
+                port=port
+            )
 
-        save_config(host, username, password, port, group)
+            try:
+                client.connect()
+                break
 
-    while True:
-        client = NNTPClient(
-            host=host,
-            username=username,
-            password=password,
-            port=port
-        )
+            except Exception as e:
+                print(f"\nConnection failed: {e}\n")
+
+                host = input("Host: ")
+                username = input("Username: ")
+                password = input("Password: ")
+                group = input("Newsgroup: ")
+                port = int(input("Port (563): ") or "563")
+
+                save_config(host, username, password, port, group)
 
         try:
-            client.connect()
-            break
+            indexer = Indexer(client)
+            indexer.index_group(group)
 
-        except Exception as e:
-            print(f"\nConnection failed: {e}\n")
+        finally:
+            client.disconnect()
 
-            host = input("Host: ")
-            username = input("Username: ")
-            password = input("Password: ")
-            group = input("Newsgroup: ")
-            port = int(input("Port (563): ") or "563")
+    elif choice == "2":
 
-            save_config(host, username, password, port, group)
+        query = input("Search: ")
 
-    try:
-        indexer = Indexer(client)
-        indexer.index_group(group)
+        releases = search_releases(query)
 
-    finally:
-        client.disconnect()
+        if not releases:
+            print("No releases found.")
 
-elif choice == "2":
+        else:
+            for release in releases:
+                print(f"[{release[0]}] {release[1]}")
 
-    query = input("Search: ")
-
-    releases = search_releases(query)
-
-    if not releases:
-        print("No releases found.")
-
-    else:
-        for release in releases:
-            print(f"[{release[0]}] {release[1]}")
-
-        release_id = int(input("Release ID: "))
-        generate_nzb(release_id)
+            release_id = int(input("Release ID: "))
+            generate_nzb(release_id)
