@@ -8,6 +8,7 @@ def create_db():
     conn = sqlite3.connect(database)
     cursor = conn.cursor()
 
+    #check releases schema
     cursor.execute("""
         select name from sqlite_master
         where type = 'table' and name = 'releases'
@@ -15,16 +16,30 @@ def create_db():
     if cursor.fetchone() is not None:
         cursor.execute("pragma table_info(releases)")
         release_columns = {column[1] for column in cursor.fetchall()}
+
         if not {"group_name", "poster", "posted_date"}.issubset(release_columns):
             conn.close()
             os.remove(database)
-            conn = sqlite3.connect(database)
-            cursor = conn.cursor()
+            return create_db()
+
+    #check articles schema
+    cursor.execute("""
+        select name from sqlite_master
+        where type = 'table' and name = 'articles'
+    """)
+    if cursor.fetchone() is not None:
+        cursor.execute("pragma table_info(articles)")
+        article_columns = {column[1] for column in cursor.fetchall()}
+
+        if "subject" not in article_columns:
+            conn.close()
+            os.remove(database)
+            return create_db()
 
     cursor.execute("""
         create table if not exists releases (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE,
+            name TEXT,
             group_name TEXT,
             poster TEXT,
             posted_date TEXT,
@@ -34,11 +49,17 @@ def create_db():
     """)
 
     cursor.execute("""
+        create unique index if not exists idx_release_unique
+        on releases(name, group_name)
+    """)
+
+    cursor.execute("""
         create table if not exists articles (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             release_id INTEGER,
-            message_id text unique,
-            filename text,
+            message_id TEXT UNIQUE,
+            subject TEXT,
+            filename TEXT,
             part INTEGER,
             total_parts INTEGER,
             bytes INTEGER,
@@ -46,12 +67,12 @@ def create_db():
         )
     """)
 
-    cursor.execute('''
+    cursor.execute("""
         create table if not exists groups(
-        name text primary key,
-        last_article INTEGER
+            name TEXT PRIMARY KEY,
+            last_article INTEGER
         )
-    ''')
+    """)
 
     cursor.execute("""
         create index if not exists idx_release_name
@@ -91,19 +112,23 @@ def save_release(release):
 
     cursor.execute("""
         select id from releases
-        where name = ?
-    """, (release["name"],))
+        where name = ? and group_name = ?
+    """, (
+        release["name"],
+        release["group"]
+    ))
 
     release_id = cursor.fetchone()[0]
 
     for article in release["articles"]:
         cursor.execute("""
             insert or replace into articles
-            (release_id, message_id, filename, part, total_parts, bytes)
-            values (?, ?, ?, ?, ?, ?)
+            (release_id, message_id, subject, filename, part, total_parts, bytes)
+            values (?, ?, ?, ?, ?, ?, ?)
         """, (
             release_id,
             article.message_id,
+            article.subject,
             article.filename,
             article.part,
             article.total_parts,

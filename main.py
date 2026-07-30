@@ -7,44 +7,41 @@ from nzb import generate_nzb
 
 create_db()
 
+config = load_config()
+
+if config:
+    print(f"Loaded config:")
+    print(f"Server: {config['host']}")
+    print(f"Newsgroup: {config['group']}\n")
+
+else:
+    print("No saved configuration.\n")
+
+    host = input("Host: ")
+    username = input("Username: ")
+    password = input("Password: ")
+    group = input("Newsgroup: ")
+    port = int(input("Port (563): ") or "563")
+
+    save_config(host, username, password, port, group)
+
+    config = load_config()
+
+
 while True:
-    choice = input("1. Index\n2. Search\nChoice: ")
+
+    choice = input("1. Index\n2. Search\n3. Settings\nChoice: ")
 
     if choice == "1":
 
-        config = load_config()
-
-        if config:
-            print(f"Using saved server: {config['host']}")
-            print(f"Newsgroup: {config['group']}")
-
-            use_saved = input("Use saved config? (Y/n): ").lower()
-
-            if use_saved == "n":
-                host = input("Host: ")
-                username = input("Username: ")
-                password = input("Password: ")
-                group = input("Newsgroup: ")
-                port = int(input("Port (563): ") or "563")
-
-                save_config(host, username, password, port, group)
-            else:
-                host = config["host"]
-                username = config["username"]
-                password = config["password"]
-                group = config["group"]
-                port = config["port"]
-
-        else:
-            host = input("Host: ")
-            username = input("Username: ")
-            password = input("Password: ")
-            group = input("Newsgroup: ")
-            port = int(input("Port (563): ") or "563")
-
-            save_config(host, username, password, port, group)
+        host = config["host"]
+        username = config["username"]
+        password = config["password"]
+        group = config["group"]
+        port = config["port"]
 
         while True:
+
             client = NNTPClient(
                 host=host,
                 username=username,
@@ -57,6 +54,7 @@ while True:
                 break
 
             except Exception as e:
+
                 print(f"\nConnection failed: {e}\n")
 
                 host = input("Host: ")
@@ -66,6 +64,7 @@ while True:
                 port = int(input("Port (563): ") or "563")
 
                 save_config(host, username, password, port, group)
+                config = load_config()
 
         try:
             indexer = Indexer(client)
@@ -89,3 +88,27 @@ while True:
 
             release_id = int(input("Release ID: "))
             generate_nzb(release_id)
+
+    elif choice == "3":
+
+        while True:
+            print("Settings ")
+            print("1. Change configuration ")
+            print("2. Back ")
+
+            settings = input("Choice: ")
+
+            if settings == "1":
+
+                host = input("Host: ")
+                username = input("Username: ")
+                password = input("Password: ")
+                group = input("Newsgroup: ")
+                port = int(input("Port (563): ") or "563")
+
+                save_config(host, username, password, port, group)
+
+                print("Saved.")
+
+            elif settings == "2":
+                break
