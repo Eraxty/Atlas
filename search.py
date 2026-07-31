@@ -42,10 +42,13 @@ def get_articles(release_id):
     cur = conn.cursor()
 
     cur.execute("""
-        select message_id, filename, part, total_parts,
-        bytes, subject, author, posted_date
-        from articles where release_id = ?
-        order by part
+        select articles.message_id, articles.filename,
+        articles.part, articles.total_parts, articles.bytes,
+        articles.subject, releases.poster, releases.posted_date
+        from articles join releases
+        on articles.release_id = releases.id
+        where articles.release_id = ?
+        order by articles.part
     """, (release_id,))
 
     articles = cur.fetchall()
@@ -59,5 +62,5 @@ def get_articles(release_id):
 #3 total_parts
 #4 bytes
 #5 subject
-#6 author
+#6 poster
 #7 posted_date
