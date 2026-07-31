@@ -6,6 +6,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+import signal
 
 BASE_DIR = Path(__file__).resolve().parent
 PID_FILE = BASE_DIR / "bg_indexer.pid"
@@ -36,7 +37,7 @@ def start_background_indexer():
 
     with LOG_FILE.open("a") as log_file:
         process = subprocess.Popen(
-            [sys.executable, "bg_indexer.py"],
+            [sys.executable,"-u", "bg_indexer.py"],
             cwd=BASE_DIR,
             stdin=subprocess.DEVNULL,
             stdout=log_file,
@@ -46,6 +47,21 @@ def start_background_indexer():
 
     PID_FILE.write_text(str(process.pid))
     return True
+
+def stop_background_indexer():
+
+    if not PID_FILE.exists():
+        return False
+        
+    try:
+        pid = int(PID_FILE.read_text().strip())
+        os.kill(pid, signal.SIGTERM)
+        PID_FILE.unlink(missing_ok=True)
+        return True
+
+    except (ValueError, ProcessLookupError):
+        PID_FILE.unlink(missing_ok=True)
+        return False
 
 create_db()
 
@@ -71,16 +87,43 @@ else:
 
 while True:
 
-    choice = input("1. Index\n2. Search\n3. Settings\nChoice: ")
+    indexing = worker_is_running()
+
+    if indexing:
+        choice = input(
+            "1. Stop Indexing\n"
+            "2. Search\n"
+            "3. Settings\n"
+            "Choice: "
+        )
+
+    else:
+        choice = input(
+            "1. Start Indexing\n"
+            "2. Search\n"
+            "3. Settings\n"
+            "Choice: "
+        )
 
     if choice == "1":
 
-        started = start_background_indexer()
+        if indexing:
 
-        if started:
-            print("Background indexing started.")
+            stopped = stop_background_indexer()
+
+            if stopped:
+                print("Background indexing stopped.")
+            else:
+                print("Background indexer is not running.")
+
         else:
-            print("Background indexing is already running.")
+
+            started = start_background_indexer()
+
+            if started:
+                print("Background indexing started.")
+            else:
+                print("Background indexing is already running.")
 
     elif choice == "2":
 
@@ -101,6 +144,7 @@ while True:
     elif choice == "3":
 
         while True:
+
             print("Settings")
             print("1. Change configuration")
             print("2. Back")
