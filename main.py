@@ -1,16 +1,58 @@
-from nntp_client import NNTPClient
 from database import create_db
-from indexer import Indexer
 from config import load_config, save_config
 from search import search_releases
 from nzb import generate_nzb
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent
+PID_FILE = BASE_DIR / "bg_indexer.pid"
+LOG_FILE = BASE_DIR / "bg_index.log"
+
+
+def worker_is_running():
+    if not PID_FILE.exists():
+        return False
+
+    try:
+        pid = int(PID_FILE.read_text().strip())
+        os.kill(pid, 0)
+        return True
+
+    except (ValueError, ProcessLookupError):
+        PID_FILE.unlink(missing_ok=True)
+        return False
+
+    except PermissionError:
+        return True
+
+
+def start_background_indexer():
+    
+    if worker_is_running():
+        return False
+
+    with LOG_FILE.open("a") as log_file:
+        process = subprocess.Popen(
+            [sys.executable, "bg_indexer.py"],
+            cwd=BASE_DIR,
+            stdin=subprocess.DEVNULL,
+            stdout=log_file,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+        )
+
+    PID_FILE.write_text(str(process.pid))
+    return True
 
 create_db()
 
 config = load_config()
 
 if config:
-    print(f"Loaded config:")
+    print("Loaded config:")
     print(f"Server: {config['host']}")
     print(f"Newsgroup: {config['group']}\n")
 
@@ -24,7 +66,6 @@ else:
     port = int(input("Port (563): ") or "563")
 
     save_config(host, username, password, port, group)
-
     config = load_config()
 
 
@@ -34,44 +75,12 @@ while True:
 
     if choice == "1":
 
-        host = config["host"]
-        username = config["username"]
-        password = config["password"]
-        group = config["group"]
-        port = config["port"]
+        started = start_background_indexer()
 
-        while True:
-
-            client = NNTPClient(
-                host=host,
-                username=username,
-                password=password,
-                port=port
-            )
-
-            try:
-                client.connect()
-                break
-
-            except Exception as e:
-
-                print(f"\nConnection failed: {e}\n")
-
-                host = input("Host: ")
-                username = input("Username: ")
-                password = input("Password: ")
-                group = input("Newsgroup: ")
-                port = int(input("Port (563): ") or "563")
-
-                save_config(host, username, password, port, group)
-                config = load_config()
-
-        try:
-            indexer = Indexer(client)
-            indexer.index_group(group)
-
-        finally:
-            client.disconnect()
+        if started:
+            print("Background indexing started.")
+        else:
+            print("Background indexing is already running.")
 
     elif choice == "2":
 
@@ -92,9 +101,9 @@ while True:
     elif choice == "3":
 
         while True:
-            print("Settings ")
-            print("1. Change configuration ")
-            print("2. Back ")
+            print("Settings")
+            print("1. Change configuration")
+            print("2. Back")
 
             settings = input("Choice: ")
 
@@ -107,6 +116,7 @@ while True:
                 port = int(input("Port (563): ") or "563")
 
                 save_config(host, username, password, port, group)
+                config = load_config()
 
                 print("Saved.")
 
