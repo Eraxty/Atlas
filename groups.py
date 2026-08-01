@@ -6,7 +6,6 @@ def get_categories(client):
     for group in client.list_groups():
         
         group = group.strip()
-        print(group)
         name = group.split()[0]
         parts = name.split(".")
 

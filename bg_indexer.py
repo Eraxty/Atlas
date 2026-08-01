@@ -17,5 +17,6 @@ client.connect()
 indexer = Indexer(client)
 
 while True:
+    config = load_config()
     indexer.index_group(config["group"])
     time.sleep(0.1)

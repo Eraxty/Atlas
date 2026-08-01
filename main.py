@@ -7,8 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 import signal
-from nntp_client import NNTPClient
-from groups import get_categories
+from groups_menu import groups_menu
 
 BASE_DIR = Path(__file__).resolve().parent
 PID_FILE = BASE_DIR / "bg_indexer.pid"
@@ -33,13 +32,13 @@ def worker_is_running():
 
 
 def start_background_indexer():
-    
+
     if worker_is_running():
         return False
 
     with LOG_FILE.open("a") as log_file:
         process = subprocess.Popen(
-            [sys.executable,"-u", "bg_indexer.py"],
+            [sys.executable, "-u", "bg_indexer.py"],
             cwd=BASE_DIR,
             stdin=subprocess.DEVNULL,
             stdout=log_file,
@@ -50,11 +49,12 @@ def start_background_indexer():
     PID_FILE.write_text(str(process.pid))
     return True
 
+
 def stop_background_indexer():
 
     if not PID_FILE.exists():
         return False
-        
+
     try:
         pid = int(PID_FILE.read_text().strip())
         os.kill(pid, signal.SIGTERM)
@@ -65,6 +65,7 @@ def stop_background_indexer():
         PID_FILE.unlink(missing_ok=True)
         return False
 
+
 create_db()
 
 config = load_config()
@@ -72,7 +73,7 @@ config = load_config()
 if config:
     print("Loaded config:")
     print(f"Server: {config['host']}")
-    print(f"Newsgroup: {config['group']}\n")
+    print(f"Current Group: {config['group']}\n")
 
 else:
     print("No saved configuration.\n")
@@ -95,7 +96,8 @@ while True:
         choice = input(
             "1. Stop Indexing\n"
             "2. Search\n"
-            "3. Settings\n"
+            "3. Groups\n"
+            "4. Settings\n"
             "Choice: "
         )
 
@@ -103,7 +105,8 @@ while True:
         choice = input(
             "1. Start Indexing\n"
             "2. Search\n"
-            "3. Settings\n"
+            "3. Groups\n"
+            "4. Settings\n"
             "Choice: "
         )
 
@@ -140,27 +143,19 @@ while True:
             for release in releases:
                 print(f"[{release[0]}] {release[1]}")
 
+            print("[0] Back")
+
             release_id = int(input("Release ID: "))
+
+            if release_id == 0:
+                continue
+
             generate_nzb(release_id)
 
     elif choice == "3":
 
-        client = NNTPClient(
-            config["host"],
-            config["username"],
-            config["password"],
-            config["port"]
-        )
-
-        client.connect()
-
-        categories = get_categories(client)
-        print("\nCategories\n")
-
-        for i, category in enumerate(sorted(categories), start=1):
-            print(f"{i}. {category}")
-
-        client.disconnect()
+        groups_menu(config)
+        config = load_config()
 
     elif choice == "4":
 
