@@ -7,6 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 import signal
+from nntp_client import NNTPClient
+from groups import get_categories
 
 BASE_DIR = Path(__file__).resolve().parent
 PID_FILE = BASE_DIR / "bg_indexer.pid"
@@ -142,6 +144,25 @@ while True:
             generate_nzb(release_id)
 
     elif choice == "3":
+
+        client = NNTPClient(
+            config["host"],
+            config["username"],
+            config["password"],
+            config["port"]
+        )
+
+        client.connect()
+
+        categories = get_categories(client)
+        print("\nCategories\n")
+
+        for i, category in enumerate(sorted(categories), start=1):
+            print(f"{i}. {category}")
+
+        client.disconnect()
+
+    elif choice == "4":
 
         while True:
 

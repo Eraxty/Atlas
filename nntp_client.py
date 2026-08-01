@@ -44,3 +44,6 @@ class NNTPClient:
 
     def fetch_headers(self, start, end):
         return self.server.xover((start, end))
+
+    def list_groups(self):
+        return self.server.list()
