@@ -20,6 +20,20 @@ def search_releases(query, group):
     return releases
 
 
+def search_all_releases(query):
+    conn = sqlite3.connect(database)
+    cur = conn.cursor()
+
+    cur.execute("""
+        select id, name from releases where name like ?
+    """,(f"%{query}%",))
+
+    releases = cur.fetchall()
+    conn.close()
+
+    return releases
+
+
 def get_release(id):
     conn = sqlite3.connect(database)
     cur = conn.cursor()

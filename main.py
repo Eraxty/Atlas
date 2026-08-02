@@ -1,6 +1,6 @@
 from database import create_db
 from config import load_config, save_config
-from search import search_releases
+from search import search_releases, search_all_releases
 from nzb import generate_nzb
 import os
 import subprocess
@@ -168,9 +168,18 @@ while True:
 
     elif choice == "2":
 
+        print("Search")
+        print("1. Current Group")
+        print("2. All Groups")
+
+        scope = input("Choice: ")
+
         query = input("Search: ")
 
-        releases = search_releases(query, config["group"])
+        if scope == "1":
+            releases = search_releases(query, config["group"])
+        else:
+            releases = search_all_releases(query)
 
         if not releases:
             print("No releases found.")
