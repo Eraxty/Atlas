@@ -2,16 +2,16 @@ import sqlite3
 from database import database
 
 
-def search_releases(query):
+def search_releases(query, group):
     conn = sqlite3.connect(database)
     cur = conn.cursor()
 
     cur.execute("""
         select id, name, group_name, poster, posted_date, size, complete
         from releases
-        where name like ?
+        where group_name = ? and name like ?
         order by name
-    """, (f"%{query}%",)
+    """, (group, f"%{query}%",)
     )
 
     releases = cur.fetchall()

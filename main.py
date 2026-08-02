@@ -91,11 +91,25 @@ else:
     host = input("Host: ")
     username = input("Username: ")
     password = input("Password: ")
-    group = input("Newsgroup: ")
     port = int(input("Port (563): ") or "563")
 
-    save_config(host, username, password, port, group)
-    config = load_config()
+    while True:
+        group = input("Newsgroup (press Enter to browse, or enter one manually): ").strip()
+
+        if not group:
+            save_config(host, username, password, port, group)
+            config = load_config()
+            print("\nChoose a newsgroup.\n")
+            groups_menu(config)
+            config = load_config()
+            break
+
+        if group.count(".") >= 2:
+            save_config(host, username, password, port, group)
+            config = load_config()
+            break
+
+        print("Newsgroup not found.")
 
 
 while True:
@@ -107,7 +121,7 @@ while True:
     print("Atlas\n")
     print(f"Current Group : {config["group"]}")
 
-    if status["running"]:
+    if indexing and status["running"]:
         print(f"Indexing: {status["group"]}")
     else:
         print("Indexing: stopped")
@@ -156,7 +170,7 @@ while True:
 
         query = input("Search: ")
 
-        releases = search_releases(query)
+        releases = search_releases(query, config["group"])
 
         if not releases:
             print("No releases found.")
