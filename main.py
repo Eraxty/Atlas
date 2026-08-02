@@ -8,11 +8,21 @@ import sys
 from pathlib import Path
 import signal
 from groups_menu import groups_menu
+import json
 
 BASE_DIR = Path(__file__).resolve().parent
 PID_FILE = BASE_DIR / "bg_indexer.pid"
 LOG_FILE = BASE_DIR / "bg_index.log"
 
+def get_status():
+    try:
+        with open("status.json") as f:
+            return json.load(f)
+    except:
+        return {
+            "running":False,
+            "group":""
+        }
 
 def worker_is_running():
     if not PID_FILE.exists():
@@ -91,6 +101,18 @@ else:
 while True:
 
     indexing = worker_is_running()
+
+    status = get_status()
+
+    print("Atlas\n")
+    print(f"Current Group : {config["group"]}")
+
+    if status["running"]:
+        print(f"Indexing: {status["group"]}")
+    else:
+        print("Indexing: stopped")
+
+    print()
 
     if indexing:
         choice = input(

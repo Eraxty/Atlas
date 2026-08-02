@@ -2,6 +2,7 @@ from config import load_config
 from nntp_client import NNTPClient
 from indexer import Indexer
 import time
+import json
 
 config = load_config()
 
@@ -16,7 +17,22 @@ client.connect()
 
 indexer = Indexer(client)
 
-while True:
-    config = load_config()
-    indexer.index_group(config["group"])
-    time.sleep(0.1)
+def update_status(running, group):
+    with open("status.json", "w") as f:
+        json.dump({
+            "running": running,
+            "group": group
+        }, f)
+
+update_status(True, config["group"])
+
+try:
+    while True:
+        config = load_config()
+        update_status(True, config["group"])
+        indexer.index_group(config["group"])
+        time.sleep(0.1)
+
+finally:
+    update_status(False, "")
+    client.disconnect()

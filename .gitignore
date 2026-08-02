@@ -3,4 +3,4 @@ __pycache__/
 atlas.db
 mock_nntp_server.py
 config.json
-
+status.json
