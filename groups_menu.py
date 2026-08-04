@@ -1,6 +1,7 @@
 from nntp_client import NNTPClient
 from groups import get_categories
 from config import save_config
+from prompts import prompt
 
 
 def groups_menu(config):
@@ -23,7 +24,7 @@ def groups_menu(config):
             print(f"{i}. {name}")
 
         print("0. Back")
-        category = int(input("Choice: "))
+        category = int(prompt("Choice: "))
 
         if category == 0:
             break
@@ -38,7 +39,7 @@ def groups_menu(config):
             print(f"{i}. {group}")
 
         print("0. Back")
-        group = int(input("Choice: "))
+        group = int(prompt("Choice: "))
 
         if group == 0:
             continue

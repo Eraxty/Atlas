@@ -1,11 +1,14 @@
+
 from config import load_config, save_config
 from database import create_db
 from groups_menu import groups_menu
 from nzb import generate_nzb
+from prompts import prompt
 from search import search_all_releases, search_releases
 from pathlib import Path
 import json
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -14,6 +17,8 @@ BASE_DIR = Path(__file__).resolve().parent
 PID_FILE = BASE_DIR / "bg_indexer.pid"
 LOG_FILE = BASE_DIR / "bg_index.log"
 STATUS_FILE = BASE_DIR / "status.json"
+
+PAGE_SIZE = max(10, shutil.get_terminal_size().lines - 15)
 
 LOGO = r"""
         █████╗ ████████╗ ██╗      █████╗ ███████╗
@@ -87,9 +92,9 @@ def stop_background_indexer():
         return False
 
 
-def read_int(prompt, default=None):
+def read_int(prompt_text, default=None):
     while True:
-        value = input(prompt).strip()
+        value = prompt(prompt_text).strip()
 
         if not value and default is not None:
             return default
@@ -103,13 +108,13 @@ def read_int(prompt, default=None):
 def first_run_setup():
     print("No saved configuration.\n")
 
-    host = input("Host: ")
-    username = input("Username: ")
-    password = input("Password: ")
+    host = prompt("Host: ")
+    username = prompt("Username: ")
+    password = prompt("Password: ")
     port = read_int("Port (563): ", 563)
 
     while True:
-        group = input("\nNewsgroup (press Enter to browse, or enter one manually): ").strip()
+        group = prompt("\nNewsgroup (press Enter to browse, or enter one manually): ").strip()
 
         if not group:
             save_config(host, username, password, port, group)
@@ -136,32 +141,58 @@ def search_menu(config):
     if scope not in (1, 2):
         return
 
-    query = input("Search: ").strip()
+    query = prompt("Search: ").strip()
 
-    if scope == 1:
-        releases = search_releases(query, config["group"])
-    else:
-        releases = search_all_releases(query)
+    page = 0
 
-    if not releases:
-        print("\nNo releases found.")
+    while True:
+        
+        if scope == 1:
+            releases = search_releases(query, config["group"], page, PAGE_SIZE)
+        else:
+            releases = search_all_releases(query, page, PAGE_SIZE)
+
+        if not releases:
+            print("\nNo releases found.")
+            return
+
+        clear()
+
+        print(f"Search:{query}")
+        print(f"Page:{page+1}\n")
+
+        for release in releases:
+            print(f"[{release[0]}] {release[1]}")
+
+        print("\n0. Back")
+        print("p. Previous Page")
+        print("n. Next Page")
+
+        choice = prompt("\nChoice: ").strip()
+
+        if choice == "0":
+            return
+
+        if choice == "p":
+            if page > 0:
+                page -= 1
+            continue
+
+        if choice == "n":
+            if scope == 1:
+                nxt = search_releases(query, config["group"], page + 1, PAGE_SIZE)
+            else:
+                nxt = search_all_releases(query, page + 1, PAGE_SIZE)
+            if nxt:
+                page += 1
+            continue
+
+        try:
+            generate_nzb(int(choice))
+        except ValueError:
+            print("Invalid input.")
+            continue
         return
-
-    print()
-    for release in releases[:50]:
-        print(f"[{release[0]}] {release[1]}")
-
-    if len(releases) > 50:
-        print(f"\n... and {len(releases) - 50} more")
-
-    print("\n[0] Back")
-    release_id = read_int("Release ID: ")
-
-    if release_id == 0:
-        return
-
-    generate_nzb(release_id)
-
 
 def settings_menu():
     clear()
@@ -175,10 +206,10 @@ def settings_menu():
         return
 
     print()
-    host = input("Host: ")
-    username = input("Username: ")
-    password = input("Password: ")
-    group = input("Newsgroup: ")
+    host = prompt("Host: ")
+    username = prompt("Username: ")
+    password = prompt("Password: ")
+    group = prompt("Newsgroup: ")
     port = read_int("Port (563): ", 563)
 
     save_config(host, username, password, port, group)
@@ -225,7 +256,7 @@ def main():
         print("0. Exit")
         print("=" * 55)
 
-        choice = input("\nChoice: ")
+        choice = prompt("\nChoice: ")
 
         if choice == "1":
             if indexing:

@@ -2,16 +2,19 @@ import sqlite3
 from database import database
 
 
-def search_releases(query, group):
+def search_releases(query, group, page=0, page_size=10):
     conn = sqlite3.connect(database)
     cur = conn.cursor()
+
+    offset = page * page_size #for pages
 
     cur.execute("""
         select id, name, group_name, poster, posted_date, size, complete
         from releases
         where group_name = ? and name like ?
         order by name
-    """, (group, f"%{query}%",)
+        limit ? offset ?
+    """, (group, f"%{query}%", page_size, offset)
     )
 
     releases = cur.fetchall()
@@ -20,13 +23,17 @@ def search_releases(query, group):
     return releases
 
 
-def search_all_releases(query):
+def search_all_releases(query, page=0, page_size=10):
     conn = sqlite3.connect(database)
     cur = conn.cursor()
 
+    offset = page * page_size
+
     cur.execute("""
         select id, name from releases where name like ?
-    """,(f"%{query}%",))
+        order by name
+        limit ? offset ?
+    """,(f"%{query}%", page_size, offset))
 
     releases = cur.fetchall()
     conn.close()
