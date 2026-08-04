@@ -70,7 +70,8 @@ def create_db():
     cursor.execute("""
         create table if not exists groups(
             name TEXT PRIMARY KEY,
-            last_article INTEGER
+            live_cursor INTEGER,
+            backfill_cursor INTEGER
         )
     """)
 
@@ -154,12 +155,12 @@ def get_releases():
     return releases
 
 
-def get_last_article(group):
+def get_group_state(group):
     conn = sqlite3.connect(database)
     cursor = conn.cursor()
 
     cursor.execute('''
-        select last_article 
+        select live_cursor , backfill_cursor
         from groups
         where name = ?
     ''', (group,)
@@ -171,17 +172,36 @@ def get_last_article(group):
     if result is None:
         return None
 
-    return result[0]
+    return {
+        "live_cursor":result[0],
+        "backfill_cursor":result[1],
+    }
 
 
-def update_last_article(group, article):
+def update_live_cursor(group, article):
     conn = sqlite3.connect(database)
     cursor = conn.cursor()
 
     cursor.execute("""
-        insert or replace into groups
-        (name, last_article)
-        values (?, ?)
+        insert into groups(name, live_cursor)
+        values(?, ?)
+        on conflict(name)
+        do update set live_cursor = excluded.live_cursor
+    """, (group, article)
+    )
+
+    conn.commit()
+    conn.close()
+
+def update_backfill_cursor(group,article):
+    conn = sqlite3.connect(database)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        insert into groups(name, backfill_cursor)
+        values(?, ?)
+        on conflict(name)
+        do update set backfill_cursor = excluded.backfill_cursor
     """, (group, article)
     )
 
