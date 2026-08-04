@@ -8,6 +8,7 @@ BACKFILL_SIZE = 1000
 class Indexer:
     def __init__(self, client):
         self.client = client
+        self.mode = "live"
 
     def index_group(self, group):
         count, first, last, name = self.client.select_group(group)
@@ -25,10 +26,13 @@ class Indexer:
 
             update_live_cursor(group, live_cursor)
             update_backfill_cursor(group, backfill_cursor)
-            return
 
-        self.live(group, int(last))
-        self.backfill(group, int(first))
+            self.mode = "backfill"
+
+        if self.mode == "live":
+            self.live(group, int(last))
+        else:
+            self.backfill(group, int(first))
 
     def live(self, group, last):
         state = get_group_state(group)
@@ -36,21 +40,25 @@ class Indexer:
 
         if start > last:
             print("No new articles.")
+            self.mode = "backfill"
             return
 
         self.process_range(group, start, last)
         update_live_cursor(group, last)
+        self.mode = "backfill"
 
     def backfill(self, group, first):
         state = get_group_state(group)
         end = state["backfill_cursor"]
 
         if end < first:
+            self.mode = "live"
             return
 
         start = max(end - BACKFILL_SIZE, first)
         self.process_range(group, start, end)
         update_backfill_cursor(group, start - 1)
+        self.mode = "live"
 
     def process_range(self, group, start, end):
         headers = list(self.client.fetch_headers(start, end))
