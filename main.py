@@ -4,9 +4,10 @@ from database import create_db
 from groups_menu import groups_menu
 from nzb import generate_nzb
 from prompts import prompt
-from search import search_all_releases, search_releases
+from search import count_all_releases, count_releases, search_all_releases, search_releases
 from pathlib import Path
 import json
+import math
 import os
 import shutil
 import signal
@@ -17,8 +18,6 @@ BASE_DIR = Path(__file__).resolve().parent
 PID_FILE = BASE_DIR / "bg_indexer.pid"
 LOG_FILE = BASE_DIR / "bg_index.log"
 STATUS_FILE = BASE_DIR / "status.json"
-
-PAGE_SIZE = max(10, shutil.get_terminal_size().lines - 15)
 
 LOGO = r"""
         █████╗ ████████╗ ██╗      █████╗ ███████╗
@@ -144,29 +143,46 @@ def search_menu(config):
     query = prompt("Search: ").strip()
 
     page = 0
+    page_size = max(10, shutil.get_terminal_size().lines - 15)
 
     while True:
-        
         if scope == 1:
-            releases = search_releases(query, config["group"], page, PAGE_SIZE)
+            total = count_releases(query, config["group"])
+            releases = search_releases(query, config["group"], page, page_size)
         else:
-            releases = search_all_releases(query, page, PAGE_SIZE)
+            total = count_all_releases(query)
+            releases = search_all_releases(query, page, page_size)
 
-        if not releases:
+        if not total:
             print("\nNo releases found.")
             return
 
+        total_pages = max(1, math.ceil(total / page_size))
+
+        if page > total_pages - 1:
+            page = total_pages - 1
+            continue
+
+        release_ids = {release[0] for release in releases}
+
         clear()
 
-        print(f"Search:{query}")
-        print(f"Page:{page+1}\n")
+        print(f"Search: {query}")
+        print(f"Page {page + 1} of {total_pages}")
+
+        start = page * page_size + 1
+        end = min((page + 1) * page_size, total)
+        print(f"Showing {start}-{end} of {total} results\n")
 
         for release in releases:
             print(f"[{release[0]}] {release[1]}")
 
         print("\n0. Back")
-        print("p. Previous Page")
-        print("n. Next Page")
+        if page > 0:
+            print("p. Previous Page")
+        if page < total_pages - 1:
+            print("n. Next Page")
+        print("g. Go to Page")
 
         choice = prompt("\nChoice: ").strip()
 
@@ -176,22 +192,47 @@ def search_menu(config):
         if choice == "p":
             if page > 0:
                 page -= 1
+            else:
+                print("Already on the first page.")
+                prompt("Press Enter to continue...")
             continue
 
         if choice == "n":
-            if scope == 1:
-                nxt = search_releases(query, config["group"], page + 1, PAGE_SIZE)
-            else:
-                nxt = search_all_releases(query, page + 1, PAGE_SIZE)
-            if nxt:
+            if page < total_pages - 1:
                 page += 1
+            else:
+                print("Already on the last page.")
+                prompt("Press Enter to continue...")
+            continue
+
+        if choice == "g":
+            goto = prompt(f"Go to page (1-{total_pages}): ")
+
+            try:
+                target = int(goto)
+            except ValueError:
+                target = -1
+
+            if 1 <= target <= total_pages:
+                page = target - 1
+            else:
+                print(f"Page must be between 1 and {total_pages}.")
+                prompt("Press Enter to continue...")
             continue
 
         try:
-            generate_nzb(int(choice))
+            choice_id = int(choice)
         except ValueError:
-            print("Invalid input.")
+            print("Invalid choice.")
+            prompt("Press Enter to continue...")
             continue
+
+        if choice_id not in release_ids:
+            print("Invalid release ID.")
+            prompt("Press Enter to continue...")
+            continue
+
+        generate_nzb(choice_id)
         return
 
 def settings_menu():

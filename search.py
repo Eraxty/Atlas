@@ -41,6 +41,36 @@ def search_all_releases(query, page=0, page_size=10):
     return releases
 
 
+def count_releases(query, group):
+    conn = sqlite3.connect(database)
+    cur = conn.cursor()
+
+    cur.execute("""
+        select count(*) from releases
+        where group_name = ? and name like ?
+    """, (group, f"%{query}%"))
+
+    count = cur.fetchone()[0]
+    conn.close()
+
+    return count
+
+
+def count_all_releases(query):
+    conn = sqlite3.connect(database)
+    cur = conn.cursor()
+
+    cur.execute("""
+        select count(*) from releases
+        where name like ?
+    """, (f"%{query}%",))
+
+    count = cur.fetchone()[0]
+    conn.close()
+
+    return count
+
+
 def get_release(id):
     conn = sqlite3.connect(database)
     cur = conn.cursor()
