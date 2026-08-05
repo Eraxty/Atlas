@@ -1,8 +1,9 @@
 from search import get_release, get_articles
 import xml.etree.ElementTree as et
 from email.utils import parsedate_to_datetime
+from pathlib import Path
 
-def generate_nzb(release_id):
+def generate_nzb(release_id, output_dir=None):
     release = get_release(release_id)
     articles = get_articles(release_id)
 
@@ -60,7 +61,11 @@ def generate_nzb(release_id):
     tree = et.ElementTree(nzb)
     et.indent(tree, space="  ")
 
-    filename = f"{release[1]}.nzb"
+    safe_name = release[1].replace("/", "_")
+    filename = f"{safe_name}.nzb"
+
+    if output_dir:
+        filename = str(Path(output_dir) / filename)
 
     #save xml
     tree.write(filename, encoding="utf-8", xml_declaration=True)

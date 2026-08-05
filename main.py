@@ -1,10 +1,11 @@
 
 from config import load_config, save_config
 from database import create_db
+from download import download_release
 from groups_menu import groups_menu
 from nzb import generate_nzb
 from prompts import prompt
-from search import count_all_releases, count_releases, search_all_releases, search_releases
+from search import count_all_releases, count_releases, get_release, search_all_releases, search_releases
 from pathlib import Path
 import json
 import math
@@ -13,7 +14,6 @@ import shutil
 import signal
 import subprocess
 import sys
-from sab import start, stop, is_running
 
 BASE_DIR = Path(__file__).resolve().parent
 PID_FILE = BASE_DIR / "bg_indexer.pid"
@@ -233,8 +233,32 @@ def search_menu(config):
             prompt("Press Enter to continue...")
             continue
 
-        generate_nzb(choice_id)
-        return
+        release = get_release(choice_id)
+        release_name = release[1] if release else f"#{choice_id}"
+
+        while True:
+            clear()
+
+            print(f"Release: {release_name}")
+            print("1. Download")
+            print("2. Save NZB")
+            print("0. Back")
+
+            choice = prompt("\nChoice: ").strip()
+
+            if choice == "1":
+                download_release(choice_id)
+                return
+
+            if choice == "2":
+                generate_nzb(choice_id)
+                return
+
+            if choice == "0":
+                break
+
+            print("Invalid choice.")
+            prompt("Press Enter to continue...")
 
 def settings_menu():
     clear()
