@@ -2,6 +2,8 @@ from config import load_config
 from nntp_client import NNTPClient
 from indexer import Indexer
 from pathlib import Path
+import signal
+import sys
 import time
 import json
 
@@ -28,19 +30,31 @@ def update_status(running, group):
             "group": group
         }, f)
 
-update_status(True, config["group"])
+def handle_stop(signum, frame):
+    update_status(False, "")
+    sys.exit(0)
+
+signal.signal(signal.SIGTERM, handle_stop)
+
+current_group = config["group"]
+
+update_status(True, current_group)
 
 try:
     while True:
         config = load_config()
-        update_status(True, config["group"])
+        group = config["group"]
+
+        if group != current_group:
+            update_status(True, group)
+            current_group = group
 
         try:
-            indexer.index_group(config["group"])
+            indexer.index_group(group)
             time.sleep(0.1)
 
         except Exception as e:
-            print(f"Indexing error ({config['group']}): {e}")
+            print(f"Indexing error ({group}): {e}")
             time.sleep(2)
 
 finally:

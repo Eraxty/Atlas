@@ -22,7 +22,7 @@ class Indexer:
 
         if state is None:
             live_cursor = int(last)
-            backfill_cursor = max(int(first), int(last) - BACKFILL_SIZE)
+            backfill_cursor = int(last)
 
             update_live_cursor(group, live_cursor)
             update_backfill_cursor(group, backfill_cursor)
