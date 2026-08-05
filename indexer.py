@@ -27,15 +27,18 @@ class Indexer:
             update_live_cursor(group, live_cursor)
             update_backfill_cursor(group, backfill_cursor)
 
+            state = {
+                "live_cursor": live_cursor,
+                "backfill_cursor": backfill_cursor,
+            }
             self.mode = "backfill"
 
         if self.mode == "live":
-            self.live(group, int(last))
+            self.live(group, state, int(last))
         else:
-            self.backfill(group, int(first))
+            self.backfill(group, state, int(first))
 
-    def live(self, group, last):
-        state = get_group_state(group)
+    def live(self, group, state, last):
         start = state["live_cursor"] + 1
 
         if start > last:
@@ -43,27 +46,26 @@ class Indexer:
             self.mode = "backfill"
             return
 
-        self.process_range(group, start, last)
+        self.process_range(group, start, last, "LIVE")
         update_live_cursor(group, last)
         self.mode = "backfill"
 
-    def backfill(self, group, first):
-        state = get_group_state(group)
+    def backfill(self, group, state, first):
         end = state["backfill_cursor"]
 
         if end < first:
             self.mode = "live"
             return
 
-        start = max(end - BACKFILL_SIZE, first)
-        self.process_range(group, start, end)
+        start = max(first, end - BACKFILL_SIZE + 1)
+        self.process_range(group, start, end, "BACKFILL")
         update_backfill_cursor(group, start - 1)
         self.mode = "live"
 
-    def process_range(self, group, start, end):
+    def process_range(self, group, start, end, kind):
         headers = list(self.client.fetch_headers(start, end))
 
-        print(f"Fetched {len(headers)} headers.")
+        print(f"[{kind}] {len(headers)} headers")
 
         articles = headers_to_articles(headers)
         releases = group_articles(articles)
@@ -71,8 +73,6 @@ class Indexer:
         for release in releases.values():
             release["complete"] = is_complete(release)
             release["group"] = group
-            print(type(release["articles"][0]))
-            print(release["articles"][0])
             release["poster"] = release["articles"][0].author
             release["date"] = release["articles"][0].date
 
