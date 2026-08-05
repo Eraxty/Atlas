@@ -13,6 +13,7 @@ import shutil
 import signal
 import subprocess
 import sys
+from sab import start, stop, is_running
 
 BASE_DIR = Path(__file__).resolve().parent
 PID_FILE = BASE_DIR / "bg_indexer.pid"
