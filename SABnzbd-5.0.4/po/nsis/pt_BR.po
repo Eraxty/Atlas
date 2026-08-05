@@ -1,0 +1,72 @@
+# SABnzbd Translation Template file NSIS
+# Copyright 2007-2026 by The SABnzbd-Team (sabnzbd.org)
+# 
+# Translators:
+# Safihre <safihre@sabnzbd.org>, 2025
+# 
+msgid ""
+msgstr ""
+"Project-Id-Version: SABnzbd-5.0.0\n"
+"PO-Revision-Date: 2020-06-27 15:56+0000\n"
+"Last-Translator: Safihre <safihre@sabnzbd.org>, 2025\n"
+"Language-Team: Portuguese (Brazil) (https://app.transifex.com/sabnzbd/teams/111101/pt_BR/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: pt_BR\n"
+"Plural-Forms: nplurals=3; plural=(n == 0 || n == 1) ? 0 : n != 0 && n % 1000000 == 0 ? 1 : 2;\n"
+
+#: builder/win/NSIS_Installer.nsi
+msgid "Show Release Notes"
+msgstr "Mostrar Notas de Lançamento"
+
+#: builder/win/NSIS_Installer.nsi
+msgid "Run SABnzbd"
+msgstr "Executar o SABnzbd"
+
+#: builder/win/NSIS_Installer.nsi
+msgid "Support the project, Donate!"
+msgstr "Apoie o projeto. Faça uma doação!"
+
+#: builder/win/NSIS_Installer.nsi
+msgid "SABnzbd only supports 64-bit Windows."
+msgstr "O SABnzbd oferece suporte apenas ao Windows de 64 bits."
+
+#: builder/win/NSIS_Installer.nsi
+msgid "SABnzbd only supports Windows 8.1 and above."
+msgstr "O SABnzbd oferece suporte apenas ao Windows 8.1 e superior."
+
+#: builder/win/NSIS_Installer.nsi
+msgid ""
+"An ARM version of SABnzbd is available on our Downloads page. This installer"
+" only contains the regular version.\\nPress OK to continue or Cancel to "
+"exit."
+msgstr ""
+
+#: builder/win/NSIS_Installer.nsi
+msgid "Shutting down SABnzbd"
+msgstr "Encerrando o SABnzbd"
+
+#: builder/win/NSIS_Installer.nsi
+msgid "This will uninstall SABnzbd from your system"
+msgstr "Isso irá desinstalar SABnzbd de seu sistema"
+
+#: builder/win/NSIS_Installer.nsi
+msgid "Run at startup"
+msgstr "Executar na inicialização"
+
+#: builder/win/NSIS_Installer.nsi
+msgid "Desktop Icon"
+msgstr "Ícone na Área de Trabalho"
+
+#: builder/win/NSIS_Installer.nsi
+msgid "NZB File association"
+msgstr "Associação com Arquivos NZB"
+
+#: builder/win/NSIS_Installer.nsi
+msgid "Delete Program"
+msgstr "Excluir o Programa"
+
+#: builder/win/NSIS_Installer.nsi
+msgid "Delete Settings"
+msgstr "Apagar Configurações"

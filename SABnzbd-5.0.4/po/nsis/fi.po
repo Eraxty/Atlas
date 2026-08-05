@@ -1,0 +1,72 @@
+# SABnzbd Translation Template file NSIS
+# Copyright 2007-2026 by The SABnzbd-Team (sabnzbd.org)
+# 
+# Translators:
+# Safihre <safihre@sabnzbd.org>, 2025
+# 
+msgid ""
+msgstr ""
+"Project-Id-Version: SABnzbd-5.0.0\n"
+"PO-Revision-Date: 2020-06-27 15:56+0000\n"
+"Last-Translator: Safihre <safihre@sabnzbd.org>, 2025\n"
+"Language-Team: Finnish (https://app.transifex.com/sabnzbd/teams/111101/fi/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: fi\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: builder/win/NSIS_Installer.nsi
+msgid "Show Release Notes"
+msgstr "Näytä julkaisutiedot"
+
+#: builder/win/NSIS_Installer.nsi
+msgid "Run SABnzbd"
+msgstr "Käynnistä SABnzbd"
+
+#: builder/win/NSIS_Installer.nsi
+msgid "Support the project, Donate!"
+msgstr "Tue projektia, lahjoita!"
+
+#: builder/win/NSIS_Installer.nsi
+msgid "SABnzbd only supports 64-bit Windows."
+msgstr "SABnzbd tukee vain 64-bittistä Windowsia."
+
+#: builder/win/NSIS_Installer.nsi
+msgid "SABnzbd only supports Windows 8.1 and above."
+msgstr "SABnzbd tukee vain Windows 8.1:tä ja uudempia."
+
+#: builder/win/NSIS_Installer.nsi
+msgid ""
+"An ARM version of SABnzbd is available on our Downloads page. This installer"
+" only contains the regular version.\\nPress OK to continue or Cancel to "
+"exit."
+msgstr ""
+
+#: builder/win/NSIS_Installer.nsi
+msgid "Shutting down SABnzbd"
+msgstr "Sammutetaan SABnzbd"
+
+#: builder/win/NSIS_Installer.nsi
+msgid "This will uninstall SABnzbd from your system"
+msgstr "Tämä poistaa SABnzbd:n tietokoneestasi"
+
+#: builder/win/NSIS_Installer.nsi
+msgid "Run at startup"
+msgstr "Suorita käynnistyksen yhteydessä"
+
+#: builder/win/NSIS_Installer.nsi
+msgid "Desktop Icon"
+msgstr "Työpöydän kuvake"
+
+#: builder/win/NSIS_Installer.nsi
+msgid "NZB File association"
+msgstr "NZB tiedostosidos"
+
+#: builder/win/NSIS_Installer.nsi
+msgid "Delete Program"
+msgstr "Poista sovellus"
+
+#: builder/win/NSIS_Installer.nsi
+msgid "Delete Settings"
+msgstr "Poista asetukset"

@@ -1,0 +1,76 @@
+# SABnzbd Translation Template file NSIS
+# Copyright 2007-2026 by The SABnzbd-Team (sabnzbd.org)
+# 
+# Translators:
+# Safihre <safihre@sabnzbd.org>, 2025
+# Fred L <88com88@gmail.com>, 2026
+# 
+msgid ""
+msgstr ""
+"Project-Id-Version: SABnzbd-5.0.0\n"
+"PO-Revision-Date: 2020-06-27 15:56+0000\n"
+"Last-Translator: Fred L <88com88@gmail.com>, 2026\n"
+"Language-Team: French (https://app.transifex.com/sabnzbd/teams/111101/fr/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: fr\n"
+"Plural-Forms: nplurals=3; plural=(n == 0 || n == 1) ? 0 : n != 0 && n % 1000000 == 0 ? 1 : 2;\n"
+
+#: builder/win/NSIS_Installer.nsi
+msgid "Show Release Notes"
+msgstr "Afficher les notes de version"
+
+#: builder/win/NSIS_Installer.nsi
+msgid "Run SABnzbd"
+msgstr "Lancer SABnzbd"
+
+#: builder/win/NSIS_Installer.nsi
+msgid "Support the project, Donate!"
+msgstr "Soutenez le projet, faites un don !"
+
+#: builder/win/NSIS_Installer.nsi
+msgid "SABnzbd only supports 64-bit Windows."
+msgstr "SABnzbd n'est compatible qu'avec Windows 64 bits."
+
+#: builder/win/NSIS_Installer.nsi
+msgid "SABnzbd only supports Windows 8.1 and above."
+msgstr "SABnzbd n'est compatible qu'avec Windows 8.1 et plus."
+
+#: builder/win/NSIS_Installer.nsi
+msgid ""
+"An ARM version of SABnzbd is available on our Downloads page. This installer"
+" only contains the regular version.\\nPress OK to continue or Cancel to "
+"exit."
+msgstr ""
+"Une version ARM de SABnzbd est disponible sur notre page de téléchargement. "
+"Ce programme d'installation ne contient que la version standard.\\nCliquez "
+"sur OK pour continuer ou sur Annuler pour quitter."
+
+#: builder/win/NSIS_Installer.nsi
+msgid "Shutting down SABnzbd"
+msgstr "Arrêt de SABnzbd"
+
+#: builder/win/NSIS_Installer.nsi
+msgid "This will uninstall SABnzbd from your system"
+msgstr "Ceci désinstallera SABnzbd de votre système"
+
+#: builder/win/NSIS_Installer.nsi
+msgid "Run at startup"
+msgstr "Lancer au démarrage"
+
+#: builder/win/NSIS_Installer.nsi
+msgid "Desktop Icon"
+msgstr "Icône sur le Bureau"
+
+#: builder/win/NSIS_Installer.nsi
+msgid "NZB File association"
+msgstr "Association des fichiers NZB"
+
+#: builder/win/NSIS_Installer.nsi
+msgid "Delete Program"
+msgstr "Supprimer le programme"
+
+#: builder/win/NSIS_Installer.nsi
+msgid "Delete Settings"
+msgstr "Supprimer les paramètres"

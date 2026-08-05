@@ -1,0 +1,159 @@
+body {
+    background-color: #E4E4E4;
+    text-align: center;
+}
+.container {
+    max-width: 1000px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    background-color: #fff;
+    text-align: left;
+}
+#inner {
+    background-color: #fff;
+    padding: 4px 32px 20px 32px;
+}
+#content {
+    min-height: 550px;
+}
+#logo {
+    z-index: 40;
+    margin-bottom: -39px;
+    margin-top: 20px;
+}
+#logo svg {
+    height: 55px;
+    width: 198px;
+}
+.language {
+    min-width: 150px;
+    width: 18%;
+    padding: 1em 0em;
+    margin: 5px 5px;
+    text-align: center;
+    float: left;
+}
+.language:hover {
+    background-color: #E4E4E4;
+}
+.float {
+    float: left;
+}
+.clear {
+    clear: left;
+}
+.spacer {
+    clear: both;
+}
+.inline {
+    display: inline;
+}
+.quoteBlock {
+    padding: 12px;
+    margin-top: 1px;
+    margin-bottom: 15px;
+    background-color: #f5f5f5;
+}
+.quoteBlock a,
+a[target="_blank"] {
+
+    text-decoration: underline !important;
+}
+.success {
+    color: #00cc22;
+}
+.failed {
+    color: red !important;
+}
+#rightGreyText {
+    color: #ccc;
+    width: 100%;
+    text-align: right;
+    padding-top: 3px;
+    font-style: italic;
+}
+.indented {
+    padding-left: 10px;
+}
+label {
+    cursor: pointer;
+}
+.input-checkbox {
+    padding-top: 7px !important;
+}
+.input-checkbox input+.help-block {
+    display: none;
+}
+.input-checkbox input:checked+.help-block {
+    display: block;
+    float: right;
+    margin: 0;
+}
+.desc {
+    font-size: 12px;
+    font-style: italic;
+}
+.align-right {
+    text-align: right;
+}
+.align-center {
+    text-align: center;
+}
+.bigger {
+    font-size: 14px;
+}
+.bigger input {
+    font-size: 16px;
+}
+.full-width {
+    width: 100%;
+}
+.hidden {
+    display: none !important;
+}
+.text-input {
+    width: 130px;
+}
+.text-input-wide {
+    width: 230px;
+}
+#server-hidden-settings input[type="number"] {
+    width: 100px;
+}
+.input-group-bw {
+    width: 150px;
+}
+#serverResponse {
+    padding: 6px 10px;
+}
+#host-tip {
+    margin-bottom: 5px;
+}
+#bandwidth {
+    display: inline-block;
+}
+
+/***
+    Bootstrap overwrites
+***/
+
+* {
+    border-radius: 0 !important;
+}
+a,
+a:hover,
+a:active,
+a:visited,
+#serverResponse {
+    color: #555;
+}
+.btn {
+    box-shadow: 1px 1px 1px rgba(0, 0, 0, .1) !important;
+    min-width: 150px;
+}
+.btn .glyphicon,
+a .glyphicon {
+    top: 2px;
+}
+small {
+    color: #777;
+}

@@ -1,0 +1,40 @@
+#encoding UTF-8
+##
+## SABnzbd תבנית דוא״ל ברירת מחדל עבור
+## זאת תבנית ברדלס
+## http://sabnzbd.wikidot.com/email-templates :תיעוד
+##
+## !שורות חדשות ורווחים לבנים הם משמעותיים
+##
+## אלו כותרות הדוא״ל
+$to :אל
+$from :מאת
+תאריך: $date
+<!--#if $status then "completed" else "failed" #--> $name יש עבודה אשר SABnzbd-נושא: ל
+## !אחרי זה בא הגוף, השורה הריקה דרושה
+
+,היי
+<!--#if $status #-->
+SABnzbd הוריד את "$name" <!--#if $msgid=="" then "" else "(newzbin #" + $msgid + ")"#-->
+<!--#else#-->
+SABnzbd נכשל להוריד את "$name" <!--#if $msgid=="" then "" else "(newzbin #" + $msgid + ")"#-->
+<!--#end if#-->
+הסתיים ב-$end_time
+הורדו $size
+
+:תוצאות העבודה
+<!--#for $stage in $stages #-->
+שלב $stage <!--#slurp#-->
+<!--#for $result in $stages[$stage]#-->
+    $result <!--#slurp#-->
+<!--#end for#-->
+<!--#end for#-->
+<!--#if $script!="" #-->
+:(קוד יציאה = $script_ret) "$script" פלט מתסריט משתמש
+$script_output
+<!--#end if#-->
+<!--#if $status #-->
+!תהנה
+<!--#else#-->
+!סליחה
+<!--#end if#-->

@@ -1,0 +1,24 @@
+#encoding UTF-8
+##
+## SABnzbd עבור RSS תבנית דוא״ל
+## זאת תבנית ברדלס
+## http://sabnzbd.wikidot.com/email-templates :תיעוד
+##
+## !שורות חדשות ורווחים לבנים הם משמעותיים
+##
+## אלו כותרות הדוא״ל
+$to :אל
+$from :מאת
+תאריך: $date
+הוסיף $amount עבודות לתור SABnzbd :נושא
+## !אחרי זה בא הגוף, השורה הריקה דרושה
+
+,היי
+
+.הוסיף $amount עבודות לתור SABnzbd
+."$feed" בשם RSS הם מהזנת
+<!--#for $job in $jobs#-->
+    $job <!--#slurp#-->
+<!--#end for#-->
+
+ביי

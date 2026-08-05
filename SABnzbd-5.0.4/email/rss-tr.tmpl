@@ -1,0 +1,26 @@
+#encoding UTF-8
+##
+## SABnzbd için RSS e-posta şablonu
+## Bu, bir Cheetah şablonudur
+## Belgelendirme: https://sabnzbd.org/wiki/extra/email-templates
+##
+## Yeni satırlar ve boşluklar önemlidir!
+##
+## Bunlar, e-posta başlıklarıdır
+To: $to
+From: $from
+Date: $date
+Subject: SABnzbd, $amount işi kuyruğa ekledi
+X-priority: 5
+X-MS-priority: 5
+## Bundan sonra mesaj gövdesi gelir, boş satır gereklidir!
+
+Merhaba,
+
+SABnzbd, $amount işi kuyruğa ekledi.
+Bunlar şu RSS beslemesindendir: "$feed".
+<!--#for $job in $jobs#-->
+    $job <!--#slurp#-->
+<!--#end for#-->
+
+Görüşmek üzere

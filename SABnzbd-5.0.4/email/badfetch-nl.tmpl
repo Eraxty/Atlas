@@ -1,0 +1,23 @@
+#encoding UTF-8
+##
+## Ongeldige URL Ophaal Email sjabloon voor SABnzbd
+## Dit is een Cheetah sjabloon
+## Documentatie: http://sabnzbd.wikidot.com/email-templates
+##
+## Lege regels en spaties zijn belangrijk!
+##
+## Dit zijn de email koppen
+To: $to
+From: $from
+Date: $date
+Subject: Ophalen van NZB door SABnzbd is mislukt
+X-priority: 5
+X-MS-priority: 5
+## Hierna komt het bericht, de lege regel is noodzakelijk!
+
+Hi,
+
+Het is SABnzbd niet gelukt om een NZB bestand op te halen van $url.
+De foutmelding was $msg
+
+Sorry

@@ -1,0 +1,26 @@
+#encoding UTF-8
+##
+## Modèle d'e-mail RSS pour SABnzbd
+## Ceci est un modèle Cheetah
+## Documentation : https://sabnzbd.org/wiki/extra/email-templates
+##
+## Les retours à la ligne et espaces sont importants !
+##
+## Voici les en-têtes de l'email
+À : $to
+De : $from
+Date : $date
+Objet : SABnzbd a ajouté $amount tâches dans la file d'attente
+X-priorité: 5
+X-MS-priorité: 5
+## Après cela vient le corps du message, la ligne vide est nécessaire !
+
+Bonjour,
+
+SABnzbd a ajouté $amount tâche(s) à la file d'attente.
+Elles viennent du flux RSS "$feed".
+<!--#for $job in $jobs#-->
+    $job <!--#slurp#-->
+<!--#end for#-->
+
+Bye

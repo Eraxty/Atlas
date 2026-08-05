@@ -1,0 +1,24 @@
+#encoding UTF-8
+##
+## RSS Email sjabloon voor SABnzbd
+## Dit is een Cheetah sjabloon
+## Documentatie: http://sabnzbd.wikidot.com/email-templates
+##
+## Lege regels en spaties zijn belangrijk!
+##
+## Dit zijn de email koppen
+To: $to
+From: $from
+Date: $date
+Subject: SABnzbd heeft $amount opdrachten aan de wachtrij toegevoegd
+X-priority: 5
+X-MS-priority: 5
+## Hierna komt de inhoud, de lege regel is benodigd!
+
+Hallo,
+
+SABnzbd heeft $amount opdrachten aan de wachtrij toegevoegd.
+Ze komen van de RSS bron "$feed".
+<!--#for $job in $jobs#-->
+    $job <!--#slurp#-->
+<!--#end for#-->

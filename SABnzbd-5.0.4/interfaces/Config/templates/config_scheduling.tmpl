@@ -1,0 +1,149 @@
+<!--#set global $pane="Scheduling"#-->
+<!--#set global $help_uri = $confighelpuri + "scheduling"#-->
+<!--#include $webdir + "/_inc_header_uc.tmpl"#-->
+
+<%
+import time
+t = time.localtime()
+hour = t[3]
+if hour != 23:
+  hour += 1
+else:
+  hour = 0
+%>
+
+<div class="colmask">
+    <div class="section">
+        <div class="col2">
+            <h3>$T('addSchedule') <a href="$help_uri" target="_blank"><span class="glyphicon glyphicon-question-sign"></span></a></h3>
+        </div><!-- /col2 -->
+        <form action="addSchedule" method="post" autocomplete="off">
+        <input type="hidden" id="apikey" name="apikey" value="$apikey" />
+        <div class="col1">
+            <fieldset>
+                <div class="field-pair">
+                    <label class="config" for="hour">$T('hour').capitalize() : $T('minute').capitalize()</label>
+                    <select name="hour" id="hour">
+                        <!--#for $i in range(24)#-->
+                            <option value="$i" <!--#if hour == i then 'selected="selected"' else ""#--> > $str($i).zfill(2) </option>
+                        <!--#end for#-->
+                    </select>&nbsp;<b>:</b>&nbsp;<select name="minute" id="minute">
+                        <!--#for $i in range(60)#-->
+                            <option value="$i"> $str($i).zfill(2) </option>
+                        <!--#end for#-->
+                    </select>
+                </div>
+                <div class="field-pair">
+                    <label class="config">$T('sch-frequency')</label>
+                    <div class="checkbox-days">
+                      <label><input type="checkbox" name="daysofweek" value="1"/> $T('monday')</label><br />
+                      <label><input type="checkbox" name="daysofweek" value="2"/> $T('tuesday')</label><br />
+                      <label><input type="checkbox" name="daysofweek" value="3"/> $T('wednesday')</label><br />
+                      <label><input type="checkbox" name="daysofweek" value="4"/> $T('thursday')</label><br />
+                      <label><input type="checkbox" name="daysofweek" value="5"/> $T('friday')</label><br />
+                      <label><input type="checkbox" name="daysofweek" value="6"/> $T('saturday')</label><br />
+                      <label><input type="checkbox" name="daysofweek" value="7"/> $T('sunday')</label>
+                    </div>
+                </div>
+                <div class="field-pair">
+                    <label class="config" for="action">$T('sch-action')</label>
+                    <select name="action" id="action">
+                        <optgroup label="$T('sch-action')">
+                            <!--#for $action in $actions#-->
+                                <option value="$action" data-action="" data-noarg="<!--#if $action == 'speedlimit' then 0 else 1#-->">$actions_lng[$action]</option>
+                            <!--#end for#-->
+                        </optgroup>
+                        <optgroup label="$T('cmenu-servers')">
+                            <!--#for $server in $actions_servers.keys()#-->
+                                <option value="$server" data-action="1" data-noarg="1">$T('sch-enable_server') "$actions_servers[$server]"</option>
+                                <option value="$server" data-action="0" data-noarg="1">$T('sch-disable_server') "$actions_servers[$server]"</option>
+                            <!--#end for#-->
+                        </optgroup>
+                        <optgroup label="$T('cmenu-cat')">
+                            <!--#for $cat in $categories#-->
+                                <!--#set $cat_text = $T('Default') if $cat == '*' else $cat#-->
+                                <option value="pause_cat" data-action="$cat" data-noarg="1">$T('sch-pause_cat') "$cat_text"</option>
+                                <option value="resume_cat" data-action="$cat" data-noarg="1">$T('sch-resume_cat') "$cat_text"</option>
+                            <!--#end for#-->
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="field-pair" id="hidden_arguments" style="display: none">
+                    <label class="config" for="arguments">$T('sch-arguments')</label>
+                    <input type="text" name="arguments" id="arguments" class="select_width" />
+                </div>
+                <div class="field-pair">
+                    <button class="btn btn-default"><span class="glyphicon glyphicon-plus"></span> $T('button-addSchedule')</button>
+                </div>
+            </fieldset>
+        </div><!-- /col1 -->
+        </form>
+    </div><!-- /section -->
+
+    <div class="section">
+        <div class="col2">
+            <h3>$T('currentSchedules')</h3>
+        </div><!-- /col2 -->
+        <div class="col1">
+            <fieldset>
+                <!--#if $schedlines#-->
+                        <!--#set $odd = True#-->
+                        <!--#for $schednum, $line in enumerate($schedlines)#-->
+                            <!--#set $odd = not $odd#-->
+                            <form action="delSchedule" method="post">
+                                <input type="hidden" name="apikey" value="$apikey"/>
+                                <input type="hidden" name="line" id="line" value="$line"/>
+                                <div class="field-pair infoTableSeperator <!--#if $odd then "" else " alt"#-->">
+                                    <input type="checkbox" name="schedenabled" value="$line" <!--#if int($taskinfo[$schednum][5]) > 0 then 'checked="checked"' else ""#-->>
+                                    <button class="btn btn-default float-left"><span class="glyphicon glyphicon-trash"></span></button>
+                                    <div class="scheduleEntry">
+                                        <span class="time">$taskinfo[$schednum][1]:$taskinfo[$schednum][2]</span><span class="frequency">$taskinfo[$schednum][3]</span> <span class="darkred">$taskinfo[$schednum][4]</span>
+                                    </div>
+                                </div>
+                            </form>
+                        <!--#end for#-->
+                <!--#else#-->
+                    <div class="field-pair">
+                        <label class="config">$T('none')</label>
+                    </div>
+                <!--#end if#-->
+            </fieldset>
+        </div><!-- /col1 -->
+    </div><!-- /section -->
+</div><!-- /colmask -->
+<script type="text/javascript">
+    jQuery('#action').on('change', function() {
+        // Set the action
+        jQuery('#arguments').val((jQuery(this).find('option:selected').data('action')))
+
+        // Is it speedlimit?
+        if(jQuery(this).find('option:selected').val() === 'speedlimit') {
+            jQuery('#hidden_arguments').show()
+            jQuery('#hidden_arguments input').attr('placeholder', 'Bytes/s, "1M" = 1 MB/s, "500K" = 500 KB/s')
+        } else {
+            jQuery('#hidden_arguments').hide()
+            jQuery('#hidden_arguments input').attr('placeholder', '')
+        }
+
+        /* Arguments - since we only have speedlimit with arguments, disabled for now
+        if(jQuery(this).find('option:selected').data('noarg')) {
+            jQuery('#hidden_arguments').hide()
+        } else {
+            jQuery('#hidden_arguments').show()
+        }*/
+    })
+
+    jQuery('[name="schedenabled"]').click(function() {
+        jQuery.ajax({
+            type: "POST",
+            url: "toggleSchedule",
+            data: {line: jQuery(this).val(), apikey: "$apikey" }
+        }).done(function() {
+            // Let us leave!
+            formWasSubmitted = true;
+            formHasChanged = false;
+            location.reload();
+        });
+    });
+</script>
+<!--#include $webdir + "/_inc_footer_uc.tmpl"#-->

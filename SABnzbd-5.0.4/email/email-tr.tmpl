@@ -1,0 +1,42 @@
+#encoding UTF-8
+##
+## SABnzbd için varsayılan e-posta şablonu
+## Bu, bir Cheetah şablonudur
+## Belgelendirme: https://sabnzbd.org/wiki/extra/email-templates
+##
+## Yeni satırlar ve boşluklar önemlidir!
+##
+## Bunlar e-posta başlıklarıdır
+To: $to
+From: $from
+Date: $date
+Subject: SABnzbd, şu işi <!--#if $status then "indirdi" else "indiremedi" #--> job $name
+X-priority: 5
+X-MS-priority: 5
+## Bu satırdan sonra içerik başlar, boş satır gereklidir!
+
+Merhaba,
+<!--#if $status #-->
+SABnzbd şu dosyayı indirdi "$name" <!--#if $msgid=="" then "" else "(newzbin #" + $msgid + ")"#-->
+<!--#else#-->
+SABnzbd şu dosyayı indirmede başarısız oldu "$name" <!--#if $msgid=="" then "" else "(newzbin #" + $msgid + ")"#-->
+<!--#end if#-->
+Şu tarihte bitti: $end_time
+Şu miktar indirildi: $size
+
+İşin sonucu:
+<!--#for $stage in $stages #-->
+Aşama $stage <!--#slurp#-->
+<!--#for $result in $stages[$stage]#-->
+    $result <!--#slurp#-->
+<!--#end for#-->
+<!--#end for#-->
+<!--#if $script!="" #-->
+"$script" kullanıcı betiğinin çıktısı (Çıkış kodu = $script_ret):
+$script_output
+<!--#end if#-->
+<!--#if $status #-->
+Görüşmek üzere!
+<!--#else#-->
+Özür dileriz!
+<!--#end if#-->

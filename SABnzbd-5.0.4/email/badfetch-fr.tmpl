@@ -1,0 +1,23 @@
+#encoding UTF-8
+##
+## Modèle d'email d'URL incorrecte pour SABnzbd
+## Ceci est un modèle Cheetah
+## Documentation : https://sabnzbd.org/wiki/extra/email-templates
+##
+## Les retours à la ligne et les espaces sont importants !
+##
+## Voici les en-têtes de l'email
+À : $to
+De : $from
+Date : $date
+Objet : SABnzbd n'a pas réussi à récupérer un NZB
+X-priorité: 5
+X-MS-priorité: 5
+## After this comes the body, the empty line is required!
+
+Bonjour,
+
+SABnzbd n'a pas réussi à récupérer le NZB depuis $url.
+Le message d'erreur était : $msg
+
+Bye

@@ -1,0 +1,24 @@
+#encoding UTF-8
+##
+## RSS Email template for SABnzbd
+## This a Cheetah template
+## Documentation: http://sabnzbd.wikidot.com/email-templates
+##
+## Newlines and whitespace are significant!
+##
+## These are the email headers
+To: $to
+From: $from
+Date: $date
+Subject: SABnzbd hat $amount Aufträge zur Warteschlange hinzugefügt
+X-priority: 5
+X-MS-priority: 5
+## After this comes the body, the empty line is required!
+
+Hallo,
+
+SABnzbd hat $amount Aufträge zur Warteschlange hinzugefügt.
+Sie stammen vom RSS-Feed "$feed".
+<!--#for $job in $jobs#-->
+    $job <!--#slurp#-->
+<!--#end for#-->

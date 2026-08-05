@@ -1,0 +1,130 @@
+# English corrections for sabnzbd
+# Copyright (c) 2011 Rosetta Contributors and Canonical Ltd 2011
+# This file is distributed under the same license as the sabnzbd package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2011.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: sabnzbd\n"
+"Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
+"POT-Creation-Date: 2015-07-04 10:12+0000\n"
+"PO-Revision-Date: 2015-07-04 12:26+0000\n"
+"Last-Translator: shypike <Unknown>\n"
+"Language-Team: Dutch <nl@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Pause low prioirty jobs"
+msgstr "Pause low priority jobs"
+
+msgid "Pause normal prioirty jobs"
+msgstr "Pause normal priority jobs"
+
+msgid "Pause high prioirty jobs"
+msgstr "Pause high priority jobs"
+
+msgid "Resume low prioirty jobs"
+msgstr "Resume low priority jobs"
+
+msgid "Resume normal prioirty jobs"
+msgstr "Resume normal priority jobs"
+
+msgid "Resume high prioirty jobs"
+msgstr "Resume high priority jobs"
+
+msgid ""
+"&nbsp<br />SABnzbd shutdown finished.<br />Wait for about 5 second and then "
+"click the button below.<br /><br /><strong><a "
+"href=\"..\">Refresh</a></strong><br />"
+msgstr ""
+"&nbsp<br />SABnzbd shutdown finished.<br />Wait for about 5 seconds and then "
+"click the button below.<br /><br /><strong><a "
+"href=\"..\">Refresh</a></strong><br />"
+
+msgid "Retry all failed"
+msgstr "Retry All Failed"
+
+msgid "disable server"
+msgstr "Disable server:"
+
+msgid "enable server"
+msgstr "Enable server:"
+
+msgid "The server didn't reply properly to the helo greeting"
+msgstr "The server didn't reply properly to the hello greeting"
+
+msgid "API Key missing, please enter the api key from Config->General into your 3rd party program:"
+msgstr "API key missing, please enter the API key from Config->General into your 3rd party program:"
+
+msgid "API Key incorrect, Use the api key from Config->General in your 3rd party program:"
+msgstr "API key incorrect, Use the API key from Config->General in your 3rd party program:"
+
+msgid "HTTPS Chain Certifcates"
+msgstr "HTTPS Chain Certificates"
+
+msgid "Replace Spaces in Foldername"
+msgstr "Replace spaces in folder name"
+
+msgid "Replace dots in Foldername"
+msgstr "Replace dots in folder name"
+
+msgid "How long or untill when do you want to pause? (in English!)"
+msgstr "How long or until when do you want to pause? (in English!)"
+
+msgid "Timeleft"
+msgstr "Time left"
+
+msgid "Optionally specify a filename"
+msgstr "Optionally specify a name"
+
+msgid "Confirm Queue Deletions"
+msgstr "Confirm queue deletions"
+
+msgid "Confirm History Deletions"
+msgstr "Confirm history deletions"
+
+msgid "System Performance (Pystone)"
+msgstr "System performance (Pystone)"
+
+msgid "Web Interface"
+msgstr "Web interface"
+
+msgid "Script returned exit code %s and output \"%s\""
+msgstr "Notification script returned exit code %s and output \"%s\""
+
+msgid "If empty, the standard port will only listen to HTTPS."
+msgstr "If empty, the SABnzbd Port set above will listen to HTTPS."
+
+msgid "Posts will be paused untill they are at least this age. Setting job priority to Force will skip the delay."
+msgstr "Posts will be paused until they are at least this age. Setting job priority to Force will skip the delay."
+
+msgid "Support the project, Donate!"
+msgstr "Support the project, donate!"
+
+msgid "User script can flag job as failed"
+msgstr "Post-processing script can flag job as failed"
+
+msgid "When the user script returns a non-zero exit code, the job will be flagged as failed."
+msgstr "When the post-processing script returns a non-zero exit code, the job will be flagged as failed."
+
+msgid "unrar binary... NOT found"
+msgstr "unrar binary... NOT found!"
+
+msgid "Downloads will not unpacked."
+msgstr "Downloads will not be unpacked."
+
+msgid "Seperate multiple URLs by a comma"
+msgstr "Separate multiple URLs with a comma"
+
+msgid "Advanced"
+msgstr "Advanced Settings"
+
+msgid "0 is highest priority, 100 is the lowest priority"
+msgstr "0 is highest priority, 99 is the lowest priority"
+
+msgid "Filter out sample files (e.g. video samples)."
+msgstr "Filter out sample files (e.g. video samples/proofs)."
+
+msgid "Pre-queue user script"
+msgstr "Pre-queue script"

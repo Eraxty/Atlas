@@ -1,0 +1,23 @@
+#encoding UTF-8
+##
+## SABnzbd için yanlış URL alma e-posta şablonu
+## Bu, bir Cheetah şablonudur
+## Belgelendirme: https://sabnzbd.org/wiki/extra/email-templates\n
+##
+## Yeni satırlar ve boşluklar önemlidir!
+##
+## Bunlar, e-posta başlıklarıdır
+To: $to
+From: $from
+Date: $date
+Subject: SABnzbd, bir NZB dosyası almada başarısız oldu
+X-priority: 5
+X-MS-priority: 5
+## Bundan sonra mesaj gövdesi gelir, boş satır gereklidir!
+
+Merhaba,
+
+SABnzbd, NZB dosyasını şu bağlantıdan almada başarısız oldu: $url.
+Hata mesajı şuydu: $msg
+
+Görüşmek üzere

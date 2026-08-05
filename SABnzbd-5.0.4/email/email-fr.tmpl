@@ -1,0 +1,42 @@
+#encoding UTF-8
+##
+## Modèle d'e-mail par défaut pour SABnzbd
+## Ceci est un modèle Cheetah
+## Documentation : https://sabnzbd.org/wiki/extra/email-templates
+##
+## Les retours à la ligne et les espaces sont importants !
+##
+## Voici les en-têtes de l'email
+À : $to
+De : $from
+Date : $date
+Objet : SABnzbd a <!--#if $status then "terminé" else "n'a pu terminer" #--> la tâche $name
+X-priorité: 5
+X-MS-priorité: 5
+## Après cela vient le corps du message, la ligne vide est nécessaire !
+
+Bonjour,
+<!--#if $status #-->
+SABnzbd a téléchargé "$name" <!--#if $msgid=="" then "" else "(newzbin #" + $msgid + ")"#-->
+<!--#else#-->
+SABnzbd n'a pu télécharger "$name" <!--#if $msgid=="" then "" else "(newzbin #" + $msgid + ")"#-->
+<!--#end if#-->
+Terminé à $end_time
+$size téléchargés
+
+Résultats de la tâche :
+<!--#for $stage in $stages #-->
+Étape $stage <!--#slurp#-->
+<!--#for $result in $stages[$stage]#-->
+    $result <!--#slurp#-->
+<!--#end for#-->
+<!--#end for#-->
+<!--#if $script!="" #-->
+Résultats du script "$script" (Code de sortie = $script_ret):
+$script_output
+<!--#end if#-->
+<!--#if $status #-->
+Amusez-vous bien !
+<!--#else#-->
+Désolé !
+<!--#end if#-->

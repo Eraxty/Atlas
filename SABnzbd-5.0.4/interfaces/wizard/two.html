@@ -1,0 +1,47 @@
+<!--#include $webdir + "/inc_top.tmpl"#-->
+
+<div class="container">
+    <div id="inner">
+        <div id="content" class="bigger">
+            <div id="rightGreyText">$T('wizard-version') $version</div>
+            <h1>$T('wizard-quickstart')</h1>
+            <hr />
+            <h2 class="align-center success">$T('wizard-complete')</h2>
+            <br>
+            <p>$T('wizard-tip1') <strong>$T('wizard-tip2')</strong></p>
+            <p>$T('wizard-tip4')</p>
+
+            <div class="quoteBlock">
+                <!--#for $url in $urls#-->
+                    <a href="$url">$url</a><br />
+                <!--#end for#-->
+            </div>
+
+            <hr/>
+
+            <p><strong>$T('opt-complete_dir')</strong></p>
+            <div class="quoteBlock">
+                $complete_dir
+                <a href="${access_url}/config/folders#complete_dir" class="indented"><span class="glyphicon glyphicon-cog"></span></a>
+            </div>
+
+            <p><strong>$T('opt-download_dir')</strong></p>
+            <div class="quoteBlock">
+                $download_dir
+                <a href="${access_url}/config/folders#complete_dir" class="indented"><span class="glyphicon glyphicon-cog"></span></a>
+            </div>
+
+            <hr/>
+            <p>$T('wizard-tip-wiki') <a target="_blank" href="https://sabnzbd.org/wiki/">$T('menu-wiki')</a> <span class="glyphicon glyphicon-info-sign"></span></p>
+
+        </div>
+        <hr />
+        <div class="row">
+            <div class="col-xs-12 text-center">
+                <input type="hidden" name="apikey" id="apikey" value="$apikey"/>
+                <a class="btn btn-success" href="$access_url">$T('wizard-goto') <span class="glyphicon glyphicon-chevron-right"></span></a>
+            </div>
+        </div>
+    </div>
+</div>
+<!--#include $webdir + "/inc_bottom.tmpl"#-->
