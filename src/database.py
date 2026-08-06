@@ -99,9 +99,14 @@ def save_release(release):
     cursor = conn.cursor()
 
     cursor.execute("""
-        insert or replace into releases
+        insert into releases
         (name, size, complete, group_name, poster, posted_date)
         values (?, ?, ?, ?, ?, ?)
+        on conflict(name, group_name) do update set
+        size = excluded.size,
+        complete = excluded.complete,
+        poster = excluded.poster,
+        posted_date = excluded.posted_date
     """, (
         release["name"],
         release["size"],
@@ -121,9 +126,11 @@ def save_release(release):
 
     release_id = cursor.fetchone()[0]
 
+    cursor.execute("delete from articles where release_id = ?", (release_id,))
+
     for article in release["articles"]:
         cursor.execute("""
-            insert or replace into articles
+            insert into articles
             (release_id, message_id, subject, filename, part, total_parts, bytes)
             values (?, ?, ?, ?, ?, ?, ?)
         """, (

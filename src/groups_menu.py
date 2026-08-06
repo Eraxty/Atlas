@@ -4,6 +4,14 @@ from src.config import save_config
 from src.prompts import prompt
 
 
+def read_int(text):
+    while True:
+        try:
+            return int(prompt(text))
+        except ValueError:
+            print("Invalid input, please enter a number.\n")
+
+
 def groups_menu(config):
     client = NNTPClient(
         config["host"],
@@ -24,12 +32,12 @@ def groups_menu(config):
             print(f"{i}. {name}")
 
         print("0. Back")
-        category = int(prompt("Choice: "))
+        category = read_int("Choice: ")
 
         if category == 0:
             break
 
-        if category > len(names):
+        if category < 0 or category > len(names):
             continue
 
         groups = categories[names[category - 1]]
@@ -39,12 +47,12 @@ def groups_menu(config):
             print(f"{i}. {group}")
 
         print("0. Back")
-        group = int(prompt("Choice: "))
+        group = read_int("Choice: ")
 
         if group == 0:
             continue
 
-        if group > len(groups):
+        if group < 0 or group > len(groups):
             continue
 
         config["group"] = groups[group - 1]

@@ -1,7 +1,16 @@
 from src.search import get_release, get_articles
+import time
 import xml.etree.ElementTree as et
 from email.utils import parsedate_to_datetime
 from pathlib import Path
+
+
+def _article_timestamp(date_str):
+    try:
+        return int(parsedate_to_datetime(date_str).timestamp())
+    except (TypeError, ValueError, OverflowError):
+        return int(time.time())
+
 
 def generate_nzb(release_id, output_dir=None):
     release = get_release(release_id)
@@ -27,7 +36,7 @@ def generate_nzb(release_id, output_dir=None):
     meta.text = release[2]
 
     #nzb uses unix timestamps
-    timestamp = int(parsedate_to_datetime(first[7]).timestamp())
+    timestamp = _article_timestamp(first[7])
 
     #release info
     file = et.SubElement(

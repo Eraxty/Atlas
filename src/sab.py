@@ -1,5 +1,6 @@
 from pathlib import Path
 import configparser
+import re
 import subprocess
 import sys
 import time
@@ -71,10 +72,19 @@ def load_config():
         with open(CONFIG_FILE, encoding="utf-8") as f:
             text = f.read()
 
-        if text.startswith("__version__"):
-            text = "[DEFAULT]\n" + text
+        lines = text.splitlines()
+        first = 0
+        
+        while first < len(lines) and not lines[first].lstrip().startswith("["):
+            first += 1
 
-        config.read_string(text)
+        bare = [line for line in lines[:first] if line.strip()]
+        rest = "\n".join(lines[first:])
+
+        if bare and not re.search(r"^\[DEFAULT\]\s*$", rest, re.MULTILINE):
+            rest = "[DEFAULT]\n" + "\n".join(bare) + "\n" + rest
+
+        config.read_string(rest)
 
     if "misc" not in config:
         config["misc"] = {}

@@ -248,10 +248,14 @@ def search_menu(config):
 
             if choice == "1":
                 download_release(choice_id)
+                print("\nDownload queued — it runs in SABnzbd in the background.")
+                print("Finished files land in ~/Downloads/complete/")
+                prompt("Press Enter to continue...")
                 return
 
             if choice == "2":
                 generate_nzb(choice_id)
+                prompt("Press Enter to continue...")
                 return
 
             if choice == "0":
@@ -275,7 +279,13 @@ def settings_menu():
     host = prompt("Host: ")
     username = prompt("Username: ")
     password = prompt("Password: ")
-    group = prompt("Newsgroup: ")
+
+    while True:
+        group = prompt("Newsgroup: ").strip()
+        if group:
+            break
+        print("Newsgroup cannot be empty.\n")
+
     port = read_int("Port (563): ", 563)
 
     save_config(host, username, password, port, group)

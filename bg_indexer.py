@@ -50,6 +50,11 @@ try:
             current_group = group
 
         try:
+            if not group:
+                print("No newsgroup configured.")
+                time.sleep(2)
+                continue
+
             indexer.index_group(group)
             time.sleep(0.1)
 
