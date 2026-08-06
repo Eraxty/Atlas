@@ -1,6 +1,6 @@
-from config import load_config
-from nntp_client import NNTPClient
-from indexer import Indexer
+from src.config import load_config
+from src.nntp_client import NNTPClient
+from src.indexer import Indexer
 from pathlib import Path
 import signal
 import sys

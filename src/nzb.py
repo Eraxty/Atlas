@@ -1,4 +1,4 @@
-from search import get_release, get_articles
+from src.search import get_release, get_articles
 import xml.etree.ElementTree as et
 from email.utils import parsedate_to_datetime
 from pathlib import Path

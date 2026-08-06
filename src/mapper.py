@@ -1,4 +1,4 @@
-from article import Article
+from src.article import Article
 
 def headers_to_articles(headers):
     articles = []

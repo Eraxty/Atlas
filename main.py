@@ -1,11 +1,11 @@
 
-from config import load_config, save_config
-from database import create_db
-from download import download_release
-from groups_menu import groups_menu
-from nzb import generate_nzb
-from prompts import prompt
-from search import count_all_releases, count_releases, get_release, search_all_releases, search_releases
+from src.config import load_config, save_config
+from src.database import create_db
+from src.download import download_release
+from src.groups_menu import groups_menu
+from src.nzb import generate_nzb
+from src.prompts import prompt
+from src.search import count_all_releases, count_releases, get_release, search_all_releases, search_releases
 from pathlib import Path
 import json
 import math

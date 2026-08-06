@@ -1,5 +1,5 @@
-from nzb import generate_nzb
-from sab import configure_watched_dir, is_running, start, wait_ready
+from src.nzb import generate_nzb
+from src.sab import configure_watched_dir, is_running, start, wait_ready
 
 def download_release(release_id):
     if not is_running():

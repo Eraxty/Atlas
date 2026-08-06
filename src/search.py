@@ -1,5 +1,5 @@
 import sqlite3
-from database import database
+from src.database import database
 
 
 def search_releases(query, group, page=0, page_size=10):

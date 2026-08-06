@@ -1,7 +1,7 @@
-from nntp_client import NNTPClient
-from groups import get_categories
-from config import save_config
-from prompts import prompt
+from src.nntp_client import NNTPClient
+from src.groups import get_categories
+from src.config import save_config
+from src.prompts import prompt
 
 
 def groups_menu(config):

@@ -4,10 +4,10 @@ import subprocess
 import sys
 import time
 import urllib.request
-import configparser
 
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 SAB_DIR = BASE_DIR / "SABnzbd-5.0.4"
+LOG_FILE = BASE_DIR / "sabnzbd.log"
 
 CONFIG_DIR = Path.home() / ".sabnzbd"
 CONFIG_FILE = CONFIG_DIR / "sabnzbd.ini"
@@ -25,10 +25,15 @@ def start():
 
     configure_watched_dir()
 
-    process = subprocess.Popen(
-        [sys.executable, "SABnzbd.py"],
-        cwd=SAB_DIR,
-    )
+    with LOG_FILE.open("a") as log_file:
+        process = subprocess.Popen(
+            [sys.executable, "-u", "SABnzbd.py"],
+            cwd = SAB_DIR,
+            stdin = subprocess.DEVNULL,
+            stdout = log_file,
+            stderr = subprocess.STDOUT,
+            start_new_session = True,
+        )
 
     print("Started SABnzbd.")
     return True
@@ -89,6 +94,9 @@ def get_watched_dir():
 
     folder = config["misc"].get("dirscan_dir")
 
+    if folder:
+        folder = folder.strip().strip('"').strip()
+
     if not folder:
         return None
 
@@ -131,8 +139,12 @@ def wait_ready(timeout=60):
 
     while time.time() < deadline:
 
-        if is_running():
-            return True
+        try:
+            with urllib.request.urlopen(get_url(), timeout=2):
+                return True
+
+        except OSError:
+            pass
 
         if process and process.poll() is not None:
             return False
