@@ -2,13 +2,14 @@ from src.config import load_config
 from src.nntp_client import NNTPClient
 from src.indexer import Indexer
 from pathlib import Path
+import os
 import signal
-import sys
 import time
 import json
 
 BASE_DIR = Path(__file__).resolve().parent
 STATUS_FILE = BASE_DIR / "status.json"
+PID_FILE = BASE_DIR / "bg_indexer.pid"
 
 config = load_config()
 
@@ -27,22 +28,26 @@ def update_status(running, group):
     with open(STATUS_FILE, "w") as f:
         json.dump({
             "running": running,
-            "group": group
+            "group": group,
+            "error": error
         }, f)
 
+stop_requested = False
+
 def handle_stop(signum, frame):
-    update_status(False, "")
-    sys.exit(0)
+    global stop_requested
+    stop_requested = True
 
 signal.signal(signal.SIGTERM, handle_stop)
 
 current_group = config["group"]
 errors = 0
+error = False
 
 update_status(True, current_group)
 
 try:
-    while True:
+    while not stop_requested:
         config = load_config()
         group = config["group"]
 
@@ -61,10 +66,14 @@ try:
             time.sleep(0.1)
 
         except Exception as e:
+            if stop_requested:
+                break
+
             errors += 1
 
             if errors >= 3:
                 print(f"Too many errors on {group} Stopping")
+                error = True
                 break
 
             print(f"Indexing error ({group}): {e}")
@@ -72,4 +81,15 @@ try:
 
 finally:
     update_status(False, "")
-    client.disconnect()
+
+    try:
+        client.disconnect()
+    except Exception:
+        pass
+
+    try:
+        if PID_FILE.read_text().strip() == str(os.getpid()):
+            PID_FILE.unlink(missing_ok=True)
+            
+    except (OSError, ValueError):
+        pass

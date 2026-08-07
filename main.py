@@ -1,4 +1,3 @@
-
 from src.config import load_config, save_config
 from src.database import create_db
 from src.download import download_release
@@ -318,6 +317,8 @@ def main():
 
         if indexing:
             print(f"Indexing      : {status['group'] or config['group']}")
+        elif status.get("error"):
+            print("Indexing      : stopped (error)")
         else:
             print("Indexing      : stopped")
 
@@ -359,4 +360,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        stop_background_indexer()
+        print("\nbyee")
