@@ -60,7 +60,7 @@ try:
 
         try:
             if not group:
-                print("No newsgroup configured.")
+                print("no newsgroup configured")
                 break
 
             indexer.index_group(group)

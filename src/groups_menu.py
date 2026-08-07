@@ -44,8 +44,8 @@ def groups_menu(config):
             search_all = False
 
         if len(query) < 3:
-            print("Search atleast 3 characters\n")
-            prompt("Press Enter to continue...")
+            print("Search atleast 3 characters bruh\n")
+            prompt("[enter]")
             continue
 
         matches = [group for group in groups if query.lower() in group.lower()]
@@ -55,7 +55,7 @@ def groups_menu(config):
 
         if not matches:
             print("No matching groups found\n")
-            prompt("Press Enter to continue...")
+            prompt("[enter]")
             continue
 
         page = 0
@@ -89,28 +89,28 @@ def groups_menu(config):
                 if page > 0:
                     page -= 1
                 else:
-                    print("Already on the first page.")
-                    prompt("Press Enter to continue...")
+                    print("already on the first page bruh")
+                    prompt("[enter]")
                 continue
 
             if choice == "n":
                 if end < len(matches):
                     page += 1
                 else:
-                    print("Already on the last page.")
-                    prompt("Press Enter to continue...")
+                    print("already on the last page bruh")
+                    prompt("[enter]")
                 continue
 
             try:
                 selected = int(choice)
             except ValueError:
-                print("Invalid choice.")
-                prompt("Press Enter to continue...")
+                print("invalid")
+                prompt("[enter]")
                 continue
 
             if selected < 1 or selected > end - start:
-                print("Invalid choice.")
-                prompt("Press Enter to continue...")
+                print("invalid")
+                prompt("[enter]")
                 continue
 
             config["group"] = matches[start + selected - 1]
@@ -121,7 +121,7 @@ def groups_menu(config):
                 try:
                     headers = list(client.fetch_headers(max(first, last - 49), last))
                 except nntp.NNTPTemporaryError:
-                    answer = prompt("Could not sample this group's articles (empty or inaccessible range). Index anyway? (y/n) ").strip().lower()
+                    answer = prompt("cant sample this group (empty range?). index anyway? (y/n) ").strip().lower()
 
                     if answer not in ("y", "yes"):
                         continue
@@ -129,7 +129,7 @@ def groups_menu(config):
                     parsed = sum(1 for _, header in headers if parse_subject(header["subject"]))
 
                     if parsed == 0:
-                        answer = prompt(f"{parsed}/{len(headers)} subjects look like binary posts — this could be a text/discussion group, not a binaries group. Index anyway? (y/n) ").strip().lower()
+                        answer = prompt(f"only {parsed}/{len(headers)} look like binaries, probs a text group. index anyway? (y/n) ").strip().lower()
 
                         if answer not in ("y", "yes"):
                             continue

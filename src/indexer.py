@@ -48,7 +48,7 @@ class Indexer:
 
         if start > last:
             if self.verbose:
-                print("No new articles.")
+                print("no new articles")
             if not self.idle:
                 print("[LIVE] no new articles, idle")
                 self.idle = True

@@ -42,7 +42,7 @@ def get_status():
         return {"running": False, "group": ""}
 
 
-def worker_is_running():
+def indexer_alive():
     if not PID_FILE.exists():
         return False
 
@@ -60,7 +60,7 @@ def worker_is_running():
 
 
 def start_background_indexer():
-    if worker_is_running():
+    if indexer_alive():
         return False
 
     with LOG_FILE.open("a") as log_file:
@@ -104,9 +104,9 @@ def stop_background_indexer():
     return True
 
 
-def read_int(prompt_text, default=None):
+def ask(text, default=None):
     while True:
-        value = prompt(prompt_text).strip()
+        value = prompt(text).strip()
 
         if not value and default is not None:
             return default
@@ -114,23 +114,23 @@ def read_int(prompt_text, default=None):
         try:
             return int(value)
         except ValueError:
-            print("Invalid input, please enter a number.\n")
+            print("that aint a number\n")
 
 
-def first_run_setup():
-    print("No saved configuration.\n")
+def setup():
+    print("no config found")
 
     host = prompt("Host: ")
     username = prompt("Username: ")
     password = prompt("Password: ")
-    port = read_int("Port (563): ", 563)
+    port = ask("Port (563): ", 563)
 
     while True:
-        group = prompt("\nNewsgroup (press Enter to browse, or enter one manually): ").strip()
+        group = prompt("\nNewsgroup (blank = browse): ").strip()
 
         if not group:
             save_config(host, username, password, port, group)
-            print("\nChoose a newsgroup.\n")
+            print("\npick a group\n")
             groups_menu(load_config())
             return
 
@@ -138,10 +138,10 @@ def first_run_setup():
             save_config(host, username, password, port, group)
             return
 
-        print("Newsgroup not found.")
+        print("not a newsgroup")
 
 
-def search_menu(config):
+def do_search(config):
     while True:
         clear()
 
@@ -150,7 +150,7 @@ def search_menu(config):
         print("2. All Groups")
         print("0. Back")
 
-        scope = read_int("\nChoice: ")
+        scope = ask("\nChoice: ")
         if scope not in (1, 2):
             return
 
@@ -171,7 +171,7 @@ def search_menu(config):
                 releases = search_all_releases(query, page, page_size)
 
             if not total:
-                print("\nNo releases found.")
+                print("\nno releases found")
                 query = prompt("\nSearch: ").strip()
                 if not query or query == "0":
                     break
@@ -214,16 +214,16 @@ def search_menu(config):
                 if page > 0:
                     page -= 1
                 else:
-                    print("Already on the first page.")
-                    prompt("Press Enter to continue...")
+                    print("already on the first page")
+                    prompt("[enter]")
                 continue
 
             if choice == "n":
                 if page < total_pages - 1:
                     page += 1
                 else:
-                    print("Already on the last page.")
-                    prompt("Press Enter to continue...")
+                    print("already on the last page")
+                    prompt("[enter]")
                 continue
 
             if choice == "g":
@@ -237,20 +237,20 @@ def search_menu(config):
                 if 1 <= target <= total_pages:
                     page = target - 1
                 else:
-                    print(f"Page must be between 1 and {total_pages}.")
-                    prompt("Press Enter to continue...")
+                    print(f"page must be between 1 and {total_pages}")
+                    prompt("[enter]")
                 continue
 
             try:
                 choice_id = int(choice)
             except ValueError:
-                print("Invalid choice.")
-                prompt("Press Enter to continue...")
+                print("invalid")
+                prompt("[enter]")
                 continue
 
             if choice_id not in release_ids:
-                print("Invalid release ID.")
-                prompt("Press Enter to continue...")
+                print("not valid release id")
+                prompt("[enter]")
                 continue
 
             release = get_release(choice_id)
@@ -268,30 +268,30 @@ def search_menu(config):
 
                 if choice == "1":
                     if download_release(choice_id):
-                        print("\nDownload queued — it runs in SABnzbd in the background.")
-                        print("Finished files land in ~/Downloads/complete/")
-                    prompt("Press Enter to continue...")
+                        print("\nDownload queued it is downloading in background.")
+                        print("Finished files land ~/Downloads/complete/")
+                    prompt("[enter]")
                     return
 
                 if choice == "2":
                     generate_nzb(choice_id)
-                    prompt("Press Enter to continue...")
+                    prompt("[enter]")
                     return
 
                 if choice == "0":
                     break
 
-                print("Invalid choice.")
-                prompt("Press Enter to continue...")
+                print("invalid")
+                prompt("[enter]")
 
-def settings_menu():
+def do_settings():
     clear()
 
     print("Settings")
     print("1. Change configuration")
     print("2. Back")
 
-    choice = read_int("\nChoice: ")
+    choice = ask("\nChoice: ")
     if choice != 1:
         return
 
@@ -304,12 +304,12 @@ def settings_menu():
         group = prompt("Newsgroup: ").strip()
         if group:
             break
-        print("Newsgroup cannot be empty.\n")
+        print("newsgroup cant be empty\n")
 
-    port = read_int("Port (563): ", 563)
+    port = ask("Port (563): ", 563)
 
     save_config(host, username, password, port, group)
-    print("\nSaved.")
+    print("\nsaved")
 
 
 def main():
@@ -318,17 +318,17 @@ def main():
     config = load_config()
 
     if config:
-        print("Loaded config:")
+        print("config loaded:")
         print(f"Server: {config['host']}")
         print(f"Current Group: {config['group']}\n")
     else:
-        first_run_setup()
+        setup()
         config = load_config()
 
     while True:
         clear()
 
-        indexing = worker_is_running()
+        indexing = indexer_alive()
         status = get_status()
 
         print("=" * 55)
@@ -362,20 +362,20 @@ def main():
         if choice == "1":
             if indexing:
                 stopped = stop_background_indexer()
-                print("Background indexing stopped." if stopped else "Background indexer is not running.")
+                print("indexing stopped" if stopped else "indexer wasnt running")
             else:
                 started = start_background_indexer()
-                print("Background indexing started." if started else "Background indexing is already running.")
+                print("indexing started" if started else "indexer already running")
 
         elif choice == "2":
-            search_menu(config)
+            do_search(config)
 
         elif choice == "3":
             groups_menu(config)
             config = load_config()
 
         elif choice == "4":
-            settings_menu()
+            do_settings()
             config = load_config()
 
         elif choice == "0":
@@ -388,4 +388,4 @@ if __name__ == "__main__":
         main()
     except KeyboardInterrupt:
         stop_background_indexer()
-        print("\nbyee")
+        print("\nbyeee")

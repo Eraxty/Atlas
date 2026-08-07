@@ -73,7 +73,7 @@ def start():
     global process
 
     if process and process.poll() is None:
-        print("SAB is already running.")
+        print("sab already running")
         return True
 
     configure_watched_dir()
@@ -89,7 +89,7 @@ def start():
             start_new_session = True,
         )
 
-    print("Started SABnzbd.")
+    print("started sabnzbd")
     return True
 
 

@@ -6,7 +6,7 @@ def search_releases(query, group, page=0, page_size=10):
     conn = sqlite3.connect(database, timeout=30)
     cur = conn.cursor()
 
-    offset = page * page_size #for pages
+    offset = page * page_size
 
     cur.execute("""
         select id, name, group_name, poster, posted_date, size, complete
@@ -106,12 +106,3 @@ def get_articles(release_id):
     conn.close()
 
     return articles
-
-#0 message_id
-#1 filename
-#2 part
-#3 total_parts
-#4 bytes
-#5 subject
-#6 poster
-#7 posted_date

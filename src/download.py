@@ -15,22 +15,22 @@ def download_release(release_id):
         return False
 
     if (get_complete_dir() / articles[0][1]).exists():
-        print("Already downloaded.")
+        print("already downloaded")
         return False
 
     if not is_running():
         if not start():
-            print("Couldn't start SABnzbd.")
+            print("couldnt start sabnzbd")
             return False
 
     if not wait_ready():
-        print("SABnzbd isn't ready.")
+        print("sab isnt ready")
         return False
 
     watched_dir = configure_watched_dir()
 
     if (watched_dir / f"{release[1].replace('/', '_')}.nzb").exists():
-        print("Already queued.")
+        print("already queued")
         return False
 
     generate_nzb(
@@ -41,11 +41,11 @@ def download_release(release_id):
     status = job_in_sab(release[1])
 
     if status == "queued":
-        print("SAB accepted the download.")
+        print("done")
     elif status:
-        print(f"SAB already processed this download: {status}.")
+        print(f"already did this one bruh: {status}")
     else:
-        print("Couldn't confirm SAB received the download.")
+        print("couldnt confirm it")
 
-    print("Download queued.")
+    print("download queued")
     return True
