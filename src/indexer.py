@@ -1,22 +1,24 @@
 from src.mapper import headers_to_articles
 from src.parser import group_articles, is_complete
-from src.database import save_release, get_group_state, update_live_cursor, update_backfill_cursor
+from src.database import save_releases_bulk, get_group_state, update_live_cursor, update_backfill_cursor
 
-BACKFILL_SIZE = 1000
+BACKFILL_SIZE = 5000
 
 
 class Indexer:
-    def __init__(self, client):
+    def __init__(self, client, verbose=False):
         self.client = client
+        self.verbose = verbose
         self.mode = "live"
 
     def index_group(self, group):
         count, first, last, name = self.client.select_group(group)
 
-        print(f"Group: {name}")
-        print(f"Articles: {count}")
-        print(f"First: {first}")
-        print(f"Last: {last}")
+        if self.verbose:        
+            print(f"Group: {name}")
+            print(f"Articles: {count}")
+            print(f"First: {first}")
+            print(f"Last: {last}")
 
         state = get_group_state(group)
 
@@ -42,7 +44,8 @@ class Indexer:
         start = state["live_cursor"] + 1
 
         if start > last:
-            print("No new articles.")
+            if self.verbose:
+                print("No new articles.")
             self.mode = "backfill"
             return
 
@@ -65,21 +68,19 @@ class Indexer:
     def process_range(self, group, start, end, kind):
         headers = list(self.client.fetch_headers(start, end))
 
-        print(f"[{kind}] {len(headers)} headers")
+        if self.verbose:
+            print(f"[{kind}] {len(headers)} headers")
 
         articles = headers_to_articles(headers)
         releases = group_articles(articles)
+
+        to_save = []
 
         for release in releases.values():
             release["complete"] = is_complete(release)
             release["group"] = group
             release["poster"] = release["articles"][0].author
             release["date"] = release["articles"][0].date
+            to_save.append(release)
 
-            save_release(release)
-
-            print(release["name"])
-            print(f"Articles: {len(release['articles'])}")
-            print(f"Size: {release['size']}")
-            print(f"Complete: {release['complete']}")
-            print()
+        save_releases_bulk(to_save)

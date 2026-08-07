@@ -94,54 +94,58 @@ def create_db():
     conn.close()
 
 
-def save_release(release):
+def save_releases_bulk(releases):
+    
+    if not releases:
+        return
+
     conn = sqlite3.connect(database)
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        insert into releases
-        (name, size, complete, group_name, poster, posted_date)
-        values (?, ?, ?, ?, ?, ?)
-        on conflict(name, group_name) do update set
-        size = excluded.size,
-        complete = excluded.complete,
-        poster = excluded.poster,
-        posted_date = excluded.posted_date
-    """, (
-        release["name"],
-        release["size"],
-        int(release["complete"]),
-        release["group"],
-        release["poster"],
-        release["date"]
-    ))
-
-    cursor.execute("""
-        select id from releases
-        where name = ? and group_name = ?
-    """, (
-        release["name"],
-        release["group"]
-    ))
-
-    release_id = cursor.fetchone()[0]
-
-    cursor.execute("delete from articles where release_id = ?", (release_id,))
-
-    for article in release["articles"]:
-        cursor.execute("""
-            insert into articles
-            (release_id, message_id, subject, filename, part, total_parts, bytes)
-            values (?, ?, ?, ?, ?, ?, ?)
+    cur = conn.cursor()
+    
+    for release in releases:
+        cur.execute("""
+            insert into releases
+            (name, size, complete, group_name, poster, posted_date)
+            values (?, ?, ?, ?, ?, ?)
+            on conflict(name, group_name) do update set
+            size = excluded.size,
+            complete = excluded.complete,
+            poster = excluded.poster,
+            posted_date = excluded.posted_date
         """, (
-            release_id,
-            article.message_id,
-            article.subject,
-            article.filename,
-            article.part,
-            article.total_parts,
-            article.bytes
+            release["name"],
+            release["size"],
+            int(release["complete"]),
+            release["group"],
+            release["poster"],
+            release["date"]
         ))
+
+        cur.execute("""
+            select id from releases 
+            where name = ? and group_name = ?
+        """, (release["name"], release["group"]))
+            
+        release_id = cur.fetchone()[0]
+
+        cur.execute("delete from articles where release_id = ?", (release_id,))
+
+
+        cur.executemany("""
+            insert into articles
+            (release_id, message_id, subject, 
+            filename, part, total_parts, bytes)
+            values (?, ?, ?, ?, ?, ?, ?)
+        """, [
+            (release_id,
+            a.message_id, 
+            a.subject, 
+            a.filename, 
+            a.part, 
+            a.total_parts, 
+            a.bytes)
+            for a in release["articles"]
+        ])
 
     conn.commit()
     conn.close()
