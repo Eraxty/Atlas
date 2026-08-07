@@ -3,7 +3,7 @@ from src.database import database
 
 
 def search_releases(query, group, page=0, page_size=10):
-    conn = sqlite3.connect(database)
+    conn = sqlite3.connect(database, timeout=30)
     cur = conn.cursor()
 
     offset = page * page_size #for pages
@@ -24,7 +24,7 @@ def search_releases(query, group, page=0, page_size=10):
 
 
 def search_all_releases(query, page=0, page_size=10):
-    conn = sqlite3.connect(database)
+    conn = sqlite3.connect(database, timeout=30)
     cur = conn.cursor()
 
     offset = page * page_size
@@ -42,7 +42,7 @@ def search_all_releases(query, page=0, page_size=10):
 
 
 def count_releases(query, group):
-    conn = sqlite3.connect(database)
+    conn = sqlite3.connect(database, timeout=30)
     cur = conn.cursor()
 
     cur.execute("""
@@ -57,7 +57,7 @@ def count_releases(query, group):
 
 
 def count_all_releases(query):
-    conn = sqlite3.connect(database)
+    conn = sqlite3.connect(database, timeout=30)
     cur = conn.cursor()
 
     cur.execute("""
@@ -72,7 +72,7 @@ def count_all_releases(query):
 
 
 def get_release(id):
-    conn = sqlite3.connect(database)
+    conn = sqlite3.connect(database, timeout=30)
     cur = conn.cursor()
 
     cur.execute("""
@@ -89,7 +89,7 @@ def get_release(id):
 
 
 def get_articles(release_id):
-    conn = sqlite3.connect(database)
+    conn = sqlite3.connect(database, timeout=30)
     cur = conn.cursor()
 
     cur.execute("""

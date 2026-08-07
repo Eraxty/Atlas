@@ -24,12 +24,14 @@ client.connect()
 
 indexer = Indexer(client)
 
-def update_status(running, group):
+def update_status(running, group, idle=False):
     with open(STATUS_FILE, "w") as f:
         json.dump({
             "running": running,
             "group": group,
-            "error": error
+            "error": error,
+            "idle": idle,
+            "pid": os.getpid()
         }, f)
 
 stop_requested = False
@@ -44,7 +46,7 @@ current_group = config["group"]
 errors = 0
 error = False
 
-update_status(True, current_group)
+update_status(True, current_group, indexer.idle)
 
 try:
     while not stop_requested:
@@ -52,7 +54,7 @@ try:
         group = config["group"]
 
         if group != current_group:
-            update_status(True, group)
+            update_status(True, group, indexer.idle)
             current_group = group
             errors = 0
 
@@ -63,6 +65,9 @@ try:
 
             indexer.index_group(group)
             errors = 0
+
+            update_status(True, current_group, indexer.idle)
+
             time.sleep(0.1)
 
         except Exception as e:
@@ -83,13 +88,13 @@ finally:
     update_status(False, "")
 
     try:
-        client.disconnect()
-    except Exception:
+        if PID_FILE.read_text().strip() == str(os.getpid()):
+            PID_FILE.unlink(missing_ok=True)
+
+    except (OSError, ValueError):
         pass
 
     try:
-        if PID_FILE.read_text().strip() == str(os.getpid()):
-            PID_FILE.unlink(missing_ok=True)
-            
-    except (OSError, ValueError):
+        client.disconnect()
+    except Exception:
         pass

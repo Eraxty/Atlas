@@ -1,3 +1,5 @@
+import nntp
+
 from src.mapper import headers_to_articles
 from src.parser import group_articles, is_complete
 from src.database import save_releases_bulk, get_group_state, update_live_cursor, update_backfill_cursor
@@ -10,6 +12,7 @@ class Indexer:
         self.client = client
         self.verbose = verbose
         self.mode = "live"
+        self.idle = False
 
     def index_group(self, group):
         count, first, last, name = self.client.select_group(group)
@@ -38,7 +41,7 @@ class Indexer:
         if self.mode == "live":
             self.live(group, state, int(last))
         else:
-            self.backfill(group, state, int(first))
+            self.backfill(group, state, int(first), int(last))
 
     def live(self, group, state, last):
         start = state["live_cursor"] + 1
@@ -46,17 +49,27 @@ class Indexer:
         if start > last:
             if self.verbose:
                 print("No new articles.")
+            if not self.idle:
+                print("[LIVE] no new articles, idle")
+                self.idle = True
             self.mode = "backfill"
             return
 
-        self.process_range(group, start, last, "LIVE")
-        update_live_cursor(group, last)
+        end = min(last, start + BACKFILL_SIZE - 1)
+        self.process_range(group, start, end, "LIVE")
+        update_live_cursor(group, end)
         self.mode = "backfill"
 
-    def backfill(self, group, state, first):
+    def backfill(self, group, state, first, last):
         end = state["backfill_cursor"]
 
+        if end > last:
+            end = last
+
         if end < first:
+            if not self.idle:
+                print(f"[BACKFILL] {end} < first {first}, nothing to backfill, idle")
+                self.idle = True
             self.mode = "live"
             return
 
@@ -66,7 +79,15 @@ class Indexer:
         self.mode = "live"
 
     def process_range(self, group, start, end, kind):
-        headers = list(self.client.fetch_headers(start, end))
+        try:
+            headers = list(self.client.fetch_headers(start, end))
+        except nntp.NNTPTemporaryError as e:
+            if e.code != 423:
+                raise
+            print(f"[{kind}] {start}-{end} empty, skipping")
+            return
+
+        self.idle = False
 
         if self.verbose:
             print(f"[{kind}] {len(headers)} headers")

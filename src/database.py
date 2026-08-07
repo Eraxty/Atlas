@@ -5,7 +5,7 @@ database = "atlas.db"
 
 
 def create_db():
-    conn = sqlite3.connect(database)
+    conn = sqlite3.connect(database, timeout=30)
     cursor = conn.cursor()
 
     #check releases schema
@@ -99,7 +99,7 @@ def save_releases_bulk(releases):
     if not releases:
         return
 
-    conn = sqlite3.connect(database)
+    conn = sqlite3.connect(database, timeout=30)
     cur = conn.cursor()
     
     for release in releases:
@@ -132,7 +132,7 @@ def save_releases_bulk(releases):
 
 
         cur.executemany("""
-            insert into articles
+            insert or ignore into articles
             (release_id, message_id, subject, 
             filename, part, total_parts, bytes)
             values (?, ?, ?, ?, ?, ?, ?)
@@ -152,7 +152,7 @@ def save_releases_bulk(releases):
 
 
 def get_releases():
-    conn = sqlite3.connect(database)
+    conn = sqlite3.connect(database, timeout=30)
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -167,7 +167,7 @@ def get_releases():
 
 
 def get_group_state(group):
-    conn = sqlite3.connect(database)
+    conn = sqlite3.connect(database, timeout=30)
     cursor = conn.cursor()
 
     cursor.execute('''
@@ -190,7 +190,7 @@ def get_group_state(group):
 
 
 def update_live_cursor(group, article):
-    conn = sqlite3.connect(database)
+    conn = sqlite3.connect(database, timeout=30)
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -205,7 +205,7 @@ def update_live_cursor(group, article):
     conn.close()
 
 def update_backfill_cursor(group,article):
-    conn = sqlite3.connect(database)
+    conn = sqlite3.connect(database, timeout=30)
     cursor = conn.cursor()
 
     cursor.execute("""

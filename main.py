@@ -13,6 +13,7 @@ import shutil
 import signal
 import subprocess
 import sys
+import time
 
 BASE_DIR = Path(__file__).resolve().parent
 PID_FILE = BASE_DIR / "bg_indexer.pid"
@@ -82,13 +83,25 @@ def stop_background_indexer():
 
     try:
         pid = int(PID_FILE.read_text().strip())
-        os.kill(pid, signal.SIGTERM)
-        PID_FILE.unlink(missing_ok=True)
-        return True
-
-    except (ValueError, ProcessLookupError):
+    except ValueError:
         PID_FILE.unlink(missing_ok=True)
         return False
+
+    try:
+        os.kill(pid, signal.SIGTERM)
+    except ProcessLookupError:
+        PID_FILE.unlink(missing_ok=True)
+        return False
+
+    for _ in range(50):
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            break
+        time.sleep(0.1)
+
+    PID_FILE.unlink(missing_ok=True)
+    return True
 
 
 def read_int(prompt_text, default=None):
@@ -129,139 +142,147 @@ def first_run_setup():
 
 
 def search_menu(config):
-    clear()
-
-    print("Search")
-    print("1. Current Group")
-    print("2. All Groups")
-    print("0. Back")
-
-    scope = read_int("\nChoice: ")
-    if scope not in (1, 2):
-        return
-
-    query = prompt("Search: ").strip()
-
-    page = 0
-    page_size = max(10, shutil.get_terminal_size().lines - 15)
-
     while True:
-        if scope == 1:
-            total = count_releases(query, config["group"])
-            releases = search_releases(query, config["group"], page, page_size)
-        else:
-            total = count_all_releases(query)
-            releases = search_all_releases(query, page, page_size)
-
-        if not total:
-            print("\nNo releases found.")
-            return
-
-        total_pages = max(1, math.ceil(total / page_size))
-
-        if page > total_pages - 1:
-            page = total_pages - 1
-            continue
-
-        release_ids = {release[0] for release in releases}
-
         clear()
 
-        print(f"Search: {query}")
-        print(f"Page {page + 1} of {total_pages}")
+        print("Search")
+        print("1. Current Group")
+        print("2. All Groups")
+        print("0. Back")
 
-        start = page * page_size + 1
-        end = min((page + 1) * page_size, total)
-        print(f"Showing {start}-{end} of {total} results\n")
-
-        for release in releases:
-            print(f"[{release[0]}] {release[1]}")
-
-        print("\n0. Back")
-        if page > 0:
-            print("p. Previous Page")
-        if page < total_pages - 1:
-            print("n. Next Page")
-        print("g. Go to Page")
-
-        choice = prompt("\nChoice: ").strip()
-
-        if choice == "0":
+        scope = read_int("\nChoice: ")
+        if scope not in (1, 2):
             return
 
-        if choice == "p":
-            if page > 0:
-                page -= 1
-            else:
-                print("Already on the first page.")
-                prompt("Press Enter to continue...")
+        query = prompt("Search: ").strip()
+
+        if not query or query == "0":
             continue
 
-        if choice == "n":
-            if page < total_pages - 1:
-                page += 1
-            else:
-                print("Already on the last page.")
-                prompt("Press Enter to continue...")
-            continue
-
-        if choice == "g":
-            goto = prompt(f"Go to page (1-{total_pages}): ")
-
-            try:
-                target = int(goto)
-            except ValueError:
-                target = -1
-
-            if 1 <= target <= total_pages:
-                page = target - 1
-            else:
-                print(f"Page must be between 1 and {total_pages}.")
-                prompt("Press Enter to continue...")
-            continue
-
-        try:
-            choice_id = int(choice)
-        except ValueError:
-            print("Invalid choice.")
-            prompt("Press Enter to continue...")
-            continue
-
-        if choice_id not in release_ids:
-            print("Invalid release ID.")
-            prompt("Press Enter to continue...")
-            continue
-
-        release = get_release(choice_id)
-        release_name = release[1] if release else f"#{choice_id}"
+        page = 0
+        page_size = max(10, shutil.get_terminal_size().lines - 15)
 
         while True:
+            if scope == 1:
+                total = count_releases(query, config["group"])
+                releases = search_releases(query, config["group"], page, page_size)
+            else:
+                total = count_all_releases(query)
+                releases = search_all_releases(query, page, page_size)
+
+            if not total:
+                print("\nNo releases found.")
+                query = prompt("\nSearch: ").strip()
+                if not query or query == "0":
+                    break
+                page = 0
+                continue
+
+            total_pages = max(1, math.ceil(total / page_size))
+
+            if page > total_pages - 1:
+                page = total_pages - 1
+                continue
+
+            release_ids = {release[0] for release in releases}
+
             clear()
 
-            print(f"Release: {release_name}")
-            print("1. Download")
-            print("2. Save NZB")
-            print("0. Back")
+            print(f"Search: {query}")
+            print(f"Page {page + 1} of {total_pages}")
+
+            start = page * page_size + 1
+            end = min((page + 1) * page_size, total)
+            print(f"Showing {start}-{end} of {total} results\n")
+
+            for release in releases:
+                print(f"[{release[0]}] {release[1]}")
+
+            print("\n0. Back")
+            if page > 0:
+                print("p. Previous Page")
+            if page < total_pages - 1:
+                print("n. Next Page")
+            print("g. Go to Page")
 
             choice = prompt("\nChoice: ").strip()
 
-            if choice == "1":
-                download_release(choice_id)
-                print("\nDownload queued — it runs in SABnzbd in the background.")
-                print("Finished files land in ~/Downloads/complete/")
-                prompt("Press Enter to continue...")
-                return
-
-            if choice == "2":
-                generate_nzb(choice_id)
-                prompt("Press Enter to continue...")
-                return
-
             if choice == "0":
-                break
+                return
 
-            print("Invalid choice.")
-            prompt("Press Enter to continue...")
+            if choice == "p":
+                if page > 0:
+                    page -= 1
+                else:
+                    print("Already on the first page.")
+                    prompt("Press Enter to continue...")
+                continue
+
+            if choice == "n":
+                if page < total_pages - 1:
+                    page += 1
+                else:
+                    print("Already on the last page.")
+                    prompt("Press Enter to continue...")
+                continue
+
+            if choice == "g":
+                goto = prompt(f"Go to page (1-{total_pages}): ")
+
+                try:
+                    target = int(goto)
+                except ValueError:
+                    target = -1
+
+                if 1 <= target <= total_pages:
+                    page = target - 1
+                else:
+                    print(f"Page must be between 1 and {total_pages}.")
+                    prompt("Press Enter to continue...")
+                continue
+
+            try:
+                choice_id = int(choice)
+            except ValueError:
+                print("Invalid choice.")
+                prompt("Press Enter to continue...")
+                continue
+
+            if choice_id not in release_ids:
+                print("Invalid release ID.")
+                prompt("Press Enter to continue...")
+                continue
+
+            release = get_release(choice_id)
+            release_name = release[1] if release else f"#{choice_id}"
+
+            while True:
+                clear()
+
+                print(f"Release: {release_name}")
+                print("1. Download")
+                print("2. Save NZB")
+                print("0. Back")
+
+                choice = prompt("\nChoice: ").strip()
+
+                if choice == "1":
+                    if download_release(choice_id):
+                        print("\nDownload queued — it runs in SABnzbd in the background.")
+                        print("Finished files land in ~/Downloads/complete/")
+                    prompt("Press Enter to continue...")
+                    return
+
+                if choice == "2":
+                    generate_nzb(choice_id)
+                    prompt("Press Enter to continue...")
+                    return
+
+                if choice == "0":
+                    break
+
+                print("Invalid choice.")
+                prompt("Press Enter to continue...")
 
 def settings_menu():
     clear()
@@ -316,7 +337,10 @@ def main():
         print(f"Current Group : {config['group']}")
 
         if indexing:
-            print(f"Indexing      : {status['group'] or config['group']}")
+            label = status["group"] or config["group"]
+            if status.get("idle"):
+                label += " (idle)"
+            print(f"Indexing      : {label}")
         elif status.get("error"):
             print("Indexing      : stopped (error)")
         else:

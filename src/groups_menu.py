@@ -1,15 +1,14 @@
+import os
+import nntp
+
 from src.nntp_client import NNTPClient
 from src.config import save_config
 from src.parser import parse_subject
 from src.prompts import prompt
 
 
-def read_int(text):
-    while True:
-        try:
-            return int(prompt(text))
-        except ValueError:
-            print("Invalid input, please enter a number.\n")
+def clear():
+    os.system("cls" if os.name == "nt" else "clear")
 
 
 def groups_menu(config):
@@ -31,62 +30,119 @@ def groups_menu(config):
             groups.append(line.split()[0])
 
     while True:
+        clear()
+
         query = prompt("Search groups: ").strip()
 
         if not query:
             break
 
+        if query.lower().endswith(" all"):
+            search_all = True
+            query = query[:-4].strip()
+        else:
+            search_all = False
+
         if len(query) < 3:
             print("Search atleast 3 characters\n")
+            prompt("Press Enter to continue...")
             continue
 
         matches = [group for group in groups if query.lower() in group.lower()]
 
+        if not search_all:
+            matches = [group for group in matches if ".binaries." in group.lower()]
+
         if not matches:
             print("No matching groups found\n")
+            prompt("Press Enter to continue...")
             continue
 
-        if len(matches) > 30:
-            print(f"{len(matches)} top 30 matches shown \n")
-            matches = matches[:30]
+        page = 0
 
-        print()
+        while True:
+            clear()
 
-        for i, group in enumerate(matches, 1):
-            print(f"{i}. {group}")
+            start = page * 30
+            end = min(start + 30, len(matches))
+            total_pages = max(1, (len(matches) + 29) // 30)
 
-        print("0. Back")
-        choice = read_int("Choice: ")
+            print(f"Page {page + 1} of {total_pages}")
+            print(f"Showing {start + 1}-{end} of {len(matches)} matches\n")
 
-        if choice == 0:
-            continue
+            for i, group in enumerate(matches[start:end], 1):
+                print(f"{i}. {group}")
 
-        if choice < 0 or choice > len(matches):
-            continue
+            print("0. Back")
 
-        config["group"] = matches[choice - 1]
+            if page > 0:
+                print("p. Previous Page")
+            if end < len(matches):
+                print("n. Next Page")
 
-        count, first, last, _ = client.select_group(config["group"])
+            choice = prompt("\nChoice: ").strip()
 
-        if last > first:
-            headers = list(client.fetch_headers(max(first, last - 49), last))
-            parsed = sum(1 for _, header in headers if parse_subject(header["subject"]))
+            if choice == "0":
+                break
 
-            if parsed == 0:
-                answer = prompt(f"{parsed}/{len(headers)} subjects look like binary posts — this could be a text/discussion group, not a binaries group. Index anyway? (y/n) ").strip().lower()
+            if choice == "p":
+                if page > 0:
+                    page -= 1
+                else:
+                    print("Already on the first page.")
+                    prompt("Press Enter to continue...")
+                continue
 
-                if answer not in ("y", "yes"):
-                    continue
+            if choice == "n":
+                if end < len(matches):
+                    page += 1
+                else:
+                    print("Already on the last page.")
+                    prompt("Press Enter to continue...")
+                continue
 
-        save_config(
-            config["host"],
-            config["username"],
-            config["password"],
-            config["port"],
-            config["group"]
-        )
+            try:
+                selected = int(choice)
+            except ValueError:
+                print("Invalid choice.")
+                prompt("Press Enter to continue...")
+                continue
 
-        client.disconnect()
-        return
+            if selected < 1 or selected > end - start:
+                print("Invalid choice.")
+                prompt("Press Enter to continue...")
+                continue
+
+            config["group"] = matches[start + selected - 1]
+
+            count, first, last, _ = client.select_group(config["group"])
+
+            if last > first:
+                try:
+                    headers = list(client.fetch_headers(max(first, last - 49), last))
+                except nntp.NNTPTemporaryError:
+                    answer = prompt("Could not sample this group's articles (empty or inaccessible range). Index anyway? (y/n) ").strip().lower()
+
+                    if answer not in ("y", "yes"):
+                        continue
+                else:
+                    parsed = sum(1 for _, header in headers if parse_subject(header["subject"]))
+
+                    if parsed == 0:
+                        answer = prompt(f"{parsed}/{len(headers)} subjects look like binary posts — this could be a text/discussion group, not a binaries group. Index anyway? (y/n) ").strip().lower()
+
+                        if answer not in ("y", "yes"):
+                            continue
+
+            save_config(
+                config["host"],
+                config["username"],
+                config["password"],
+                config["port"],
+                config["group"]
+            )
+
+            client.disconnect()
+            return
 
     client.disconnect()
