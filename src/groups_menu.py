@@ -1,5 +1,4 @@
 from src.nntp_client import NNTPClient
-from src.groups import get_categories
 from src.config import save_config
 from src.prompts import prompt
 
@@ -22,40 +21,42 @@ def groups_menu(config):
 
     client.connect()
 
-    categories = get_categories(client)
+    groups = []
+
+    for line in client.list_groups():
+        line = line.strip()
+
+        if line:
+            groups.append(line.split()[0])
 
     while True:
-        print("Categories\n")
-        names = sorted(categories)
+        query = prompt("Search groups: ").strip()
 
-        for i, name in enumerate(names, 1):
-            print(f"{i}. {name}")
-
-        print("0. Back")
-        category = read_int("Choice: ")
-
-        if category == 0:
+        if not query:
             break
 
-        if category < 0 or category > len(names):
+        matches = [group for group in groups if query.lower() in group.lower()]
+        matches = matches[:30]
+
+        if not matches:
+            print("No matching groups.\n")
             continue
 
-        groups = categories[names[category - 1]]
         print()
 
-        for i, group in enumerate(groups, 1):
+        for i, group in enumerate(matches, 1):
             print(f"{i}. {group}")
 
         print("0. Back")
-        group = read_int("Choice: ")
+        choice = read_int("Choice: ")
 
-        if group == 0:
+        if choice == 0:
             continue
 
-        if group < 0 or group > len(groups):
+        if choice < 0 or choice > len(matches):
             continue
 
-        config["group"] = groups[group - 1]
+        config["group"] = matches[choice - 1]
 
         save_config(
             config["host"],

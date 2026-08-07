@@ -57,11 +57,13 @@ def parse_subject(subject):
 
 def group_articles(articles):
     releases = {}
+    dropped = 0
 
     for article in articles:
         parsed = parse_subject(article.subject)
 
         if not parsed:
+            dropped += 1
             continue
 
         name = parsed["release_name"]
@@ -81,6 +83,9 @@ def group_articles(articles):
         releases[name]["articles"].append(article)
         releases[name]["size"] += article.bytes
 
+    if dropped:
+        print(f"Dropped {dropped}/{len(articles)} unparsable")
+
     return releases
 
 
@@ -90,13 +95,8 @@ def is_complete(release):
     if not articles:
         return False
 
-    expected = articles[0].total_parts
+    expected = max(a.total_parts for a in articles)
 
-    parts = {
-        article.part
-        for article in articles
-    }
+    parts = {a.part for a in articles}
 
-    expected_parts = set(range(1, expected + 1))
-
-    return parts == expected_parts
+    return parts == set(range(1, expected + 1))

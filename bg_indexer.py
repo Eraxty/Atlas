@@ -37,6 +37,7 @@ def handle_stop(signum, frame):
 signal.signal(signal.SIGTERM, handle_stop)
 
 current_group = config["group"]
+errors = 0
 
 update_status(True, current_group)
 
@@ -48,17 +49,24 @@ try:
         if group != current_group:
             update_status(True, group)
             current_group = group
+            errors = 0
 
         try:
             if not group:
                 print("No newsgroup configured.")
-                time.sleep(2)
-                continue
+                break
 
             indexer.index_group(group)
+            errors = 0
             time.sleep(0.1)
 
         except Exception as e:
+            errors += 1
+
+            if errors >= 3:
+                print(f"Too many errors on {group} Stopping")
+                break
+
             print(f"Indexing error ({group}): {e}")
             time.sleep(2)
 

@@ -40,7 +40,24 @@ class NNTPClient:
             self.server.quit()
 
     def select_group(self, group_name):
-        return self.server.group(group_name)
+        code, message = self.server.command("GROUP", group_name)
+        if code != 211:
+            raise nntp.NNTPReplyError(code, message)
+
+        parts = message.split(None, 4)
+
+        def to_int(value):
+            try:
+                return int(value)
+            except (TypeError, ValueError):
+                return 0
+
+        count = to_int(parts[0]) if len(parts) > 0 else 0
+        first = to_int(parts[1]) if len(parts) > 1 else 0
+        last = to_int(parts[2]) if len(parts) > 2 else 0
+        name = parts[3] if len(parts) > 3 else group_name
+
+        return count, first, last, name
 
     def fetch_headers(self, start, end):
         return self.server.xover((start, end))

@@ -6,3 +6,5 @@ config.json
 status.json
 dev_nntp_server.py
 sabnzbd.log
+bg_index.log
+bg_indexer.pid
