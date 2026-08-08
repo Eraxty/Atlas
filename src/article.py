@@ -14,3 +14,6 @@ class Article:
     release_name: str | None = None
     part: int | None = None
     total_parts: int | None = None
+    file_index: int | None = None
+    file_total: int | None = None
+    

@@ -24,9 +24,6 @@ def generate_nzb(release_id, output_dir=None):
         print("No articles found")
         return
 
-    #first article
-    first = articles[0]
-
     #root tag
     nzb = et.Element("nzb", {"xmlns": "http://www.newzbin.com/DTD/2003/nzb"})
 
@@ -35,40 +32,43 @@ def generate_nzb(release_id, output_dir=None):
     meta = et.SubElement(head, "meta", {"type": "category"})
     meta.text = release[2]
 
-    #nzb uses unix timestamps
-    timestamp = _article_timestamp(first[7])
-
-    #release info
-    file = et.SubElement(
-        nzb,
-        "file",
-        poster=first[6],
-        date=str(timestamp),
-        subject=first[5]
-    )
-
-    #newsgroup
-    groups = et.SubElement(file, "groups")
-    group = et.SubElement(groups, "group")
-    group.text = release[2]
-
-    #all the message ids go here
-    segments = et.SubElement(file, "segments")
-
-    #already sorted
+    #group articles by their actual filename, already sorted filename then part
+    by_filename = {}
+    
     for article in articles:
-        segment = et.SubElement(
-            segments,
-            "segment",
-            bytes=str(article[4]),
-            number=str(article[2])
+        by_filename.setdefault(article[1], []).append(article)
+
+    #one <file> element per physical file, not per release
+    for files_articles in by_filename.values():
+        first = files_articles[0]
+        timestamp = _article_timestamp(first[7])
+
+        file = et.SubElement(
+            nzb,
+            "file",
+            poster=first[6],
+            date=str(timestamp),
+            subject=first[5]
         )
 
-        #nzb doesnt want the <>
-        segment.text = article[0].strip("<>")
+        groups = et.SubElement(file, "groups")
+        group = et.SubElement(groups, "group")
+        group.text = release[2]
 
-    tree = et.ElementTree(nzb)
-    et.indent(tree, space="  ")
+        segments = et.SubElement(file, "segments")
+
+        for article in files_articles:
+            segment = et.SubElement(
+                segments,
+                "segment",
+                bytes=str(article[4]),
+                number=str(article[2])
+            )
+
+            #nzb doesnt want the <>
+            segment.text = article[0].strip("<>")
+
+    et.indent(nzb, space="  ")
 
     safe_name = release[1].replace("/", "_")
     filename = f"{safe_name}.nzb"
@@ -76,20 +76,16 @@ def generate_nzb(release_id, output_dir=None):
     if output_dir:
         filename = str(Path(output_dir) / filename)
 
-    #save xml
-    tree.write(filename, encoding="utf-8", xml_declaration=True)
+    #elementtree cant write doctype, so build the body ourselves
+    body = et.tostring(nzb, encoding="unicode")
 
-    #elementtree cant write doctype
-    with open(filename, "r+", encoding="utf-8") as f:
-        xml = f.read()
-        f.seek(0)
+    with open(filename, "w", encoding="utf-8") as f:
         f.write(
             '<?xml version="1.0" encoding="utf-8"?>\n'
             '<!DOCTYPE nzb PUBLIC "-//newzBin//DTD NZB 1.1//EN" '
             '"http://www.newzbin.com/DTD/nzb/nzb-1.1.dtd">\n'
-            + xml.split("\n", 1)[1]
+            + body
         )
-        f.truncate()
 
     print(f"Saved {filename}")
 

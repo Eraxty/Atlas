@@ -99,7 +99,7 @@ def get_articles(release_id):
         from articles join releases
         on articles.release_id = releases.id
         where articles.release_id = ?
-        order by articles.part
+        order by articles.filename, articles.part 
     """, (release_id,))
 
     articles = cur.fetchall()
