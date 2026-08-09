@@ -99,6 +99,26 @@ def create_db():
     conn.close()
 
 
+def _release_stats(cur, release_id):
+    files = {}
+    size = 0
+
+    for filename, part, total, b in cur.execute("""
+        select filename, part, total_parts, bytes
+        from articles where release_id = ?
+    """, (release_id,)):
+        files.setdefault(filename, []).append((part, total))
+        size += b
+
+    for parts in files.values():
+        expected = max(total for _, total in parts)
+
+        if {part for part, _ in parts} != set(range(1, expected + 1)):
+            return size, 0
+
+    return size, 1
+
+
 def save_releases_bulk(releases):
     
     if not releases:
@@ -133,9 +153,6 @@ def save_releases_bulk(releases):
             
         release_id = cur.fetchone()[0]
 
-        cur.execute("delete from articles where release_id = ?", (release_id,))
-
-
         cur.executemany("""
             insert or ignore into articles
             (release_id, message_id, subject, 
@@ -151,6 +168,12 @@ def save_releases_bulk(releases):
             a.bytes)
             for a in release["articles"]
         ])
+
+        size, complete = _release_stats(cur, release_id)
+        cur.execute("""
+            update releases set size = ?, complete = ?
+            where id = ?
+        """, (size, complete, release_id))
 
     conn.commit()
     conn.close()

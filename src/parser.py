@@ -123,12 +123,12 @@ def is_complete(release):
         if parts != set(range(1, expected + 1)):
             return False
 
-        file_totals = {a.file_total for a in articles if a.file_total is not None}
+    file_totals = {a.file_total for a in articles if a.file_total is not None}
 
-        if len(file_totals) == 1:
-            expected_files = file_totals.pop()
+    if len(file_totals) == 1:
+        expected_files = file_totals.pop()
 
-            if len(by_filename) != expected_files:
-                return False
+        if len(by_filename) != expected_files:
+            return False
 
-        return True
+    return True
