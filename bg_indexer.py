@@ -42,9 +42,15 @@ def handle_stop(signum, frame):
 
 signal.signal(signal.SIGTERM, handle_stop)
 
+def idle_sleep(duration):
+    deadline = time.time() + duration
+    while not stop_requested and time.time() < deadline:
+        time.sleep(min(1, deadline - time.time()))
+
 current_group = config["group"]
 errors = 0
 error = False
+last_written_idle = indexer.idle
 
 update_status(True, current_group, indexer.idle)
 
@@ -57,6 +63,7 @@ try:
             update_status(True, group, indexer.idle)
             current_group = group
             errors = 0
+            last_written_idle = indexer.idle
 
         try:
             if not group:
@@ -66,9 +73,14 @@ try:
             indexer.index_group(group)
             errors = 0
 
-            update_status(True, current_group, indexer.idle)
+            if indexer.idle != last_written_idle:
+                update_status(True, current_group, indexer.idle)
+                last_written_idle = indexer.idle
 
-            time.sleep(0.1)
+            if indexer.idle:
+                idle_sleep(10)
+            else:
+                time.sleep(0.1)
 
         except Exception as e:
             if stop_requested:
