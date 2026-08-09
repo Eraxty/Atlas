@@ -17,12 +17,6 @@ class Indexer:
     def index_group(self, group):
         count, first, last, name = self.client.select_group(group)
 
-        if self.verbose:        
-            print(f"Group: {name}")
-            print(f"Articles: {count}")
-            print(f"First: {first}")
-            print(f"Last: {last}")
-
         state = get_group_state(group)
 
         if state is None:
@@ -34,9 +28,16 @@ class Indexer:
 
             state = {
                 "live_cursor": live_cursor,
-                "backfill_cursor": backfill_cursor,
+                "backfill_cursor":backfill_cursor,
             }
             self.mode = "backfill"
+
+        elif int(last) < state["live_cursor"]:
+            state["live_cursor"] = int(last)
+            state["backfill_cursor"] = int(last)
+
+            update_live_cursor(group,int(last))
+            update_backfill_cursor(group, int(last))
 
         if self.mode == "live":
             self.live(group, state, int(last))

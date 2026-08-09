@@ -97,12 +97,13 @@ def stop_background_indexer():
         try:
             os.kill(pid, 0)
         except ProcessLookupError:
-            break
+            PID_FILE.unlink(missing_ok=True)
+            return True
+
         time.sleep(0.1)
 
-    PID_FILE.unlink(missing_ok=True)
-    return True
-
+    return False
+    
 
 def ask(text, default=None):
     while True:

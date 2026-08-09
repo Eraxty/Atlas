@@ -82,8 +82,18 @@ try:
                 break
 
             print(f"Indexing error ({group}): {e}")
+            
+            try:
+                client.disconnect()
+            except Exception:
+                pass
+
             time.sleep(2)
 
+            try:
+                client.connect()
+            except Exception as reconnect_error:
+                print(f"Reconnect failed: {reconnect_error}")
 finally:
     update_status(False, "")
 

@@ -90,6 +90,11 @@ def create_db():
         on releases(posted_date)
     """)
 
+    cursor.execute("""
+        create index if not exists idx_articles_release
+        on articles(release_id)
+    """)
+
     conn.commit()
     conn.close()
 
