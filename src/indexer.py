@@ -8,10 +8,11 @@ BACKFILL_SIZE = 5000
 
 
 class Indexer:
-    def __init__(self, client, verbose=False):
+    def __init__(self, client, mode="dynamic", verbose=False):
         self.client = client
+        self.mode = mode
+        self.phase = "backfill"
         self.verbose = verbose
-        self.mode = "live"
         self.idle = False
         self.backfilling = False
 
@@ -31,7 +32,7 @@ class Indexer:
                 "live_cursor": live_cursor,
                 "backfill_cursor":backfill_cursor,
             }
-            self.mode = "backfill"
+            self.phase = "backfill"
 
         elif int(last) < state["live_cursor"]:
             state["live_cursor"] = int(last)
@@ -42,6 +43,13 @@ class Indexer:
 
         if self.mode == "live":
             self.live(group, state, int(last))
+
+        elif self.mode == "backfill":
+            self.backfill(group, state, int(first), int(last))
+
+        elif self.phase == "live":
+            self.live(group, state, int(last))
+            
         else:
             self.backfill(group, state, int(first), int(last))
 
@@ -51,9 +59,11 @@ class Indexer:
         if start > last:
             if self.verbose:
                 print("no new articles")
+
             if not self.idle and not self.backfilling:
                 print("[LIVE] no new articles, idle")
                 self.idle = True
+                
             self.mode = "backfill"
             return
 

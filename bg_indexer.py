@@ -20,7 +20,7 @@ client = NNTPClient(
     port=config["port"],
 )
 
-indexer = Indexer(client)
+indexer = Indexer(client, mode = config.get("index_mode", "dynamic"))
 
 def update_status(running, group, idle=False):
     with open(STATUS_FILE, "w") as f:
@@ -29,6 +29,7 @@ def update_status(running, group, idle=False):
             "group": group,
             "error": error,
             "idle": idle,
+            "mode": indexer.mode,
             "pid": os.getpid()
         }, f)
 
@@ -56,6 +57,7 @@ try:
     while not stop_requested:
         config = load_config()
         group = config["group"]
+        indexer.mode = config.get("index_mode", "dynamic")
 
         if group != current_group:
             update_status(True, group, indexer.idle)

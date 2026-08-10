@@ -317,11 +317,50 @@ def do_search(config):
 def do_settings():
     clear()
 
+    config = load_config()
+
     print("Settings")
-    print("1. Change configuration")
-    print("2. Back")
+    print(f"Indexer mode : {config.get('index_mode', 'dynamic')}")
+    print("1. Change config")
+    print("2. Change indexer mode")
+    print("0. Back")
 
     choice = ask("\nChoice: ")
+
+    if choice == 2:
+        while True:
+            clear()
+
+            print("Indexer mode")
+            print(f"Current : {config.get('index_mode', 'dynamic')}")
+            print("1. dynamic")
+            print("2. live")
+            print("3. backfill")
+            print("0. Back")
+
+            mode = ask("\nChoice: ")
+
+            if mode == 0:
+                return
+
+            modes = {1: "dynamic", 2: "live", 3: "backfill"}
+
+            if mode not in modes:
+                print("that is not a number")
+                continue
+
+            save_config(
+                config["host"],
+                config["username"],
+                config["password"],
+                config["port"],
+                config["group"],
+                modes[mode],
+            )
+
+            print(f"indexer mode set to {modes[mode]}")
+            return
+
     if choice != 1:
         return
 
@@ -338,7 +377,8 @@ def do_settings():
 
     port = ask("Port (563): ", 563)
 
-    save_config(host, username, password, port, group)
+    save_config(host, username, password, port, group, config.get("index_mode", "dynamic"))
+    
     print("\nsaved")
 
 
@@ -368,11 +408,18 @@ def main():
 
         if indexing:
             label = status["group"] or config["group"]
+            
+            if status.get("mode"):
+                label += f" [{status['mode']}]"
+            
             if status.get("idle"):
                 label += " (idle)"
+            
             print(f"Indexing      : {label}")
+        
         elif status.get("error"):
             print("Indexing      : stopped (error)")
+        
         else:
             print("Indexing      : stopped")
 

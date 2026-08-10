@@ -139,7 +139,8 @@ def groups_menu(config):
                 config["username"],
                 config["password"],
                 config["port"],
-                config["group"]
+                config["group"],
+                config.get("index_mode", "dynamic")
             )
 
             client.disconnect()

@@ -12,13 +12,14 @@ def load_config():
         return json.load(f)
 
 
-def save_config(host, username, password, port, group):
+def save_config(host, username, password, port, group, index_mode="dynamic"):
     config = {
         "host": host,
         "username": username,
         "password": password,
         "port": port,
-        "group": group
+        "group": group,
+        "index_mode": index_mode
     }
 
     with open(config_file, "w") as f:
