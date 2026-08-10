@@ -20,8 +20,6 @@ client = NNTPClient(
     port=config["port"],
 )
 
-client.connect()
-
 indexer = Indexer(client)
 
 def update_status(running, group, idle=False):
@@ -66,6 +64,9 @@ try:
             last_written_idle = indexer.idle
 
         try:
+            if not client.server:
+                client.connect()
+
             if not group:
                 print("no newsgroup configured")
                 break

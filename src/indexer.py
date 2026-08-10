@@ -51,7 +51,7 @@ class Indexer:
         if start > last:
             if self.verbose:
                 print("no new articles")
-            if not self.idle:
+            if not self.idle and not self.backfilling:
                 print("[LIVE] no new articles, idle")
                 self.idle = True
             self.mode = "backfill"
