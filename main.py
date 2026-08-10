@@ -5,6 +5,7 @@ from src.groups_menu import groups_menu
 from src.nzb import generate_nzb
 from src.prompts import prompt
 from src.search import count_all_releases, count_releases, get_release, search_all_releases, search_releases
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 import json
 import math
@@ -32,6 +33,25 @@ LOGO = r"""
 
 def clear():
     os.system("cls" if os.name == "nt" else "clear")
+
+
+def fmt_size(size):
+    if not size:
+        return "0 B"
+
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if size < 1024:
+            return f"{size:.1f} {unit}"
+        size /= 1024
+
+    return f"{size:.1f} PB"
+
+
+def fmt_date(value):
+    try:
+        return parsedate_to_datetime(value).strftime("%Y-%m-%d")
+    except (TypeError, ValueError):
+        return value or ""
 
 
 def get_status():
@@ -197,7 +217,12 @@ def do_search(config):
             print(f"Showing {start}-{end} of {total} results\n")
 
             for release in releases:
-                print(f"[{release[0]}] {release[1]}")
+                name = release[1]
+
+                if len(name) > 42:
+                    name = name[:39] + "..."
+
+                print(f"[{release[0]}] {name}  {fmt_size(release[5])} - {release[7]} parts - {fmt_date(release[4])}")
 
             print("\n0. Back")
             if page > 0:
@@ -261,6 +286,10 @@ def do_search(config):
                 clear()
 
                 print(f"Release: {release_name}")
+
+                if release:
+                    print(f"{fmt_size(release[5])} - {release[7]} parts - {fmt_date(release[4])}")
+
                 print("1. Download")
                 print("2. Save NZB")
                 print("0. Back")

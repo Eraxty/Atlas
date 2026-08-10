@@ -77,7 +77,7 @@ try:
                 update_status(True, current_group, indexer.idle)
                 last_written_idle = indexer.idle
 
-            if indexer.idle:
+            if indexer.idle and not indexer.backfilling:
                 idle_sleep(10)
             else:
                 time.sleep(0.1)

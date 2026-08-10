@@ -1,5 +1,10 @@
 from src.article import Article
 
+def clean(value):
+    if isinstance(value, str):
+        return value.encode("utf-8", "replace").decode("utf-8")
+    return value
+
 def to_int(value):
     try:
         return int(value)
@@ -13,11 +18,11 @@ def headers_to_articles(headers):
     for number, header in headers:
         article = Article(
             number= number,
-            subject= header["subject"],
-            author= header["from"],
-            date= header["date"],
-            message_id= header["message-id"],
-            references= header["references"],
+            subject= clean(header["subject"]),
+            author= clean(header["from"]),
+            date= clean(header["date"]),
+            message_id= clean(header["message-id"]),
+            references= clean(header["references"]),
             bytes= to_int(header[":bytes" if ":bytes" in header else "bytes"]),
             lines= to_int(header[":lines" if ":lines" in header else "lines"])
         )

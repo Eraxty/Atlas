@@ -7,6 +7,7 @@ database = "atlas.db"
 def create_db():
     conn = sqlite3.connect(database, timeout=30)
     cursor = conn.cursor()
+    cursor.execute("pragma journal_mode = wal")
 
     #check releases schema
     cursor.execute("""

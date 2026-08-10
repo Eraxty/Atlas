@@ -13,6 +13,7 @@ class Indexer:
         self.verbose = verbose
         self.mode = "live"
         self.idle = False
+        self.backfilling = False
 
     def index_group(self, group):
         count, first, last, name = self.client.select_group(group)
@@ -68,6 +69,7 @@ class Indexer:
             end = last
 
         if end < first:
+            self.backfilling = False
             if not self.idle:
                 print(f"[BACKFILL] {end} < first {first}, nothing to backfill, idle")
                 self.idle = True
@@ -77,6 +79,7 @@ class Indexer:
         start = max(first, end - BACKFILL_SIZE + 1)
         self.process_range(group, start, end, "BACKFILL")
         update_backfill_cursor(group, start - 1)
+        self.backfilling = True
         self.mode = "live"
 
     def process_range(self, group, start, end, kind):
