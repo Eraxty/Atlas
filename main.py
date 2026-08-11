@@ -146,20 +146,8 @@ def setup():
     password = prompt("Password: ")
     port = ask("Port (563): ", 563)
 
-    while True:
-        group = prompt("\nNewsgroup (blank = browse): ").strip()
-
-        if not group:
-            save_config(host, username, password, port, group)
-            print("\npick a group\n")
-            groups_menu(load_config())
-            return
-
-        if group.count(".") >= 2:
-            save_config(host, username, password, port, group)
-            return
-
-        print("not a newsgroup")
+    save_config(host, username, password, port, "")
+    print("\ngroup empty rn, select one from the Groups menu")
 
 
 def do_search(config):
@@ -222,7 +210,9 @@ def do_search(config):
                 if len(name) > 42:
                     name = name[:39] + "..."
 
-                print(f"[{release[0]}] {name}  {fmt_size(release[5])} - {release[7]} parts - {fmt_date(release[4])}")
+                broken = "  [broken]" if not release[6] else ""
+
+                print(f"[{release[0]}] {name}  {fmt_size(release[5])} - {release[7]} parts - {fmt_date(release[4])}{broken}")
 
             print("\n0. Back")
             if page > 0:
