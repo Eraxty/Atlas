@@ -1,3 +1,5 @@
+from email.utils import parsedate_to_datetime
+
 from src.article import Article
 
 def clean(value):
@@ -12,6 +14,14 @@ def to_int(value):
         return 0
 
 
+def to_iso_date(value):
+    try:
+        return parsedate_to_datetime(value).strftime("%Y-%m-%d %H:%M:%S")
+    
+    except (TypeError, ValueError, OverflowError):
+        return value
+
+
 def headers_to_articles(headers):
     articles = []
 
@@ -20,7 +30,7 @@ def headers_to_articles(headers):
             number= number,
             subject= clean(header["subject"]),
             author= clean(header["from"]),
-            date= clean(header["date"]),
+            date= to_iso_date(clean(header["date"])),
             message_id= clean(header["message-id"]),
             references= clean(header["references"]),
             bytes= to_int(header[":bytes" if ":bytes" in header else "bytes"]),

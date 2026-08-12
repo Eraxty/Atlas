@@ -1,41 +1,38 @@
-import os
 import sqlite3
+from pathlib import Path
 
-database = "atlas.db"
+BASE_DIR = Path(__file__).resolve().parent.parent
+database = BASE_DIR / "atlas.db"
+
+
+def migrate(conn):
+    cursor = conn.cursor()
+
+    cursor.execute("pragma table_info(releases)")
+
+    release_columns = {column[1] for column in cursor.fetchall()}
+
+    if "group_name" not in release_columns:
+        cursor.execute("alter table releases add column group_name TEXT")
+    
+    if "poster" not in release_columns:
+        cursor.execute("alter table releases add column poster TEXT")
+    
+    if "posted_date" not in release_columns:
+        cursor.execute("alter table releases add column posted_date TEXT")
+
+    cursor.execute("pragma table_info(articles)")
+    
+    article_columns = {column[1] for column in cursor.fetchall()}
+
+    if "subject" not in article_columns:
+        cursor.execute("alter table articles add column subject TEXT")
 
 
 def create_db():
     conn = sqlite3.connect(database, timeout=30)
     cursor = conn.cursor()
     cursor.execute("pragma journal_mode = wal")
-
-    #check releases schema
-    cursor.execute("""
-        select name from sqlite_master
-        where type = 'table' and name = 'releases'
-    """)
-    if cursor.fetchone() is not None:
-        cursor.execute("pragma table_info(releases)")
-        release_columns = {column[1] for column in cursor.fetchall()}
-
-        if not {"group_name", "poster", "posted_date"}.issubset(release_columns):
-            conn.close()
-            os.remove(database)
-            return create_db()
-
-    #check articles schema
-    cursor.execute("""
-        select name from sqlite_master
-        where type = 'table' and name = 'articles'
-    """)
-    if cursor.fetchone() is not None:
-        cursor.execute("pragma table_info(articles)")
-        article_columns = {column[1] for column in cursor.fetchall()}
-
-        if "subject" not in article_columns:
-            conn.close()
-            os.remove(database)
-            return create_db()
 
     cursor.execute("""
         create table if not exists releases (
@@ -96,6 +93,8 @@ def create_db():
         on articles(release_id)
     """)
 
+    migrate(conn)
+
     conn.commit()
     conn.close()
 
@@ -134,8 +133,6 @@ def save_releases_bulk(releases):
             (name, size, complete, group_name, poster, posted_date)
             values (?, ?, ?, ?, ?, ?)
             on conflict(name, group_name) do update set
-            size = excluded.size,
-            complete = excluded.complete,
             poster = excluded.poster,
             posted_date = excluded.posted_date
         """, (
@@ -154,6 +151,8 @@ def save_releases_bulk(releases):
             
         release_id = cur.fetchone()[0]
 
+        before = conn.total_changes
+        
         cur.executemany("""
             insert or ignore into articles
             (release_id, message_id, subject, 
@@ -169,6 +168,10 @@ def save_releases_bulk(releases):
             a.bytes)
             for a in release["articles"]
         ])
+
+        #nothing new added so the stored stats are still same
+        if conn.total_changes == before:
+            continue
 
         size, complete = _release_stats(cur, release_id)
         cur.execute("""

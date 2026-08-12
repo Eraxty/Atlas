@@ -5,7 +5,6 @@ from src.groups_menu import groups_menu
 from src.nzb import generate_nzb
 from src.prompts import prompt
 from src.search import count_all_releases, count_releases, get_release, search_all_releases, search_releases
-from email.utils import parsedate_to_datetime
 from pathlib import Path
 import json
 import math
@@ -48,10 +47,10 @@ def fmt_size(size):
 
 
 def fmt_date(value):
-    try:
-        return parsedate_to_datetime(value).strftime("%Y-%m-%d")
-    except (TypeError, ValueError):
-        return value or ""
+    if not value:
+        return ""
+
+    return str(value)[:10]
 
 
 def get_status():

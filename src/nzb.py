@@ -1,6 +1,7 @@
 from src.search import get_release, get_articles
 import time
 import xml.etree.ElementTree as et
+from datetime import datetime
 from email.utils import parsedate_to_datetime
 from pathlib import Path
 
@@ -9,6 +10,12 @@ def _article_timestamp(date_str):
     try:
         return int(parsedate_to_datetime(date_str).timestamp())
     except (TypeError, ValueError, OverflowError):
+        pass
+
+    try:
+        return int(datetime.fromisoformat(date_str).timestamp())
+    
+    except (TypeError, ValueError):
         return int(time.time())
 
 

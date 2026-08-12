@@ -15,9 +15,11 @@ def search_releases(query, group, page=0, page_size=10):
 
     cur.execute("""
         select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete,
-        (select count(*) from articles where release_id = r.id)
+        count(a.id)
         from releases r
+        left join articles a on a.release_id = r.id
         where r.group_name = ? and r.name like ? escape '\\'
+        group by r.id
         order by r.name
         limit ? offset ?
     """, (group, like(query), page_size, offset)
@@ -37,9 +39,11 @@ def search_all_releases(query, page=0, page_size=10):
 
     cur.execute("""
         select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete,
-        (select count(*) from articles where release_id = r.id)
+        count(a.id)
         from releases r
+        left join articles a on a.release_id = r.id
         where r.name like ? escape '\\'
+        group by r.id
         order by r.name
         limit ? offset ?
     """,(like(query), page_size, offset))
@@ -86,9 +90,11 @@ def get_release(id):
 
     cur.execute("""
         select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete,
-        (select count(*) from articles where release_id = r.id)
+        count(a.id)
         from releases r
+        left join articles a on a.release_id = r.id
         where r.id = ?
+        group by r.id
     """, (id,)
     )
 
