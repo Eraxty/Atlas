@@ -95,6 +95,43 @@ def create_db():
 
     migrate(conn)
 
+    fts_exists = cursor.execute("""
+        select name from sqlite_master
+        where type = 'table' and name = 'releases_fts'
+    """).fetchone()
+
+    if fts_exists is None:
+        cursor.execute("""
+            create virtual table releases_fts using fts5(
+                name,
+                content='releases',
+                content_rowid='id'
+            )
+        """)
+
+    cursor.execute("""
+        create trigger if not exists releases_ai after insert on releases begin
+            insert into releases_fts(rowid, name) values (new.id, new.name);
+        end
+    """)
+
+    cursor.execute("""
+        create trigger if not exists releases_ad after delete on releases begin
+            insert into releases_fts(releases_fts, rowid, name) values ('delete', old.id, old.name);
+        end
+    """)
+
+    cursor.execute("""
+        create trigger if not exists releases_au after update on releases begin
+            insert into releases_fts(releases_fts, rowid, name) values ('delete', old.id, old.name);
+            insert into releases_fts(rowid, name) values (new.id, new.name);
+        end
+    """)
+
+
+    if fts_exists is None:
+        cursor.execute("insert into releases_fts(releases_fts) values ('rebuild')")
+
     conn.commit()
     conn.close()
 

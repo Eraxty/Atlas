@@ -2,9 +2,16 @@ import sqlite3
 from src.database import database
 
 
-def like(query):
-    escaped = query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-    return f"%{escaped}%"
+def fts_query(query):
+    terms = []
+
+    for raw in query.split():
+        term = raw.strip('"')
+
+        if term:
+            terms.append(f'"{term}"*')
+
+    return " AND ".join(terms)
 
 
 def search_releases(query, group, page=0, page_size=10):
@@ -18,11 +25,12 @@ def search_releases(query, group, page=0, page_size=10):
         count(a.id)
         from releases r
         left join articles a on a.release_id = r.id
-        where r.group_name = ? and r.name like ? escape '\\'
+        join releases_fts on releases_fts.rowid = r.id
+        where releases_fts match ? and r.group_name = ?
         group by r.id
         order by r.name
         limit ? offset ?
-    """, (group, like(query), page_size, offset)
+    """, (fts_query(query), group, page_size, offset)
     )
 
     releases = cur.fetchall()
@@ -42,11 +50,12 @@ def search_all_releases(query, page=0, page_size=10):
         count(a.id)
         from releases r
         left join articles a on a.release_id = r.id
-        where r.name like ? escape '\\'
+        join releases_fts on releases_fts.rowid = r.id
+        where releases_fts match ?
         group by r.id
         order by r.name
         limit ? offset ?
-    """,(like(query), page_size, offset))
+    """,(fts_query(query), page_size, offset))
 
     releases = cur.fetchall()
     conn.close()
@@ -59,9 +68,10 @@ def count_releases(query, group):
     cur = conn.cursor()
 
     cur.execute("""
-        select count(*) from releases
-        where group_name = ? and name like ? escape '\\'
-    """, (group, like(query)))
+        select count(*) from releases r
+        join releases_fts on releases_fts.rowid = r.id
+        where releases_fts match ? and r.group_name = ?
+    """, (fts_query(query), group))
 
     count = cur.fetchone()[0]
     conn.close()
@@ -74,9 +84,10 @@ def count_all_releases(query):
     cur = conn.cursor()
 
     cur.execute("""
-        select count(*) from releases
-        where name like ? escape '\\'
-    """, (like(query),))
+        select count(*) from releases r
+        join releases_fts on releases_fts.rowid = r.id
+        where releases_fts match ?
+    """, (fts_query(query),))
 
     count = cur.fetchone()[0]
     conn.close()
