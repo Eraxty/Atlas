@@ -2,11 +2,12 @@ import nntp
 
 
 class NNTPClient:
-    def __init__(self, host, username, password, port=563, use_ssl=None):
+    def __init__(self, host, username, password, port=563, use_ssl=None, timeout=30):
         self.host = host
         self.port = port
         self.username = username
         self.password = password
+        self.timeout = timeout
         self.use_ssl = self._detect_use_ssl(host, port) if use_ssl is None else use_ssl
         self.server = None
 
@@ -32,7 +33,8 @@ class NNTPClient:
             port=self.port,
             username=self.username,
             password=self.password,
-            use_ssl=self.use_ssl
+            use_ssl=self.use_ssl,
+            timeout=self.timeout
         )
 
     def disconnect(self):
