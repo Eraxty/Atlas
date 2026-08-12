@@ -65,6 +65,7 @@ python main.py
 
 ## Setup
 ![first time setup](img/start.png)
+
 configure the indexer with the credentials your usenet provider gave you
 the config is stored locally as `config.json`
 u can change that anytime in the settings menu or by editing it directly
@@ -73,6 +74,7 @@ u can change that anytime in the settings menu or by editing it directly
 
 after starting atlas u will be greeted by this menu
 ![Menu](img/menu.png)
+
 here u can index, search, select groups and change config and indexer settings
 
 ## Downloading
