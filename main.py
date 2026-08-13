@@ -121,7 +121,10 @@ def stop_background_indexer():
 
         time.sleep(0.1)
 
-    return False
+    #didnt exit in time soo kill him
+    os.kill(pid, signal.SIGKILL)
+    PID_FILE.unlink(missing_ok = True)
+    return True
     
 
 def ask(text, default=None):

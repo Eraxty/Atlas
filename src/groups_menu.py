@@ -19,7 +19,14 @@ def groups_menu(config):
         config["port"]
     )
 
-    client.connect()
+
+    try:
+        client.connect()
+
+    except (OSError, nntp.NNTPReplyError):
+        print("couldnt connect to server")
+        prompt("[enter]")
+        return
 
     groups = []
 
