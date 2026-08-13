@@ -37,7 +37,12 @@ def configure_servers():
     sections = re.findall(r"^\[\[s(\d+)\]\]\s*$", text, re.MULTILINE)
     index = max([int(n) for n in sections], default=-1) + 1
 
-    port = int(atlas.get("port", 563))
+    try:
+        port = int(atlas.get("port", 563))
+
+    except (TypeError, ValueError):
+        port = 563
+
     ssl = "1" if port == 563 else "0"
 
     block = (
@@ -79,15 +84,21 @@ def start():
     configure_watched_dir()
     configure_servers()
 
-    with LOG_FILE.open("a") as log_file:
-        process = subprocess.Popen(
-            [sys.executable, "-u", "SABnzbd.py"],
-            cwd = SAB_DIR,
-            stdin = subprocess.DEVNULL,
-            stdout = log_file,
-            stderr = subprocess.STDOUT,
-            start_new_session = True,
-        )
+    try:
+        with LOG_FILE.open("a") as log_file:
+            process = subprocess.Popen(
+                [sys.executable, "-u", "SABnzbd.py"],
+                cwd = SAB_DIR,
+                stdin = subprocess.DEVNULL,
+                stdout = log_file,
+                stderr = subprocess.STDOUT,
+                start_new_session = True,
+            )
+    
+    except OSError as e:
+        print(f"couldnt start sabnzbd: {e}")
+        process = None
+        return False
 
     print("started sabnzbd")
     return True
@@ -97,9 +108,15 @@ def stop():
     global process
 
     if process and process.poll() is None:
-        process.terminate()
-        process.wait()
-        print("Stopped")
+        try:
+            process.terminate()
+            process.wait()
+    
+        except OSError as e:
+            print(f"couldnt stop sab: {e}")
+    
+        else:
+            print("Stopped")
     else:
         print("SAB isn't running bro")
 
@@ -122,8 +139,13 @@ def load_config():
     config = configparser.ConfigParser()
 
     if CONFIG_FILE.exists():
-        with open(CONFIG_FILE, encoding="utf-8") as f:
-            text = f.read()
+        
+        try:
+            with open(CONFIG_FILE, encoding="utf-8") as f:
+                text = f.read()
+        
+        except OSError:
+            text = ""
 
         lines = text.splitlines()
         first = 0
@@ -137,7 +159,11 @@ def load_config():
         if bare and not re.search(r"^\[DEFAULT\]\s*$", rest, re.MULTILINE):
             rest = "[DEFAULT]\n" + "\n".join(bare) + "\n" + rest
 
-        config.read_string(rest)
+        try:
+            config.read_string(rest)
+        
+        except configparser.Error:
+            pass
 
     if "misc" not in config:
         config["misc"] = {}

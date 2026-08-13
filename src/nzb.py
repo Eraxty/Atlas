@@ -37,7 +37,7 @@ def generate_nzb(release_id, output_dir=None):
     #optional metadata
     head = et.SubElement(nzb, "head")
     meta = et.SubElement(head, "meta", {"type": "category"})
-    meta.text = release[2]
+    meta.text = release[2] or ""
 
     #group articles by their actual filename, already sorted filename then part
     by_filename = {}
@@ -53,9 +53,9 @@ def generate_nzb(release_id, output_dir=None):
         file = et.SubElement(
             nzb,
             "file",
-            poster=first[6],
+            poster=first[6] or "",
             date=str(timestamp),
-            subject=first[5]
+            subject=first[5] or ""
         )
 
         groups = et.SubElement(file, "groups")
@@ -86,13 +86,17 @@ def generate_nzb(release_id, output_dir=None):
     #elementtree cant write doctype, so build the body ourselves
     body = et.tostring(nzb, encoding="unicode")
 
-    with open(filename, "w", encoding="utf-8") as f:
-        f.write(
-            '<?xml version="1.0" encoding="utf-8"?>\n'
-            '<!DOCTYPE nzb PUBLIC "-//newzBin//DTD NZB 1.1//EN" '
-            '"http://www.newzbin.com/DTD/nzb/nzb-1.1.dtd">\n'
-            + body
-        )
+    try:
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write(
+                '<?xml version="1.0" encoding="utf-8"?>\n'
+                '<!DOCTYPE nzb PUBLIC "-//newzBin//DTD NZB 1.1//EN" '
+                '"http://www.newzbin.com/DTD/nzb/nzb-1.1.dtd">\n'
+                + body
+            )
+    except OSError as e:
+        print(f"couldnt save nzb: {e}")
+        return
 
     print(f"Saved {filename}")
 

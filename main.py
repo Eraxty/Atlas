@@ -83,15 +83,20 @@ def start_background_indexer():
     if indexer_alive():
         return False
 
-    with LOG_FILE.open("a") as log_file:
-        process = subprocess.Popen(
-            [sys.executable, "-u", "bg_indexer.py"],
-            cwd=BASE_DIR,
-            stdin=subprocess.DEVNULL,
-            stdout=log_file,
-            stderr=subprocess.STDOUT,
-            start_new_session=True,
-        )
+    try:
+        with LOG_FILE.open("a") as log_file:
+            process = subprocess.Popen(
+                [sys.executable, "-u", "bg_indexer.py"],
+                cwd = BASE_DIR,
+                stdin = subprocess.DEVNULL,
+                stdout = log_file,
+                stderr = subprocess.STDOUT,
+                start_new_session = True,
+            )
+   
+    except OSError as e:
+        print(f"couldnt start indexer: {e}")
+        return False
 
     PID_FILE.write_text(str(process.pid))
     return True
@@ -123,7 +128,13 @@ def stop_background_indexer():
         time.sleep(0.1)
 
     #didnt exit in time soo kill him
-    os.kill(pid, signal.SIGKILL)
+    try:
+        os.kill(pid, signal.SIGKILL)
+    
+    except ProcessLookupError:
+        PID_FILE.unlink(missing_ok = True)
+        return True
+
     PID_FILE.unlink(missing_ok = True)
     return True
     

@@ -28,13 +28,13 @@ def headers_to_articles(headers):
     for number, header in headers:
         article = Article(
             number= number,
-            subject= clean(header["subject"]),
-            author= clean(header["from"]),
-            date= to_iso_date(clean(header["date"])),
-            message_id= clean(header["message-id"]),
-            references= clean(header["references"]),
-            bytes= to_int(header[":bytes" if ":bytes" in header else "bytes"]),
-            lines= to_int(header[":lines" if ":lines" in header else "lines"])
+            subject= clean(header.get("subject", "")),
+            author= clean(header.get("from", "")),
+            date= to_iso_date(clean(header.get("date", ""))),
+            message_id= clean(header.get("message-id", "")),
+            references= clean(header.get("references", "")),
+            bytes= to_int(header.get(":bytes" if ":bytes" in header else "bytes", 0)),
+            lines= to_int(header.get(":lines" if ":lines" in header else "lines", 0))
         )
 
         articles.append(article)

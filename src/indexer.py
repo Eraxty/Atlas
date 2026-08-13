@@ -95,10 +95,15 @@ class Indexer:
     def process_range(self, group, start, end, kind):
         try:
             headers = list(self.client.fetch_headers(start, end))
+        
         except nntp.NNTPTemporaryError as e:
             if e.code != 423:
                 raise
             print(f"[{kind}] {start}-{end} empty, skipping")
+            return
+        
+        except nntp.NNTPPermanentError as e:
+            print(f"[{kind}] {start}-{end} not available ({e.code}), skipping")
             return
 
         self.idle = False
