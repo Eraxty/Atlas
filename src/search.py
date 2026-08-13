@@ -20,18 +20,31 @@ def search_releases(query, group, page=0, page_size=10):
 
     offset = page * page_size
 
-    cur.execute("""
-        select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete,
-        count(a.id)
-        from releases r
-        left join articles a on a.release_id = r.id
-        join releases_fts on releases_fts.rowid = r.id
-        where releases_fts match ? and r.group_name = ?
-        group by r.id
-        order by r.name
-        limit ? offset ?
-    """, (fts_query(query), group, page_size, offset)
-    )
+    try:
+        cur.execute("""
+            select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete,
+            count(a.id)
+            from releases r
+            left join articles a on a.release_id = r.id
+            join releases_fts on releases_fts.rowid = r.id
+            where releases_fts match ? and r.group_name = ?
+            group by r.id
+            order by r.name
+            limit ? offset ?
+        """, (fts_query(query), group, page_size, offset)
+        )
+    except sqlite3.OperationalError:
+        cur.execute("""
+            select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete,
+            count(a.id)
+            from releases r
+            left join articles a on a.release_id = r.id
+            where r.name like ? and r.group_name = ?
+            group by r.id
+            order by r.name
+            limit ? offset ?
+        """, (f"%{query}%", group, page_size, offset)
+        )
 
     releases = cur.fetchall()
     conn.close()
@@ -45,17 +58,29 @@ def search_all_releases(query, page=0, page_size=10):
 
     offset = page * page_size
 
-    cur.execute("""
-        select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete,
-        count(a.id)
-        from releases r
-        left join articles a on a.release_id = r.id
-        join releases_fts on releases_fts.rowid = r.id
-        where releases_fts match ?
-        group by r.id
-        order by r.name
-        limit ? offset ?
-    """,(fts_query(query), page_size, offset))
+    try:
+        cur.execute("""
+            select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete,
+            count(a.id)
+            from releases r
+            left join articles a on a.release_id = r.id
+            join releases_fts on releases_fts.rowid = r.id
+            where releases_fts match ?
+            group by r.id
+            order by r.name
+            limit ? offset ?
+        """,(fts_query(query), page_size, offset))
+    except sqlite3.OperationalError:
+        cur.execute("""
+            select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete,
+            count(a.id)
+            from releases r
+            left join articles a on a.release_id = r.id
+            where r.name like ?
+            group by r.id
+            order by r.name
+            limit ? offset ?
+        """,(f"%{query}%", page_size, offset))
 
     releases = cur.fetchall()
     conn.close()
@@ -67,11 +92,17 @@ def count_releases(query, group):
     conn = sqlite3.connect(database, timeout=30)
     cur = conn.cursor()
 
-    cur.execute("""
-        select count(*) from releases r
-        join releases_fts on releases_fts.rowid = r.id
-        where releases_fts match ? and r.group_name = ?
-    """, (fts_query(query), group))
+    try:
+        cur.execute("""
+            select count(*) from releases r
+            join releases_fts on releases_fts.rowid = r.id
+            where releases_fts match ? and r.group_name = ?
+        """, (fts_query(query), group))
+    except sqlite3.OperationalError:
+        cur.execute("""
+            select count(*) from releases r
+            where r.name like ? and r.group_name = ?
+        """, (f"%{query}%", group))
 
     count = cur.fetchone()[0]
     conn.close()
@@ -83,11 +114,17 @@ def count_all_releases(query):
     conn = sqlite3.connect(database, timeout=30)
     cur = conn.cursor()
 
-    cur.execute("""
-        select count(*) from releases r
-        join releases_fts on releases_fts.rowid = r.id
-        where releases_fts match ?
-    """, (fts_query(query),))
+    try:
+        cur.execute("""
+            select count(*) from releases r
+            join releases_fts on releases_fts.rowid = r.id
+            where releases_fts match ?
+        """, (fts_query(query),))
+    except sqlite3.OperationalError:
+        cur.execute("""
+            select count(*) from releases r
+            where r.name like ?
+        """, (f"%{query}%",))
 
     count = cur.fetchone()[0]
     conn.close()

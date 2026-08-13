@@ -162,61 +162,67 @@ def save_releases_bulk(releases):
         return
 
     conn = sqlite3.connect(database, timeout=30)
-    cur = conn.cursor()
-    
-    for release in releases:
-        cur.execute("""
-            insert into releases
-            (name, size, complete, group_name, poster, posted_date)
-            values (?, ?, ?, ?, ?, ?)
-            on conflict(name, group_name) do update set
-            poster = excluded.poster,
-            posted_date = excluded.posted_date
-        """, (
-            release["name"],
-            release["size"],
-            int(release["complete"]),
-            release["group"],
-            release["poster"],
-            release["date"]
-        ))
 
-        cur.execute("""
-            select id from releases 
-            where name = ? and group_name = ?
-        """, (release["name"], release["group"]))
-            
-        release_id = cur.fetchone()[0]
-
-        before = conn.total_changes
+    with conn:
+        cur = conn.cursor()
         
-        cur.executemany("""
-            insert or ignore into articles
-            (release_id, message_id, subject, 
-            filename, part, total_parts, bytes)
-            values (?, ?, ?, ?, ?, ?, ?)
-        """, [
-            (release_id,
-            a.message_id, 
-            a.subject, 
-            a.filename, 
-            a.part, 
-            a.total_parts, 
-            a.bytes)
-            for a in release["articles"]
-        ])
+        for release in releases:
+            cur.execute("""
+                insert into releases
+                (name, size, complete, group_name, poster, posted_date)
+                values (?, ?, ?, ?, ?, ?)
+                on conflict(name, group_name) do update set
+                poster = excluded.poster,
+                posted_date = excluded.posted_date
+            """, (
+                release["name"],
+                release["size"],
+                int(release["complete"]),
+                release["group"],
+                release["poster"],
+                release["date"]
+            ))
 
-        #nothing new added so the stored stats are still same
-        if conn.total_changes == before:
-            continue
+            cur.execute("""
+                select id from releases 
+                where name = ? and group_name = ?
+            """, (release["name"], release["group"]))
+                
+            row = cur.fetchone()
 
-        size, complete = _release_stats(cur, release_id)
-        cur.execute("""
-            update releases set size = ?, complete = ?
-            where id = ?
-        """, (size, complete, release_id))
+            if row is None:
+                continue
 
-    conn.commit()
+            release_id = row[0]
+
+            before = conn.total_changes
+            
+            cur.executemany("""
+                insert or ignore into articles
+                (release_id, message_id, subject, 
+                filename, part, total_parts, bytes)
+                values (?, ?, ?, ?, ?, ?, ?)
+            """, [
+                (release_id,
+                a.message_id, 
+                a.subject, 
+                a.filename, 
+                a.part, 
+                a.total_parts, 
+                a.bytes)
+                for a in release["articles"]
+            ])
+
+            #nothing new added so the stored stats are still same
+            if conn.total_changes == before:
+                continue
+
+            size, complete = _release_stats(cur, release_id)
+            cur.execute("""
+                update releases set size = ?, complete = ?
+                where id = ?
+            """, (size, complete, release_id))
+
     conn.close()
 
 

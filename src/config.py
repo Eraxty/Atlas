@@ -10,8 +10,12 @@ def load_config():
     if not os.path.exists(config_file):
         return None
 
-    with open(config_file, "r") as f:
-        return json.load(f)
+    try:
+        with open(config_file, "r") as f:
+            return json.load(f)
+    
+    except (OSError, json.JSONDecodeError):
+        return None
 
 
 def save_config(host, username, password, port, group, index_mode="dynamic"):
@@ -23,6 +27,8 @@ def save_config(host, username, password, port, group, index_mode="dynamic"):
         "group": group,
         "index_mode": index_mode
     }
+
+    config_file.parent.mkdir(parents = True, exist_ok = True)
 
     with open(config_file, "w") as f:
         json.dump(config, f, indent=4)

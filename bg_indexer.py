@@ -4,6 +4,7 @@ from src.indexer import Indexer
 from pathlib import Path
 import os
 import signal
+import sys
 import time
 import json
 
@@ -12,6 +13,10 @@ STATUS_FILE = BASE_DIR / "status.json"
 PID_FILE = BASE_DIR / "bg_indexer.pid"
 
 config = load_config()
+
+if not config or not config.get("host"):
+    print("no valid config")
+    sys.exit(1)
 
 client = NNTPClient(
     host=config["host"],
@@ -23,15 +28,19 @@ client = NNTPClient(
 indexer = Indexer(client, mode = config.get("index_mode", "dynamic"))
 
 def update_status(running, group, idle=False):
-    with open(STATUS_FILE, "w") as f:
-        json.dump({
-            "running": running,
-            "group": group,
-            "error": error,
-            "idle": idle,
-            "mode": indexer.mode,
-            "pid": os.getpid()
-        }, f)
+    try:
+        with open(STATUS_FILE, "w") as f:
+            json.dump({
+                "running": running,
+                "group": group,
+                "error": error,
+                "idle": idle,
+                "mode": indexer.mode,
+                "pid": os.getpid()
+            }, f)
+    
+    except OSError as e:
+        print(f"couldnt write status: {e}")
 
 stop_requested = False
 
@@ -56,6 +65,11 @@ update_status(True, current_group, indexer.idle)
 try:
     while not stop_requested:
         config = load_config()
+
+        if config is None:
+            print("error with config, stopped")
+            break
+
         group = config["group"]
         indexer.mode = config.get("index_mode", "dynamic")
 

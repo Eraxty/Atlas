@@ -30,11 +30,18 @@ def groups_menu(config):
 
     groups = []
 
-    for line in client.list_groups():
-        line = line.strip()
+    try:
+        for line in client.list_groups():
+            line = line.strip()
 
-        if line:
-            groups.append(line.split()[0])
+            if line:
+                groups.append(line.split()[0])
+    
+    except (OSError, nntp.NNTPError):
+        print("couldnt fetch groups from the server")
+        prompt("[enter]")
+        client.disconnect()
+        return
 
     while True:
         clear()
@@ -122,7 +129,13 @@ def groups_menu(config):
 
             config["group"] = matches[start + selected - 1]
 
-            count, first, last, _ = client.select_group(config["group"])
+            try:
+                count, first, last, _ = client.select_group(config["group"])
+
+            except (OSError, nntp.NNTPError) as e:
+                print(f"couldnt select group: {e}")
+                prompt("[enter]")
+                continue
 
             if last > first:
                 try:

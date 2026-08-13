@@ -11,6 +11,7 @@ import math
 import os
 import shutil
 import signal
+import sqlite3
 import subprocess
 import sys
 import time
@@ -174,12 +175,18 @@ def do_search(config):
         page_size = max(10, shutil.get_terminal_size().lines - 15)
 
         while True:
-            if scope == 1:
-                total = count_releases(query, config["group"])
-                releases = search_releases(query, config["group"], page, page_size)
-            else:
-                total = count_all_releases(query)
-                releases = search_all_releases(query, page, page_size)
+            try:
+                if scope == 1:
+                    total = count_releases(query, config["group"])
+                    releases = search_releases(query, config["group"], page, page_size)
+                
+                else:
+                    total = count_all_releases(query)
+                    releases = search_all_releases(query, page, page_size)
+            
+            except sqlite3.Error:
+                print("\ncouldnt search, db error")
+                return
 
             if not total:
                 print("\nno releases found")
@@ -289,14 +296,24 @@ def do_search(config):
                 choice = prompt("\nChoice: ").strip()
 
                 if choice == "1":
-                    if download_release(choice_id):
+                    try:
+                        ok = download_release(choice_id)
+                    
+                    except Exception as e:
+                        print(f"couldnt queue download: {e}")
+                        ok = False
+
+                    if ok:
                         print("\nDownload queued it is downloading in background.")
-                        print("Finished files land ~/Downloads/complete/")
+                        print("Finished files land ~/Downloads")
                     prompt("[enter]")
                     return
 
                 if choice == "2":
-                    generate_nzb(choice_id)
+                    try:
+                        generate_nzb(choice_id)
+                    except Exception as e:
+                        print(f"couldnt save nzb: {e}")
                     prompt("[enter]")
                     return
 

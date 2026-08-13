@@ -38,8 +38,15 @@ class NNTPClient:
         )
 
     def disconnect(self):
-        if self.server:
+        if not self.server:
+            return
+
+        try:
             self.server.quit()
+        except (OSError, nntp.NNTPError):
+            pass
+        finally:
+            self.server = None
 
     def select_group(self, group_name):
         code, message = self.server.command("GROUP", group_name)
