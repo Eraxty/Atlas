@@ -22,25 +22,19 @@ def search_releases(query, group, page=0, page_size=10):
 
     try:
         cur.execute("""
-            select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete,
-            count(a.id)
+            select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
             from releases r
-            left join articles a on a.release_id = r.id
             join releases_fts on releases_fts.rowid = r.id
             where releases_fts match ? and r.group_name = ?
-            group by r.id
             order by r.name
             limit ? offset ?
         """, (fts_query(query), group, page_size, offset)
         )
     except sqlite3.OperationalError:
         cur.execute("""
-            select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete,
-            count(a.id)
+            select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
             from releases r
-            left join articles a on a.release_id = r.id
             where r.name like ? and r.group_name = ?
-            group by r.id
             order by r.name
             limit ? offset ?
         """, (f"%{query}%", group, page_size, offset)
@@ -60,24 +54,18 @@ def search_all_releases(query, page=0, page_size=10):
 
     try:
         cur.execute("""
-            select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete,
-            count(a.id)
+            select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
             from releases r
-            left join articles a on a.release_id = r.id
             join releases_fts on releases_fts.rowid = r.id
             where releases_fts match ?
-            group by r.id
             order by r.name
             limit ? offset ?
         """,(fts_query(query), page_size, offset))
     except sqlite3.OperationalError:
         cur.execute("""
-            select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete,
-            count(a.id)
+            select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
             from releases r
-            left join articles a on a.release_id = r.id
             where r.name like ?
-            group by r.id
             order by r.name
             limit ? offset ?
         """,(f"%{query}%", page_size, offset))
@@ -137,12 +125,9 @@ def get_release(id):
     cur = conn.cursor()
 
     cur.execute("""
-        select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete,
-        count(a.id)
+        select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
         from releases r
-        left join articles a on a.release_id = r.id
         where r.id = ?
-        group by r.id
     """, (id,)
     )
 

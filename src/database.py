@@ -21,6 +21,15 @@ def migrate(conn):
     if "posted_date" not in release_columns:
         cursor.execute("alter table releases add column posted_date TEXT")
 
+    if "parts" not in release_columns:
+        cursor.execute("alter table releases add column parts INTEGER")
+
+    cursor.execute("""
+        update releases set parts = (
+            select count(*) from articles where release_id = releases.id
+        ) where parts is null
+    """)
+
     cursor.execute("pragma table_info(articles)")
     
     article_columns = {column[1] for column in cursor.fetchall()}
@@ -42,7 +51,8 @@ def create_db():
             poster TEXT,
             posted_date TEXT,
             size INTEGER,
-            complete INTEGER
+            complete INTEGER,
+            parts INTEGER
         )
     """)
 
@@ -147,13 +157,15 @@ def _release_stats(cur, release_id):
         files.setdefault(filename, []).append((part, total))
         size += b
 
-    for parts in files.values():
-        expected = max(total for _, total in parts)
+    part_count = sum(len(file_parts) for file_parts in files.values())
 
-        if {part for part, _ in parts} != set(range(1, expected + 1)):
-            return size, 0
+    for file_parts in files.values():
+        expected = max(total for _, total in file_parts)
 
-    return size, 1
+        if {part for part, _ in file_parts} != set(range(1, expected + 1)):
+            return size, 0, part_count
+
+    return size, 1, part_count
 
 
 def save_releases_bulk(releases):
@@ -217,11 +229,11 @@ def save_releases_bulk(releases):
             if conn.total_changes == before:
                 continue
 
-            size, complete = _release_stats(cur, release_id)
+            size, complete, part_count = _release_stats(cur, release_id)
             cur.execute("""
-                update releases set size = ?, complete = ?
+                update releases set size = ?, complete = ?, parts = ?
                 where id = ?
-            """, (size, complete, release_id))
+            """, (size, complete, part_count, release_id))
 
     conn.close()
 
