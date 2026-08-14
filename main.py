@@ -68,10 +68,23 @@ def indexer_alive():
 
     try:
         pid = int(PID_FILE.read_text().strip())
+    except ValueError:
+        PID_FILE.unlink(missing_ok=True)
+        return False
+
+    try:
+        status = get_status()
+    except Exception:
+        status = {}
+
+    if status.get("pid") != pid:
+        return False
+
+    try:
         os.kill(pid, 0)
         return True
 
-    except (ValueError, ProcessLookupError):
+    except ProcessLookupError:
         PID_FILE.unlink(missing_ok=True)
         return False
 

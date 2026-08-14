@@ -14,10 +14,10 @@ def download_release(release_id):
         print("No articles found")
         return False
 
-    files = {article[1] for article in articles}
+    first_file = articles[0][1]
     complete_dir = get_complete_dir()
 
-    if all((complete_dir / f).exists() for f in files):
+    if (complete_dir / first_file).exists():
         print("already downloaded")
         return False
 

@@ -24,11 +24,11 @@ def migrate(conn):
     if "parts" not in release_columns:
         cursor.execute("alter table releases add column parts INTEGER")
 
-    cursor.execute("""
-        update releases set parts = (
-            select count(*) from articles where release_id = releases.id
-        ) where parts is null
-    """)
+        cursor.execute("""
+            update releases set parts = (
+                select count(*) from articles where release_id = releases.id
+            ) where parts is null
+        """)
 
     cursor.execute("pragma table_info(articles)")
     
