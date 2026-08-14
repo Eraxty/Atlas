@@ -26,12 +26,11 @@ def configure_servers():
     if not atlas or not atlas.get("host"):
         return
 
-    if not CONFIG_FILE.exists():
-        return
+    text = ""
+    if CONFIG_FILE.exists():
+        text = CONFIG_FILE.read_text(encoding ="utf-8")
 
-    text = CONFIG_FILE.read_text(encoding="utf-8")
-
-    if atlas["host"] in text:
+    if re.search(rf"^host\s*=\s*['\"]?{re.escape(atlas['host'])}['\"]?\s*$", text, re.MULTILINE):
         return
 
     sections = re.findall(r"^\[\[s(\d+)\]\]\s*$", text, re.MULTILINE)
@@ -71,6 +70,7 @@ def configure_servers():
     else:
         text += "\n[servers]\n" + block
 
+    CONFIG_DIR.mkdir(parents = True, exist_ok = True)
     CONFIG_FILE.write_text(text, encoding="utf-8")
 
 
@@ -136,7 +136,7 @@ def is_running():
 
 
 def load_config():
-    config = configparser.ConfigParser()
+    config = configparser.ConfigParser(interpolation = None, strict = False)
 
     if CONFIG_FILE.exists():
         

@@ -40,6 +40,7 @@ class Indexer:
 
             update_live_cursor(group,int(last))
             update_backfill_cursor(group, int(last))
+            self.phase = "backfill"
 
         if self.mode == "live":
             self.live(group, state, int(last))
@@ -83,6 +84,7 @@ class Indexer:
             if not self.idle:
                 print(f"[BACKFILL] {end} < first {first}, nothing to backfill, idle")
                 self.idle = True
+            self.phase = "live"
             self.mode = "live"
             return
 
