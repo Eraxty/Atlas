@@ -37,6 +37,13 @@ class NNTPClient:
             timeout=self.timeout
         )
 
+    def update_credentials(self, host, username, password, port):
+        self.host = host
+        self.port = port
+        self.username = username
+        self.password = password
+        self.use_ssl = self._detect_use_ssl(host, port)
+
     def disconnect(self):
         if not self.server:
             return

@@ -59,6 +59,7 @@ current_group = config["group"]
 errors = 0
 error = False
 last_written_idle = indexer.idle
+last_conn = (config["host"], config["username"], config["password"], config["port"])
 
 update_status(True, current_group, indexer.idle)
 
@@ -69,6 +70,18 @@ try:
         if config is None:
             print("error with config, stopped")
             break
+
+        conn = (config["host"], config["username"], config["password"], config["port"])
+
+        if conn != last_conn:
+            try:
+                client.disconnect()
+            except Exception:
+                pass
+
+            client.update_credentials(*conn)
+            last_conn = conn
+            print("config changed")
 
         group = config["group"]
         indexer.mode = config.get("index_mode", "dynamic")
