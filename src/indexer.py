@@ -11,6 +11,7 @@ class Indexer:
     def __init__(self, client, mode="dynamic", verbose=False):
         self.client = client
         self.mode = mode
+        #start in backfill and flip to live when history is done
         self.phase = "backfill"
         self.verbose = verbose
         self.idle = False
@@ -22,6 +23,7 @@ class Indexer:
         state = get_group_state(group)
 
         if state is None:
+            #both cursors start at the top
             live_cursor = int(last)
             backfill_cursor = int(last)
 
@@ -34,6 +36,7 @@ class Indexer:
             }
             self.phase = "backfill"
 
+        #server renumbered, group got reset so start over
         elif int(last) < state["live_cursor"]:
             state["live_cursor"] = int(last)
             state["backfill_cursor"] = int(last)
@@ -57,6 +60,7 @@ class Indexer:
     def live(self, group, state, last):
         start = state["live_cursor"] + 1
 
+        #nothing new since last check
         if start > last:
             if self.verbose:
                 print("no new articles")
@@ -88,6 +92,7 @@ class Indexer:
             self.mode = "live"
             return
 
+        #grab a chunk going backwards from the cur
         start = max(first, end - BACKFILL_SIZE + 1)
         self.process_range(group, start, end, "BACKFILL")
         update_backfill_cursor(group, start - 1)
@@ -99,6 +104,7 @@ class Indexer:
             headers = list(self.client.fetch_headers(start, end))
         
         except nntp.NNTPTemporaryError as e:
+            #423 = range has no articles
             if e.code != 423:
                 raise
             print(f"[{kind}] {start}-{end} empty, skipping")

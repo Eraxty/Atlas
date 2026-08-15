@@ -13,6 +13,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SAB_DIR = BASE_DIR / "SABnzbd-5.0.4"
 LOG_FILE = BASE_DIR / "sabnzbd.log"
 
+#sab keeps its ini in the home dir
 CONFIG_DIR = Path.home() / ".sabnzbd"
 CONFIG_FILE = CONFIG_DIR / "sabnzbd.ini"
 WATCHED_DIR = CONFIG_DIR / "watched"
@@ -31,9 +32,11 @@ def configure_servers():
         text = CONFIG_FILE.read_text(encoding ="utf-8")
 
     if re.search(rf"^host\s*=\s*['\"]?{re.escape(atlas['host'])}['\"]?\s*$", text, re.MULTILINE):
+        #already got this server, skip soo we dont dupe it
         return
 
     sections = re.findall(r"^\[\[s(\d+)\]\]\s*$", text, re.MULTILINE)
+    #name it after the highest sN we already got
     index = max([int(n) for n in sections], default=-1) + 1
 
     try:
@@ -42,6 +45,7 @@ def configure_servers():
     except (TypeError, ValueError):
         port = 563
 
+    #563 is the ssl port, 119 is plain
     ssl = "1" if port == 563 else "0"
 
     block = (
@@ -78,6 +82,7 @@ def start():
     global process
 
     if process and process.poll() is None:
+        #already up so dont double start
         print("sab already running")
         return True
 
@@ -92,6 +97,7 @@ def start():
                 stdin = subprocess.DEVNULL,
                 stdout = log_file,
                 stderr = subprocess.STDOUT,
+                #detach from our terminal soo it survives after the app closes
                 start_new_session = True,
             )
     
@@ -136,6 +142,7 @@ def is_running():
 
 
 def load_config():
+    #strict off soo dup keys dont explode, interpolation off soo % stays literal
     config = configparser.ConfigParser(interpolation = None, strict = False)
 
     if CONFIG_FILE.exists():
@@ -147,6 +154,7 @@ def load_config():
         except OSError:
             text = ""
 
+        #sab writes bare settings above the first section
         lines = text.splitlines()
         first = 0
         
@@ -166,6 +174,7 @@ def load_config():
             pass
 
     if "misc" not in config:
+        #guarantee misc exists soo the getters below dont KeyError
         config["misc"] = {}
 
     return config
@@ -192,6 +201,7 @@ def get_watched_dir():
     path = Path(folder)
 
     if not path.is_absolute():
+        #sab saves relative paths soo resolve em against the config dir
         path = CONFIG_DIR / path
 
     return path
@@ -201,6 +211,7 @@ def configure_watched_dir():
     folder = get_watched_dir()
 
     if folder is None:
+        #no watched dir set = use ours and write it in soo sab picks it up
         folder = WATCHED_DIR
 
         config = load_config()
@@ -226,6 +237,7 @@ def get_complete_dir():
     path = Path(folder)
 
     if not path.is_absolute():
+        #relative here means against the home dir
         path = Path.home() / path
 
     return path
@@ -248,6 +260,7 @@ def job_in_sab(name, timeout=10):
                 slots = json.load(r).get("queue", {}).get("slots", [])
 
             if any(name in s.get("filename", "") for s in slots):
+                #still in the queue
                 return "queued"
 
         except (OSError, ValueError):

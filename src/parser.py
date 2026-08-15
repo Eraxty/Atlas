@@ -4,6 +4,7 @@ FILE_COUNT_RE = re.compile(r'^\[(\d+)\s*/\s*(\d+)\]')
 
 def parse_subject(subject):
 
+    #every client posts different subjects soo try all these patterns
     patterns = [
         r'"(.+?)"\s+yEnc\s+\((\d+)\s*/\s*(\d+)\)',
         r'\[\d+\s*/\s*\d+\]\s+"(.+?)"\s+yEnc\s+\((\d+)\s*/\s*(\d+)\)',
@@ -30,6 +31,7 @@ def parse_subject(subject):
 
     release_name = filename
 
+    #remove the .part1/r.00 type shi soo every part of release maps to one name
     while True:
         new_name = re.sub(
             r"\.(part\d+|r\d+|vol\d+\+\d+|par2|nfo|sfv|rar|\d{3})$",
@@ -43,6 +45,7 @@ def parse_subject(subject):
 
         release_name = new_name
 
+    #some formats only give filename no part numbers
     if len(match.groups()) >= 3:
         part = int(match.group(2))
         total_parts = int(match.group(3))
@@ -89,6 +92,7 @@ def group_articles(articles):
                 "size": 0,
             }
 
+        #stash the parsed bits on the article soo the downloader can use em later
         article.filename = parsed["filename"]
         article.release_name = parsed["release_name"]
         article.part = parsed["part"]
@@ -113,6 +117,7 @@ def is_complete(release):
 
     by_filename = {}
 
+    #split parts per file soo each file is checked on its own
     for a in articles:
         by_filename.setdefault(a.filename, []).append(a)
 

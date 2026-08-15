@@ -27,6 +27,7 @@ client = NNTPClient(
 
 indexer = Indexer(client, mode = config.get("index_mode", "dynamic"))
 
+#main reads this file to draw the status line
 def update_status(running, group, idle=False):
     try:
         with open(STATUS_FILE, "w") as f:
@@ -36,6 +37,7 @@ def update_status(running, group, idle=False):
                 "error": error,
                 "idle": idle,
                 "mode": indexer.mode,
+                #soo main can tell if this process is actually alive
                 "pid": os.getpid()
             }, f)
     
@@ -44,12 +46,14 @@ def update_status(running, group, idle=False):
 
 stop_requested = False
 
+#flip the flag soo the loop exits clean on SIGTERM
 def handle_stop(signum, frame):
     global stop_requested
     stop_requested = True
 
 signal.signal(signal.SIGTERM, handle_stop)
 
+#sleep in small chunks soo a stop request gets out fast
 def idle_sleep(duration):
     deadline = time.time() + duration
     while not stop_requested and time.time() < deadline:
@@ -58,7 +62,9 @@ def idle_sleep(duration):
 current_group = config["group"]
 errors = 0
 error = False
+#only rewrite status when the idle flag flips
 last_written_idle = indexer.idle
+#soo we can spot when the config changes
 last_conn = (config["host"], config["username"], config["password"], config["port"])
 
 update_status(True, current_group, indexer.idle)
@@ -86,6 +92,7 @@ try:
         group = config["group"]
         indexer.mode = config.get("index_mode", "dynamic")
 
+        #new group picked soo reset the error count
         if group != current_group:
             update_status(True, group, indexer.idle)
             current_group = group
@@ -93,9 +100,11 @@ try:
             last_written_idle = indexer.idle
 
         try:
+            #reconnect on demand
             if not client.server:
                 client.connect()
 
+            #no group set in config yet
             if not group:
                 print("no newsgroup configured")
                 break
@@ -118,6 +127,7 @@ try:
 
             errors += 1
 
+            #3 strikes and we stop bcs we aint hammering a dead server
             if errors >= 3:
                 print(f"Too many errors on {group} Stopping")
                 error = True
@@ -130,6 +140,7 @@ try:
             except Exception:
                 pass
 
+            #back off before retrying
             time.sleep(2)
 
             try:
@@ -140,6 +151,7 @@ finally:
     update_status(False, "")
 
     try:
+        #only clear the pid if its ours, another one might be running
         if PID_FILE.read_text().strip() == str(os.getpid()):
             PID_FILE.unlink(missing_ok=True)
 

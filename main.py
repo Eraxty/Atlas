@@ -16,11 +16,13 @@ import subprocess
 import sys
 import time
 
+#paths
 BASE_DIR = Path(__file__).resolve().parent
 PID_FILE = BASE_DIR / "bg_indexer.pid"
 LOG_FILE = BASE_DIR / "bg_index.log"
 STATUS_FILE = BASE_DIR / "status.json"
 
+#my logo
 LOGO = r"""
          █████╗ ████████╗ ██╗       █████╗  ███████╗
         ██╔══██╗╚══██╔══╝ ██║      ██╔══██╗ ██╔════╝
@@ -39,6 +41,7 @@ def fmt_size(size):
     if not size:
         return "0 B"
 
+    #try the units till it fits
     for unit in ("B", "KB", "MB", "GB", "TB"):
         if size < 1024:
             return f"{size:.1f} {unit}"
@@ -81,6 +84,7 @@ def indexer_alive():
         return False
 
     try:
+        #signal 0 checks if alive
         os.kill(pid, 0)
         return True
 
@@ -131,6 +135,7 @@ def stop_background_indexer():
         PID_FILE.unlink(missing_ok=True)
         return False
 
+    #5 sec to comply or die
     for _ in range(50):
         try:
             os.kill(pid, 0)
@@ -196,6 +201,8 @@ def do_search(config):
             continue
 
         page = 0
+
+        # terminal size
         page_size = max(10, shutil.get_terminal_size().lines - 15)
 
         while True:
@@ -226,6 +233,7 @@ def do_search(config):
                 page = total_pages - 1
                 continue
 
+            #only ids on this page are valid
             release_ids = {release[0] for release in releases}
 
             clear()
@@ -248,10 +256,12 @@ def do_search(config):
                 print(f"[{release[0]}] {name}  {fmt_size(release[5])} - {release[7]} parts - {fmt_date(release[4])}{broken}")
 
             print("\n0. Back")
+
             if page > 0:
                 print("p. Previous Page")
             if page < total_pages - 1:
                 print("n. Next Page")
+
             print("g. Go to Page")
 
             choice = prompt("\nChoice: ").strip()
@@ -308,6 +318,7 @@ def do_search(config):
             while True:
                 clear()
 
+                #actions for the picked release
                 print(f"Release: {release_name}")
 
                 if release:
@@ -376,6 +387,7 @@ def do_settings():
             if mode == 0:
                 return
 
+            #modes
             modes = {1: "dynamic", 2: "live", 3: "backfill"}
 
             if mode not in modes:
@@ -439,6 +451,7 @@ def main():
         print("=" * 55)
         print(f"Current Group : {config['group']}")
 
+        #build the status line
         if indexing:
             label = status["group"] or config["group"]
             
@@ -457,10 +470,12 @@ def main():
             print("Indexing      : stopped")
 
         print("=" * 55)
+
         if indexing:
             print("1. Stop Indexing")
         else:
             print("1. Start Indexing")
+
         print("2. Search")
         print("3. Groups")
         print("4. Settings")
@@ -486,9 +501,11 @@ def main():
 
         elif choice == "4":
             do_settings()
+            #reload so the new group shows up
             config = load_config()
 
         elif choice == "0":
+            #byee
             print("\nbyee.")
             break
 
@@ -498,4 +515,5 @@ if __name__ == "__main__":
         main()
     except KeyboardInterrupt:
         stop_background_indexer()
+        #byee
         print("\nbyeee")

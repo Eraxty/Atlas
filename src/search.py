@@ -18,9 +18,11 @@ def search_releases(query, group, page=0, page_size=10):
     conn = sqlite3.connect(database, timeout=30)
     cur = conn.cursor()
 
+    #page is 0 based
     offset = page * page_size
 
     try:
+        #fts table holds text, real data lives in releases
         cur.execute("""
             select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
             from releases r
@@ -30,6 +32,7 @@ def search_releases(query, group, page=0, page_size=10):
             limit ? offset ?
         """, (fts_query(query), group, page_size, offset)
         )
+    #fts error or broken query = fall back to like
     except sqlite3.OperationalError:
         cur.execute("""
             select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
@@ -61,6 +64,7 @@ def search_all_releases(query, page=0, page_size=10):
             order by r.name
             limit ? offset ?
         """,(fts_query(query), page_size, offset))
+    #fts error or broken query = fall back to like
     except sqlite3.OperationalError:
         cur.execute("""
             select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
@@ -80,12 +84,14 @@ def count_releases(query, group):
     conn = sqlite3.connect(database, timeout=30)
     cur = conn.cursor()
 
+    #same fts query but just counting
     try:
         cur.execute("""
             select count(*) from releases r
             join releases_fts on releases_fts.rowid = r.id
             where releases_fts match ? and r.group_name = ?
         """, (fts_query(query), group))
+    #same as search fallback
     except sqlite3.OperationalError:
         cur.execute("""
             select count(*) from releases r
@@ -108,6 +114,7 @@ def count_all_releases(query):
             join releases_fts on releases_fts.rowid = r.id
             where releases_fts match ?
         """, (fts_query(query),))
+    #same again all groups
     except sqlite3.OperationalError:
         cur.execute("""
             select count(*) from releases r
@@ -141,6 +148,7 @@ def get_articles(release_id):
     conn = sqlite3.connect(database, timeout=30)
     cur = conn.cursor()
 
+    #keeps the parts of each file in order soo they can be reassembled
     cur.execute("""
         select articles.message_id, articles.filename,
         articles.part, articles.total_parts, articles.bytes,
@@ -148,7 +156,7 @@ def get_articles(release_id):
         from articles join releases
         on articles.release_id = releases.id
         where articles.release_id = ?
-        order by articles.filename, articles.part 
+        order by articles.filename, articles.part
     """, (release_id,))
 
     articles = cur.fetchall()

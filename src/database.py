@@ -6,6 +6,7 @@ database = BASE_DIR / "atlas.db"
 
 
 def migrate(conn):
+    #old db files are missing these columns, add em if they aint there
     cursor = conn.cursor()
 
     cursor.execute("pragma table_info(releases)")
@@ -24,6 +25,7 @@ def migrate(conn):
     if "parts" not in release_columns:
         cursor.execute("alter table releases add column parts INTEGER")
 
+        #backfill parts for releases already in the db
         cursor.execute("""
             update releases set parts = (
                 select count(*) from articles where release_id = releases.id
@@ -41,6 +43,7 @@ def migrate(conn):
 def create_db():
     conn = sqlite3.connect(database, timeout=30)
     cursor = conn.cursor()
+    #wal soo the indexer can write while search reads
     cursor.execute("pragma journal_mode = wal")
 
     cursor.execute("""
@@ -56,11 +59,13 @@ def create_db():
         )
     """)
 
+    #this is the key the upsert matches on, same release = same row
     cursor.execute("""
         create unique index if not exists idx_release_unique
         on releases(name, group_name)
     """)
 
+    #one row per usenet message, unique message_id soo we never store the same message twice
     cursor.execute("""
         create table if not exists articles (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -105,6 +110,7 @@ def create_db():
 
     migrate(conn)
 
+    #external content fts only holds the name column, real data stays in releases
     fts_exists = cursor.execute("""
         select name from sqlite_master
         where type = 'table' and name = 'releases_fts'
@@ -119,6 +125,7 @@ def create_db():
             )
         """)
 
+    #keep fts in sync with releases
     cursor.execute("""
         create trigger if not exists releases_ai after insert on releases begin
             insert into releases_fts(rowid, name) values (new.id, new.name);
@@ -140,6 +147,7 @@ def create_db():
 
 
     if fts_exists is None:
+        #fill fts with whatever rows already exist
         cursor.execute("insert into releases_fts(releases_fts) values ('rebuild')")
 
     conn.commit()
@@ -175,6 +183,7 @@ def save_releases_bulk(releases):
 
     conn = sqlite3.connect(database, timeout=30)
 
+    #transaction soo a half written batch rolls back
     with conn:
         cur = conn.cursor()
         
@@ -207,6 +216,7 @@ def save_releases_bulk(releases):
 
             release_id = row[0]
 
+            #remembers the change count soo we can tell if this pass added anything
             before = conn.total_changes
             
             cur.executemany("""

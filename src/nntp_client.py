@@ -8,19 +8,23 @@ class NNTPClient:
         self.username = username
         self.password = password
         self.timeout = timeout
+        #auto detect unless the caller says otherwise
         self.use_ssl = self._detect_use_ssl(host, port) if use_ssl is None else use_ssl
         self.server = None
 
+    #guess if the server wants ssl before we connect
     @staticmethod
     def _detect_use_ssl(host, port):
         try:
             if int(port) == 563:
+                #563 is the ssl port, 119 is the plain one
                 return True
         except (TypeError, ValueError):
             pass
 
         normalized_host = str(host or "").strip().strip("[]").rstrip(".").lower()
         if normalized_host in {"localhost", "127.0.0.1", "::1"}:
+            #local servers are plain usually
             return False
         if normalized_host.endswith(".local"):
             return False
@@ -66,6 +70,7 @@ class NNTPClient:
             try:
                 return int(value)
             except (TypeError, ValueError):
+                #numbers aint always there soo dont crash on em
                 return 0
 
         count = to_int(parts[0]) if len(parts) > 0 else 0
@@ -76,6 +81,7 @@ class NNTPClient:
         return count, first, last, name
 
     def fetch_headers(self, start, end):
+        #xover fetches the whole header range in one shot
         return self.server.xover((start, end))
 
     def list_groups(self):

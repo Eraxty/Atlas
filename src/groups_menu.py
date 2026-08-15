@@ -51,6 +51,7 @@ def groups_menu(config):
         if not query:
             break
 
+        #"something all" includes every group, not just binaries
         if query.lower().endswith(" all"):
             search_all = True
             query = query[:-4].strip()
@@ -64,6 +65,7 @@ def groups_menu(config):
 
         matches = [group for group in groups if query.lower() in group.lower()]
 
+        #default skips text groups
         if not search_all:
             matches = [group for group in matches if ".binaries." in group.lower()]
 
@@ -79,6 +81,7 @@ def groups_menu(config):
 
             start = page * 30
             end = min(start + 30, len(matches))
+            #30 per page
             total_pages = max(1, (len(matches) + 29) // 30)
 
             print(f"Page {page + 1} of {total_pages}")
@@ -122,11 +125,13 @@ def groups_menu(config):
                 prompt("[enter]")
                 continue
 
+            #choices count from 1 on the current page only
             if selected < 1 or selected > end - start:
                 print("invalid")
                 prompt("[enter]")
                 continue
 
+            #map the page choice back to the full list index
             config["group"] = matches[start + selected - 1]
 
             try:
@@ -137,8 +142,10 @@ def groups_menu(config):
                 prompt("[enter]")
                 continue
 
+            #empty group has last == first soo skip the sample
             if last > first:
                 try:
+                    #sample the last 50 posts to see what kinda group it is
                     headers = list(client.fetch_headers(max(first, last - 49), last))
                 except nntp.NNTPTemporaryError:
                     answer = prompt("cant sample this group (empty range?). index anyway? (y/n) ").strip().lower()
@@ -146,6 +153,7 @@ def groups_menu(config):
                     if answer not in ("y", "yes"):
                         continue
                 else:
+                    #how many of the sample look like binary releases
                     parsed = sum(1 for _, header in headers if parse_subject(header["subject"]))
 
                     if parsed == 0:
@@ -154,6 +162,7 @@ def groups_menu(config):
                         if answer not in ("y", "yes"):
                             continue
 
+            #save the pick soo it sticks after restart
             save_config(
                 config["host"],
                 config["username"],
