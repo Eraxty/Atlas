@@ -86,6 +86,18 @@ def indexer_alive():
     try:
         #signal 0 checks if alive
         os.kill(pid, 0)
+
+        #pids get reused soo double check its our indexer
+        if Path("/proc").exists():
+            try:
+                cmdline = Path(f"/proc/{pid}/cmdline").read_bytes()
+            except OSError:
+                cmdline = b""
+
+            if b"bg_indexer.py" not in cmdline:
+                PID_FILE.unlink(missing_ok=True)
+                return False
+
         return True
 
     except ProcessLookupError:
@@ -410,9 +422,9 @@ def do_settings():
         return
 
     print()
-    host = prompt("Host: ")
-    username = prompt("Username: ")
-    password = prompt("Password: ")
+    host = prompt(f"Host ({config['host']}): ").strip() or config["host"]
+    username = prompt(f"Username ({config['username']}): ").strip() or config["username"]
+    password = prompt("Password: ").strip() or config["password"]
 
     while True:
         group = prompt("Newsgroup: ").strip()

@@ -31,8 +31,37 @@ def configure_servers():
     if CONFIG_FILE.exists():
         text = CONFIG_FILE.read_text(encoding ="utf-8")
 
-    if re.search(rf"^host\s*=\s*['\"]?{re.escape(atlas['host'])}['\"]?\s*$", text, re.MULTILINE):
-        #already got this server, skip soo we dont dupe it
+    #if the server is already configured, keep its creds in sync instead of duping it
+    for section in re.finditer(
+        r"^\[\[s(\d+)\]\](.*?)(?=^\[\[s\d+\]\]|\Z)", text, re.MULTILINE | re.DOTALL):
+        
+        body = section.group(2)
+
+        if not re.search(rf"^host\s*=\s*['\"]?{re.escape(atlas['host'])}['\"]?\s*$", body, re.MULTILINE):
+            continue
+
+        creds = dict(re.findall(r"^(port|username|password)\s*=\s*(.*)$", body, re.MULTILINE))
+
+        if (creds.get("port", "").strip() == str(atlas.get("port", 563)) #creds match soo nothing to change
+                and creds.get("username", "").strip() == atlas.get("username", "")
+                and creds.get("password", "").strip() == atlas.get("password", "")):
+            return 
+
+        #creds changed soo swap em in
+        current_port = int(atlas.get("port", 563))
+
+        for key, value in (
+            ("port", str(current_port)),
+            ("username", atlas.get("username", "")),
+            ("password", atlas.get("password", "")),
+            ("ssl", "1" if current_port == 563 else "0"),):
+            
+            body = re.sub(rf"^({key}\s*=\s*).*$", rf"\g<1>{value}", body, count=1, flags=re.MULTILINE)
+
+        text = text[:section.start()] + f"[[s{section.group(1)}]]" + body + text[section.end():]
+
+        CONFIG_DIR.mkdir(parents = True, exist_ok = True)
+        CONFIG_FILE.write_text(text, encoding = "utf-8")
         return
 
     sections = re.findall(r"^\[\[s(\d+)\]\]\s*$", text, re.MULTILINE)

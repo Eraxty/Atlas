@@ -4,6 +4,9 @@ FILE_COUNT_RE = re.compile(r'^\[(\d+)\s*/\s*(\d+)\]')
 
 def parse_subject(subject):
 
+    if not subject:
+        return None
+
     #every client posts different subjects soo try all these patterns
     patterns = [
         r'"(.+?)"\s+yEnc\s+\((\d+)\s*/\s*(\d+)\)',

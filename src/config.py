@@ -30,5 +30,9 @@ def save_config(host, username, password, port, group, index_mode="dynamic"):
 
     config_file.parent.mkdir(parents = True, exist_ok = True)
 
-    with open(config_file, "w") as f:
+    #temp file + rename soo the indexer never sees a half written config
+    tmp = config_file.with_suffix(".json.tmp")
+    with open(tmp, "w") as f:
         json.dump(config, f, indent=4)
+
+    os.replace(tmp, config_file)

@@ -19,6 +19,10 @@ class NNTPClient:
             if int(port) == 563:
                 #563 is the ssl port, 119 is the plain one
                 return True
+                
+            if int(port) == 119:
+                return False
+
         except (TypeError, ValueError):
             pass
 

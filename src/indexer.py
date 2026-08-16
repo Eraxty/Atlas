@@ -69,13 +69,11 @@ class Indexer:
                 print("[LIVE] no new articles, idle")
                 self.idle = True
                 
-            self.mode = "backfill"
             return
 
         end = min(last, start + BACKFILL_SIZE - 1)
         self.process_range(group, start, end, "LIVE")
         update_live_cursor(group, end)
-        self.mode = "backfill"
 
     def backfill(self, group, state, first, last):
         end = state["backfill_cursor"]
@@ -89,7 +87,6 @@ class Indexer:
                 print(f"[BACKFILL] {end} < first {first}, nothing to backfill, idle")
                 self.idle = True
             self.phase = "live"
-            self.mode = "live"
             return
 
         #grab a chunk going backwards from the cur
@@ -97,7 +94,6 @@ class Indexer:
         self.process_range(group, start, end, "BACKFILL")
         update_backfill_cursor(group, start - 1)
         self.backfilling = True
-        self.mode = "live"
 
     def process_range(self, group, start, end, kind):
         try:
