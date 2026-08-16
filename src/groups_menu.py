@@ -153,7 +153,8 @@ def groups_menu(config):
                     if answer not in ("y", "yes"):
                         continue
                 else:
-                    #how many of the sample look like binary releases
+                    for _, header in headers: #how many of the sample look like binary releases
+                        header.setdefault("subject", "")
                     parsed = sum(1 for _, header in headers if parse_subject(header["subject"]))
 
                     if parsed == 0:

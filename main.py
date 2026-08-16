@@ -428,11 +428,14 @@ def do_settings():
 
     while True:
         group = prompt("Newsgroup: ").strip()
+
+        if not group:
+            group = config["group"]
         if group:
             break
         print("newsgroup cant be empty\n")
 
-    port = ask("Port (563): ", 563)
+    port = ask(f"Port ({config['port']}): ", config["port"])
 
     save_config(host, username, password, port, group, config.get("index_mode", "dynamic"))
     
@@ -513,7 +516,6 @@ def main():
 
         elif choice == "4":
             do_settings()
-            #reload so the new group shows up
             config = load_config()
 
         elif choice == "0":

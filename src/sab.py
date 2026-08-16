@@ -27,6 +27,12 @@ def configure_servers():
     if not atlas or not atlas.get("host"):
         return
 
+    try:
+        atlas["port"] = int(atlas.get("port", 563))
+
+    except (TypeError, ValueError):
+        atlas["port"] = 563
+
     text = ""
     if CONFIG_FILE.exists():
         text = CONFIG_FILE.read_text(encoding ="utf-8")
