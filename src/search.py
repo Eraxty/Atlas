@@ -1,5 +1,5 @@
 import sqlite3
-from src.database import database
+from src.database import database, with_db
 
 
 def fts_query(query):
@@ -15,8 +15,8 @@ def fts_query(query):
 
 
 #try fts first, fall back to like if it chokes
-def _fts_or_like(fts_sql, like_sql, params, fetch_one = False):
-    conn = sqlite3.connect(database, timeout = 30)
+@with_db
+def _fts_or_like(conn, fts_sql, like_sql, params, fetch_one = False):
     cur = conn.cursor()
 
     try:
@@ -29,7 +29,6 @@ def _fts_or_like(fts_sql, like_sql, params, fetch_one = False):
     else:
         result = cur.fetchall()
 
-    conn.close()
     return result
 
 
@@ -100,8 +99,8 @@ def count_all_releases(query):
     return row[0]
 
 
-def get_release(id):
-    conn = sqlite3.connect(database, timeout = 30)
+@with_db
+def get_release(conn, id):
     cur = conn.cursor()
 
     cur.execute("""
@@ -112,13 +111,11 @@ def get_release(id):
     )
 
     release = cur.fetchone()
-    conn.close()
-
     return release
 
 
-def get_articles(release_id):
-    conn = sqlite3.connect(database, timeout = 30)
+@with_db
+def get_articles(conn, release_id):
     cur = conn.cursor()
 
     #keeps the parts of each file in order soo they can be reassembled
@@ -133,6 +130,4 @@ def get_articles(release_id):
     """, (release_id,))
 
     articles = cur.fetchall()
-    conn.close()
-
     return articles

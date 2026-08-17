@@ -1,8 +1,20 @@
 import sqlite3
 from pathlib import Path
+from functools import wraps
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 database = BASE_DIR / "atlas.db"
+
+
+def with_db(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        conn = sqlite3.connect(database, timeout=30)
+        try:
+            return func(conn, *args, **kwargs)
+        finally:
+            conn.close()
+    return wrapper
 
 
 def migrate(conn):
@@ -248,8 +260,8 @@ def save_releases_bulk(releases):
     conn.close()
 
 
-def get_releases():
-    conn = sqlite3.connect(database, timeout=30)
+@with_db
+def get_releases(conn):
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -259,12 +271,11 @@ def get_releases():
     """)
 
     releases = cursor.fetchall()
-    conn.close()
     return releases
 
 
-def get_group_state(group):
-    conn = sqlite3.connect(database, timeout=30)
+@with_db
+def get_group_state(conn, group):
     cursor = conn.cursor()
 
     cursor.execute('''
@@ -275,7 +286,6 @@ def get_group_state(group):
     )
 
     result = cursor.fetchone()
-    conn.close()
 
     if result is None:
         return None
@@ -286,8 +296,8 @@ def get_group_state(group):
     }
 
 
-def update_live_cursor(group, article):
-    conn = sqlite3.connect(database, timeout=30)
+@with_db
+def update_live_cursor(conn, group, article):
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -299,10 +309,9 @@ def update_live_cursor(group, article):
     )
 
     conn.commit()
-    conn.close()
 
-def update_backfill_cursor(group,article):
-    conn = sqlite3.connect(database, timeout=30)
+@with_db
+def update_backfill_cursor(conn, group, article):
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -314,4 +323,3 @@ def update_backfill_cursor(group,article):
     )
 
     conn.commit()
-    conn.close()
