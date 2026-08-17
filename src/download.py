@@ -45,10 +45,12 @@ def download_release(release_id):
 
     if status == "queued":
         print("done")
+        print("download queued")
+        return True
     elif status:
         print(f"already did this one bruh: {status}")
     else:
         print("couldnt confirm it")
+        print("download failed")
 
-    print("download queued")
-    return True
+    return False

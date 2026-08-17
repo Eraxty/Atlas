@@ -182,6 +182,36 @@ def ask(text, default=None):
             print("that aint a number\n")
 
 
+def show_results(releases, query, page, total_pages, total, page_size):
+    clear()
+
+    print(f"Search: {query}")
+    print(f"Page {page + 1} of {total_pages}")
+
+    start = page * page_size + 1
+    end = min((page + 1) * page_size, total)
+    print(f"Showing {start}-{end} of {total} results\n")
+
+    for release in releases:
+        name = release[1]
+
+        if len(name) > 42:
+            name = name[:39] + "..."
+
+        broken = "  [broken]" if not release[6] else ""
+
+        print(f"[{release[0]}] {name}  {fmt_size(release[5])} - {release[7]} parts - {fmt_date(release[4])}{broken}")
+
+    print("\n0. Back")
+
+    if page > 0:
+        print("p. Previous Page")
+    if page < total_pages - 1:
+        print("n. Next Page")
+
+    print("g. Go to Page")
+
+
 def setup():
     print("no config found")
 
@@ -248,33 +278,7 @@ def do_search(config):
             #only ids on this page are valid
             release_ids = {release[0] for release in releases}
 
-            clear()
-
-            print(f"Search: {query}")
-            print(f"Page {page + 1} of {total_pages}")
-
-            start = page * page_size + 1
-            end = min((page + 1) * page_size, total)
-            print(f"Showing {start}-{end} of {total} results\n")
-
-            for release in releases:
-                name = release[1]
-
-                if len(name) > 42:
-                    name = name[:39] + "..."
-
-                broken = "  [broken]" if not release[6] else ""
-
-                print(f"[{release[0]}] {name}  {fmt_size(release[5])} - {release[7]} parts - {fmt_date(release[4])}{broken}")
-
-            print("\n0. Back")
-
-            if page > 0:
-                print("p. Previous Page")
-            if page < total_pages - 1:
-                print("n. Next Page")
-
-            print("g. Go to Page")
+            show_results(releases, query, page, total_pages, total, page_size)
 
             choice = prompt("\nChoice: ").strip()
 
@@ -468,7 +472,7 @@ def main():
 
         #build the status line
         if indexing:
-            label = status["group"] or config["group"]
+            label = status.get("group") or config["group"]
             
             if status.get("mode"):
                 label += f" [{status['mode']}]"
