@@ -5,6 +5,7 @@ from src.groups_menu import groups_menu
 from src.nzb import generate_nzb
 from src.prompts import prompt
 from src.search import count_all_releases, count_releases, get_release, search_all_releases, search_releases
+from src.colors import reset, bold, dim, red, green, yellow, magenta, cyan
 from pathlib import Path
 import json
 import math
@@ -124,7 +125,7 @@ def start_background_indexer():
             )
    
     except OSError as e:
-        print(f"couldnt start indexer: {e}")
+        print(f"{red}couldnt start indexer: {e}{reset}")
         return False
 
     PID_FILE.write_text(str(process.pid))
@@ -179,7 +180,7 @@ def ask(text, default=None):
         try:
             return int(value)
         except ValueError:
-            print("that aint a number\n")
+            print(f"{red}that aint a number{reset}\n")
 
 
 def show_results(releases, query, page, total_pages, total, page_size):
@@ -190,7 +191,7 @@ def show_results(releases, query, page, total_pages, total, page_size):
 
     start = page * page_size + 1
     end = min((page + 1) * page_size, total)
-    print(f"Showing {start}-{end} of {total} results\n")
+    print(f"{dim}Showing {start}-{end} of {total} results{reset}\n")
 
     for release in releases:
         name = release[1]
@@ -198,7 +199,7 @@ def show_results(releases, query, page, total_pages, total, page_size):
         if len(name) > 42:
             name = name[:39] + "..."
 
-        broken = "  [broken]" if not release[6] else ""
+        broken = f"  {red}[broken]{reset}" if not release[6] else ""
 
         print(f"[{release[0]}] {name}  {fmt_size(release[5])} - {release[7]} parts - {fmt_date(release[4])}{broken}")
 
@@ -213,7 +214,7 @@ def show_results(releases, query, page, total_pages, total, page_size):
 
 
 def setup():
-    print("no config found")
+    print(f"{red}no config found{reset}")
 
     host = prompt("Host: ")
     username = prompt("Username: ")
@@ -221,7 +222,7 @@ def setup():
     port = ask("Port (563): ", 563)
 
     save_config(host, username, password, port, "")
-    print("\ngroup empty rn, select one from the Groups menu")
+    print(f"\n{yellow}group empty rn, select one from the Groups menu{reset}")
 
 
 def do_search(config):
@@ -258,11 +259,11 @@ def do_search(config):
                     releases = search_all_releases(query, page, page_size)
             
             except sqlite3.Error:
-                print("\ncouldnt search, db error")
+                print(f"\n{red}couldnt search, db error{reset}")
                 return
 
             if not total:
-                print("\nno releases found")
+                print(f"\n{red}no releases found{reset}")
                 query = prompt("\nSearch: ").strip()
                 if not query or query == "0":
                     break
@@ -289,7 +290,7 @@ def do_search(config):
                 if page > 0:
                     page -= 1
                 else:
-                    print("already on the first page")
+                    print(f"{dim}already on the first page{reset}")
                     prompt("[enter]")
                 continue
 
@@ -297,7 +298,7 @@ def do_search(config):
                 if page < total_pages - 1:
                     page += 1
                 else:
-                    print("already on the last page")
+                    print(f"{dim}already on the last page{reset}")
                     prompt("[enter]")
                 continue
 
@@ -312,19 +313,19 @@ def do_search(config):
                 if 1 <= target <= total_pages:
                     page = target - 1
                 else:
-                    print(f"page must be between 1 and {total_pages}")
+                    print(f"{red}page must be between 1 and {total_pages}{reset}")
                     prompt("[enter]")
                 continue
 
             try:
                 choice_id = int(choice)
             except ValueError:
-                print("invalid")
+                print(f"{red}invalid{reset}")
                 prompt("[enter]")
                 continue
 
             if choice_id not in release_ids:
-                print("not valid release id")
+                print(f"{red}not valid release id{reset}")
                 prompt("[enter]")
                 continue
 
@@ -351,12 +352,12 @@ def do_search(config):
                         ok = download_release(choice_id)
                     
                     except Exception as e:
-                        print(f"couldnt queue download: {e}")
+                        print(f"{red}couldnt queue download: {e}{reset}")
                         ok = False
 
                     if ok:
-                        print("\nDownload queued it is downloading in background.")
-                        print("Finished files land ~/Downloads")
+                        print(f"\n{green}Download queued it is downloading in background.{reset}")
+                        print(f"{dim}Finished files land ~/Downloads{reset}")
                     prompt("[enter]")
                     return
 
@@ -364,15 +365,15 @@ def do_search(config):
                     try:
                         generate_nzb(choice_id)
                     except Exception as e:
-                        print(f"couldnt save nzb: {e}")
+                        print(f"{red}couldnt save nzb: {e}{reset}")
                     prompt("[enter]")
                     return
-
                 if choice == "0":
                     break
 
-                print("invalid")
+                print(f"{red}invalid{reset}")
                 prompt("[enter]")
+
 
 def do_settings():
     clear()
@@ -407,7 +408,7 @@ def do_settings():
             modes = {1: "dynamic", 2: "live", 3: "backfill"}
 
             if mode not in modes:
-                print("that is not a number")
+                print(f"{red}that is not a number{reset}")
                 continue
 
             save_config(
@@ -419,7 +420,7 @@ def do_settings():
                 modes[mode],
             )
 
-            print(f"indexer mode set to {modes[mode]}")
+            print(f"{green}indexer mode set to {modes[mode]}{reset}")
             return
 
     if choice != 1:
@@ -437,13 +438,13 @@ def do_settings():
             group = config["group"]
         if group:
             break
-        print("newsgroup cant be empty\n")
+        print(f"{yellow}newsgroup cant be empty{reset}\n")
 
     port = ask(f"Port ({config['port']}): ", config["port"])
 
     save_config(host, username, password, port, group, config.get("index_mode", "dynamic"))
     
-    print("\nsaved")
+    print(f"\n{green}saved{reset}")
 
 
 def main():
@@ -452,7 +453,7 @@ def main():
     config = load_config()
 
     if config:
-        print("config loaded:")
+        print(f"{green}config loaded:{reset}")
         print(f"Server: {config['host']}")
         print(f"Current Group: {config['group']}\n")
     else:
@@ -466,27 +467,36 @@ def main():
         status = get_status()
 
         print("=" * 55)
-        print(LOGO)
+        print(f"{cyan}{bold}{LOGO}{reset}")
         print("=" * 55)
         print(f"Current Group : {config['group']}")
 
         #build the status line
+        st = status.get("status", "stopped")
+        label = status.get("group") or config["group"]
+        err_count = status.get("error_count", 0)
+
         if indexing:
-            label = status.get("group") or config["group"]
-            
-            if status.get("mode"):
-                label += f" [{status['mode']}]"
-            
-            if status.get("idle"):
-                label += " (idle)"
-            
-            print(f"Indexing      : {label}")
+            if st == "warning":
+                #yellow warning - errors happening but still running
+                indicator = f"{yellow}WARNING{reset}"
+                extra = f" ({err_count} errors)" if err_count else ""
+                print(f"Indexing      : {yellow}{label}{reset} {dim}[{indicator}]{reset}{extra}")
+            elif status.get("idle"):
+                #cyan for idle - alive but waiting
+                print(f"Indexing      : {cyan}{label} (idle){reset}")
+            else:
+                #green - actively running
+                print(f"Indexing      : {green}{label} [active]{reset}")
         
-        elif status.get("error"):
-            print("Indexing      : stopped (error)")
+        elif st == "error":
+            print(f"Indexing      : {red}FAILED (error){reset}")
+        
+        elif st == "warning":
+            print(f"Indexing      : {yellow}stopped (warning){reset}")
         
         else:
-            print("Indexing      : stopped")
+            print(f"Indexing      : {dim}stopped{reset}")
 
         print("=" * 55)
 
@@ -506,10 +516,10 @@ def main():
         if choice == "1":
             if indexing:
                 stopped = stop_background_indexer()
-                print("indexing stopped" if stopped else "indexer wasnt running")
+                print(f"{green}indexing stopped{reset}" if stopped else "indexer wasnt running")
             else:
                 started = start_background_indexer()
-                print("indexing started" if started else "indexer already running")
+                print(f"{green}indexing started{reset}" if started else "indexer already running")
 
         elif choice == "2":
             do_search(config)

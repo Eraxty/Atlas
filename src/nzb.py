@@ -1,4 +1,5 @@
 from src.search import get_release, get_articles
+from src.colors import red, green, reset
 import time
 import xml.etree.ElementTree as et
 from datetime import datetime
@@ -24,11 +25,11 @@ def generate_nzb(release_id, output_dir=None):
     articles = get_articles(release_id)
 
     if release is None:
-        print("Release not found")
+        print(f"{red}Release not found{reset}")
         return
 
     if not articles:
-        print("No articles found")
+        print(f"{red}No articles found{reset}")
         return
 
     #root tag
@@ -95,10 +96,10 @@ def generate_nzb(release_id, output_dir=None):
                 + body
             )
     except OSError as e:
-        print(f"couldnt save nzb: {e}")
+        print(f"{red}couldnt save nzb: {e}{reset}")
         return
 
-    print(f"Saved {filename}")
+    print(f"{green}Saved {filename}{reset}")
 
 
 '''

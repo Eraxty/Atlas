@@ -5,6 +5,7 @@ from src.nntp_client import NNTPClient
 from src.config import save_config
 from src.parser import parse_subject
 from src.prompts import prompt
+from src.colors import red, green, yellow, dim, reset
 
 
 def clear():
@@ -12,6 +13,11 @@ def clear():
 
 
 def groups_menu(config):
+    if not config.get("host"):
+        print(f"{red}no server configured, setup in Settings first{reset}")
+        prompt("[enter]")
+        return
+
     client = NNTPClient(
         config["host"],
         config["username"],
@@ -24,7 +30,7 @@ def groups_menu(config):
         client.connect()
 
     except (OSError, nntp.NNTPReplyError):
-        print("couldnt connect to server")
+        print(f"{red}couldnt connect to server{reset}")
         prompt("[enter]")
         return
 
@@ -38,7 +44,7 @@ def groups_menu(config):
                 groups.append(line.split()[0])
     
     except (OSError, nntp.NNTPError):
-        print("couldnt fetch groups from the server")
+        print(f"{red}couldnt fetch groups from the server{reset}")
         prompt("[enter]")
         client.disconnect()
         return
@@ -59,7 +65,7 @@ def groups_menu(config):
             search_all = False
 
         if len(query) < 3:
-            print("Search atleast 3 characters bruh\n")
+            print(f"{yellow}Search atleast 3 characters bruh{reset}\n")
             prompt("[enter]")
             continue
 
@@ -70,7 +76,7 @@ def groups_menu(config):
             matches = [group for group in matches if ".binaries." in group.lower()]
 
         if not matches:
-            print("No matching groups found\n")
+            print(f"{red}No matching groups found{reset}\n")
             prompt("[enter]")
             continue
 
@@ -85,7 +91,7 @@ def groups_menu(config):
             total_pages = max(1, (len(matches) + 29) // 30)
 
             print(f"Page {page + 1} of {total_pages}")
-            print(f"Showing {start + 1}-{end} of {len(matches)} matches\n")
+            print(f"{dim}Showing {start + 1}-{end} of {len(matches)} matches{reset}\n")
 
             for i, group in enumerate(matches[start:end], 1):
                 print(f"{i}. {group}")
@@ -106,7 +112,7 @@ def groups_menu(config):
                 if page > 0:
                     page -= 1
                 else:
-                    print("already on the first page bruh")
+                    print(f"{dim}already on the first page{reset}")
                     prompt("[enter]")
                 continue
 
@@ -114,20 +120,20 @@ def groups_menu(config):
                 if end < len(matches):
                     page += 1
                 else:
-                    print("already on the last page bruh")
+                    print(f"{dim}already on the last page{reset}")
                     prompt("[enter]")
                 continue
 
             try:
                 selected = int(choice)
             except ValueError:
-                print("invalid")
+                print(f"{red}invalid{reset}")
                 prompt("[enter]")
                 continue
 
             #choices count from 1 on the current page only
             if selected < 1 or selected > end - start:
-                print("invalid")
+                print(f"{red}invalid{reset}")
                 prompt("[enter]")
                 continue
 
@@ -138,7 +144,7 @@ def groups_menu(config):
                 count, first, last, _ = client.select_group(config["group"])
 
             except (OSError, nntp.NNTPError) as e:
-                print(f"couldnt select group: {e}")
+                print(f"{red}couldnt select group: {e}{reset}")
                 prompt("[enter]")
                 continue
 

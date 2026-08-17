@@ -8,6 +8,7 @@ import time
 import urllib.request
 
 from src.config import load_config as load_atlas_config
+from src.colors import red, green, yellow, reset
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 SAB_DIR = BASE_DIR / "SABnzbd-5.0.4"
@@ -118,7 +119,7 @@ def start():
 
     if process and process.poll() is None:
         #already up so dont double start
-        print("sab already running")
+        print(f"{yellow}sab already running{reset}")
         return True
 
     configure_watched_dir()
@@ -137,11 +138,11 @@ def start():
             )
     
     except OSError as e:
-        print(f"couldnt start sabnzbd: {e}")
+        print(f"{red}couldnt start sabnzbd: {e}{reset}")
         process = None
         return False
 
-    print("started sabnzbd")
+    print(f"{green}started sabnzbd{reset}")
     return True
 
 
@@ -154,12 +155,12 @@ def stop():
             process.wait()
     
         except OSError as e:
-            print(f"couldnt stop sab: {e}")
+            print(f"{red}couldnt stop sab: {e}{reset}")
     
         else:
-            print("Stopped")
+            print(f"{green}Stopped{reset}")
     else:
-        print("SAB isn't running bro")
+        print(f"{yellow}SAB isn't running{reset}")
 
 
 def is_running():
