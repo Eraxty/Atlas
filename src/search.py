@@ -14,121 +14,94 @@ def fts_query(query):
     return " AND ".join(terms)
 
 
-def search_releases(query, group, page=0, page_size=10):
-    conn = sqlite3.connect(database, timeout=30)
+#try fts first, fall back to like if it chokes
+def _fts_or_like(fts_sql, like_sql, params, fetch_one = False):
+    conn = sqlite3.connect(database, timeout = 30)
     cur = conn.cursor()
 
+    try:
+        cur.execute(fts_sql, params)
+    except sqlite3.OperationalError:
+        cur.execute(like_sql, params)
+
+    if fetch_one:
+        result = cur.fetchone()
+    else:
+        result = cur.fetchall()
+
+    conn.close()
+    return result
+
+
+def search_releases(query, group, page = 0, page_size = 10):
     #page is 0 based
     offset = page * page_size
 
-    try:
-        #fts table holds text, real data lives in releases
-        cur.execute("""
-            select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
-            from releases r
-            join releases_fts on releases_fts.rowid = r.id
-            where releases_fts match ? and r.group_name = ?
-            order by r.name
-            limit ? offset ?
-        """, (fts_query(query), group, page_size, offset)
-        )
-    #fts error or broken query = fall back to like
-    except sqlite3.OperationalError:
-        cur.execute("""
-            select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
-            from releases r
-            where r.name like ? and r.group_name = ?
-            order by r.name
-            limit ? offset ?
-        """, (f"%{query}%", group, page_size, offset)
-        )
-
-    releases = cur.fetchall()
-    conn.close()
-
-    return releases
+    #fts table holds text, real data lives in releases
+    return _fts_or_like("""
+        select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
+        from releases r
+        join releases_fts on releases_fts.rowid = r.id
+        where releases_fts match ? and r.group_name = ?
+        order by r.name
+        limit ? offset ?
+    """, """
+        select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
+        from releases r
+        where r.name like ? and r.group_name = ?
+        order by r.name
+        limit ? offset ?
+    """, (fts_query(query), group, page_size, offset))
 
 
-def search_all_releases(query, page=0, page_size=10):
-    conn = sqlite3.connect(database, timeout=30)
-    cur = conn.cursor()
-
+def search_all_releases(query, page = 0, page_size = 10):
     offset = page * page_size
-
-    try:
-        cur.execute("""
-            select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
-            from releases r
-            join releases_fts on releases_fts.rowid = r.id
-            where releases_fts match ?
-            order by r.name
-            limit ? offset ?
-        """,(fts_query(query), page_size, offset))
-    #fts error or broken query = fall back to like
-    except sqlite3.OperationalError:
-        cur.execute("""
-            select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
-            from releases r
-            where r.name like ?
-            order by r.name
-            limit ? offset ?
-        """,(f"%{query}%", page_size, offset))
-
-    releases = cur.fetchall()
-    conn.close()
-
-    return releases
+    return _fts_or_like("""
+        select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
+        from releases r
+        join releases_fts on releases_fts.rowid = r.id
+        where releases_fts match ?
+        order by r.name
+        limit ? offset ?
+    """, """
+        select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
+        from releases r
+        where r.name like ?
+        order by r.name
+        limit ? offset ?
+    """, (fts_query(query), page_size, offset))
 
 
 def count_releases(query, group):
-    conn = sqlite3.connect(database, timeout=30)
-    cur = conn.cursor()
-
     #same fts query but just counting
-    try:
-        cur.execute("""
-            select count(*) from releases r
-            join releases_fts on releases_fts.rowid = r.id
-            where releases_fts match ? and r.group_name = ?
-        """, (fts_query(query), group))
-    #same as search fallback
-    except sqlite3.OperationalError:
-        cur.execute("""
-            select count(*) from releases r
-            where r.name like ? and r.group_name = ?
-        """, (f"%{query}%", group))
+    row = _fts_or_like("""
+        select count(*) from releases r
+        join releases_fts on releases_fts.rowid = r.id
+        where releases_fts match ? and r.group_name = ?
+    """, """
+        select count(*) from releases r
+        where r.name like ? and r.group_name = ?
+    """, (fts_query(query), group), fetch_one = True)
 
-    count = cur.fetchone()[0]
-    conn.close()
-
-    return count
+    return row[0]
 
 
 def count_all_releases(query):
-    conn = sqlite3.connect(database, timeout=30)
-    cur = conn.cursor()
-
-    try:
-        cur.execute("""
-            select count(*) from releases r
-            join releases_fts on releases_fts.rowid = r.id
-            where releases_fts match ?
-        """, (fts_query(query),))
     #same again all groups
-    except sqlite3.OperationalError:
-        cur.execute("""
-            select count(*) from releases r
-            where r.name like ?
-        """, (f"%{query}%",))
+    row = _fts_or_like("""
+        select count(*) from releases r
+        join releases_fts on releases_fts.rowid = r.id
+        where releases_fts match ?
+    """, """
+        select count(*) from releases r
+        where r.name like ?
+    """, (fts_query(query),), fetch_one = True)
 
-    count = cur.fetchone()[0]
-    conn.close()
-
-    return count
+    return row[0]
 
 
 def get_release(id):
-    conn = sqlite3.connect(database, timeout=30)
+    conn = sqlite3.connect(database, timeout = 30)
     cur = conn.cursor()
 
     cur.execute("""
@@ -145,7 +118,7 @@ def get_release(id):
 
 
 def get_articles(release_id):
-    conn = sqlite3.connect(database, timeout=30)
+    conn = sqlite3.connect(database, timeout = 30)
     cur = conn.cursor()
 
     #keeps the parts of each file in order soo they can be reassembled
