@@ -6,7 +6,7 @@ def fts_query(query):
     terms = []
 
     for raw in query.split():
-        term = raw.strip('"')
+        term = raw.strip('"').replace('"', "")
 
         if term:
             terms.append(f'"{term}"*')
@@ -37,6 +37,9 @@ def _fts_or_like(conn, fts_sql, like_sql, fts_vals, like_vals, fetch_one = False
 
 
 def search_releases(query, group, page = 0, page_size = 10):
+    if not query.strip():
+        return []
+
     #page is 0 based
     offset = page * page_size
 
@@ -58,6 +61,9 @@ def search_releases(query, group, page = 0, page_size = 10):
 
 
 def search_all_releases(query, page = 0, page_size = 10):
+    if not query.strip():
+        return []
+
     offset = page * page_size
     return _fts_or_like("""
         select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
@@ -76,6 +82,9 @@ def search_all_releases(query, page = 0, page_size = 10):
 
 
 def count_releases(query, group):
+    if not query.strip():
+        return 0
+
     #same fts query but just counting
     row = _fts_or_like("""
         select count(*) from releases r
@@ -90,6 +99,9 @@ def count_releases(query, group):
 
 
 def count_all_releases(query):
+    if not query.strip():
+        return 0
+
     #same again all groups
     row = _fts_or_like("""
         select count(*) from releases r

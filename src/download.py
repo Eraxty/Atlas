@@ -1,4 +1,4 @@
-from src.nzb import generate_nzb
+from src.nzb import generate_nzb, nzb_filename
 from src.sab import configure_watched_dir, get_complete_dir, is_running, job_in_sab, start, wait_ready
 from src.search import get_articles, get_release
 from src.colors import red, green, yellow, reset
@@ -33,7 +33,7 @@ def download_release(release_id):
 
     watched_dir = configure_watched_dir()
 
-    if (watched_dir / f"{release[1].replace('/', '_')}.nzb").exists():
+    if (watched_dir / nzb_filename(release[1])).exists():
         print(f"{yellow}already queued{reset}")
         return False
 

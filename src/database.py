@@ -238,6 +238,8 @@ def save_releases_bulk(releases):
                 #remembers the change count soo we can tell if this pass added anything
                 before = conn.total_changes
                 
+                articles = [a for a in release["articles"] if a.message_id]
+
                 cur.executemany("""
                     insert or ignore into articles
                     (release_id, message_id, subject, 
@@ -251,7 +253,7 @@ def save_releases_bulk(releases):
                     a.part, 
                     a.total_parts, 
                     a.bytes)
-                    for a in release["articles"]
+                    for a in articles
                 ])
 
                 #nothing new added so the stored stats are still same

@@ -1,6 +1,7 @@
 from src.config import load_config
 from src.nntp_client import NNTPClient
 from src.indexer import Indexer
+from src.colors import red, yellow, reset
 from pathlib import Path
 import os
 import signal
@@ -19,14 +20,14 @@ if not config or not config.get("host"):
     sys.exit(1)
 
 if not config.get("password"):
-    print("no password stored in keyring, run main.py to set it up")
+    print(f"{yellow}no password stored in keyring, run main.py to set it up{reset}")
     sys.exit(1)
 
 client = NNTPClient(
-    host=config["host"],
-    username=config["username"],
-    password=config["password"],
-    port=config["port"],
+    host = config["host"],
+    username = config["username"],
+    password = config["password"],
+    port = config["port"],
 )
 
 indexer = Indexer(client, mode = config.get("index_mode", "dynamic"))
@@ -68,8 +69,10 @@ def idle_sleep(duration):
 current_group = config["group"]
 errors = 0
 error = False
+
 #only rewrite status when the idle flag flips
 last_written_idle = indexer.idle
+
 #soo we can spot when the config changes
 last_conn = (config["host"], config["username"], config["password"], config["port"])
 
@@ -80,13 +83,13 @@ try:
         config = load_config()
 
         if config is None:
-            print("error with config, stopped")
+            print(f"{red}error with config, stopped{reset}")
             break
 
         conn = (config.get("host"), config.get("username"), config.get("password"), config.get("port"))
 
         if not all(conn):
-            print("config missing required fields")
+            print(f"{red}config missing required fields{reset}")
             break
 
         if conn != last_conn:
@@ -104,10 +107,13 @@ try:
 
         #new group picked soo reset the error count
         if group != current_group:
-            update_status(True, group, indexer.idle, "running")
             current_group = group
             errors = 0
+            indexer.phase = "backfill"
+            indexer.idle = False
+            indexer.backfilling = False
             last_written_idle = indexer.idle
+            update_status(True, group, indexer.idle, "running")
 
         try:
             #reconnect on demand
@@ -116,7 +122,7 @@ try:
 
             #no group set in config yet
             if not group:
-                print("no newsgroup configured")
+                print(f"{yellow}no newsgroup configured{reset}")
                 break
 
             indexer.index_group(group)
@@ -143,12 +149,12 @@ try:
 
             #3 strikes and we stop bcs we aint hammering a dead server
             if errors >= 3:
-                print(f"Too many errors on {group} Stopping")
+                print(f"{red}Too many errors on {group} Stopping{reset}")
                 error = True
                 update_status(True, current_group, indexer.idle, "error")
                 break
 
-            print(f"Indexing error ({group}): {e}")
+            print(f"{red}Indexing error ({group}): {e}{reset}")
             
             try:
                 client.disconnect()
@@ -161,16 +167,17 @@ try:
             try:
                 client.connect()
             except Exception as reconnect_error:
-                print(f"Reconnect failed: {reconnect_error}")
+                print(f"{red}Reconnect failed: {reconnect_error}{reset}")
 except Exception as e:
-    print(f"indexer crashed: {e}")
+    print(f"{red}indexer crashed: {e}{reset}")
+    error = True
 finally:
-    update_status(False, "", status="stopped")
+    update_status(False, "", status="error" if error else "stopped")
 
     try:
         #only clear the pid if its ours, another one might be running
         if PID_FILE.read_text().strip() == str(os.getpid()):
-            PID_FILE.unlink(missing_ok=True)
+            PID_FILE.unlink(missing_ok = True)
 
     except (OSError, ValueError):
         pass

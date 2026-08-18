@@ -7,6 +7,13 @@ from email.utils import parsedate_to_datetime
 from pathlib import Path
 
 
+def nzb_filename(name):
+    bad = '<>:"/\\|?*'
+    safe = "".join("_" if c in bad or ord(c) < 32 else c for c in name)
+    safe = safe.strip(" .")
+    return f"{safe or 'release'}.nzb"
+
+
 def _article_timestamp(date_str):
     try:
         return int(parsedate_to_datetime(date_str).timestamp())
@@ -78,8 +85,7 @@ def generate_nzb(release_id, output_dir=None):
 
     et.indent(nzb, space="  ")
 
-    safe_name = release[1].replace("/", "_")
-    filename = f"{safe_name}.nzb"
+    filename = nzb_filename(release[1])
 
     if output_dir:
         filename = str(Path(output_dir) / filename)
