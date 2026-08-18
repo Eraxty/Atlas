@@ -180,9 +180,15 @@ def _release_stats(cur, release_id):
     part_count = sum(len(file_parts) for file_parts in files.values())
 
     for file_parts in files.values():
-        expected = max(total for _, total in file_parts)
+        totals = [total for _, total in file_parts if total is not None]
 
-        if {part for part, _ in file_parts} != set(range(1, expected + 1)):
+        if not totals:
+            return size, 0, part_count
+
+        expected = max(totals)
+        parts = {part for part, _ in file_parts if part is not None}
+
+        if parts != set(range(1, expected + 1)):
             return size, 0, part_count
 
     return size, 1, part_count
@@ -195,69 +201,70 @@ def save_releases_bulk(releases):
 
     conn = sqlite3.connect(database, timeout=30)
 
-    #transaction soo a half written batch rolls back
-    with conn:
-        cur = conn.cursor()
-        
-        for release in releases:
-            cur.execute("""
-                insert into releases
-                (name, size, complete, group_name, poster, posted_date)
-                values (?, ?, ?, ?, ?, ?)
-                on conflict(name, group_name) do update set
-                poster = excluded.poster,
-                posted_date = excluded.posted_date
-            """, (
-                release["name"],
-                release["size"],
-                int(release["complete"]),
-                release["group"],
-                release["poster"],
-                release["date"]
-            ))
-
-            cur.execute("""
-                select id from releases 
-                where name = ? and group_name = ?
-            """, (release["name"], release["group"]))
-                
-            row = cur.fetchone()
-
-            if row is None:
-                continue
-
-            release_id = row[0]
-
-            #remembers the change count soo we can tell if this pass added anything
-            before = conn.total_changes
+    try:
+        #transaction soo a half written batch rolls back
+        with conn:
+            cur = conn.cursor()
             
-            cur.executemany("""
-                insert or ignore into articles
-                (release_id, message_id, subject, 
-                filename, part, total_parts, bytes)
-                values (?, ?, ?, ?, ?, ?, ?)
-            """, [
-                (release_id,
-                a.message_id, 
-                a.subject, 
-                a.filename, 
-                a.part, 
-                a.total_parts, 
-                a.bytes)
-                for a in release["articles"]
-            ])
+            for release in releases:
+                cur.execute("""
+                    insert into releases
+                    (name, size, complete, group_name, poster, posted_date)
+                    values (?, ?, ?, ?, ?, ?)
+                    on conflict(name, group_name) do update set
+                    poster = excluded.poster,
+                    posted_date = excluded.posted_date
+                """, (
+                    release["name"],
+                    release["size"],
+                    int(release["complete"]),
+                    release["group"],
+                    release["poster"],
+                    release["date"]
+                ))
 
-            #nothing new added so the stored stats are still same
-            if conn.total_changes == before:
-                continue
+                cur.execute("""
+                    select id from releases 
+                    where name = ? and group_name = ?
+                """, (release["name"], release["group"]))
+                    
+                row = cur.fetchone()
 
-            size, complete, part_count = _release_stats(cur, release_id)
-            cur.execute("""
-                update releases set size = ?, complete = ?, parts = ?
-                where id = ?
-            """, (size, complete, part_count, release_id))
+                if row is None:
+                    continue
 
-    conn.close()
+                release_id = row[0]
+
+                #remembers the change count soo we can tell if this pass added anything
+                before = conn.total_changes
+                
+                cur.executemany("""
+                    insert or ignore into articles
+                    (release_id, message_id, subject, 
+                    filename, part, total_parts, bytes)
+                    values (?, ?, ?, ?, ?, ?, ?)
+                """, [
+                    (release_id,
+                    a.message_id, 
+                    a.subject, 
+                    a.filename, 
+                    a.part, 
+                    a.total_parts, 
+                    a.bytes)
+                    for a in release["articles"]
+                ])
+
+                #nothing new added so the stored stats are still same
+                if conn.total_changes == before:
+                    continue
+
+                size, complete, part_count = _release_stats(cur, release_id)
+                cur.execute("""
+                    update releases set size = ?, complete = ?, parts = ?
+                    where id = ?
+                """, (size, complete, part_count, release_id))
+    finally:
+        conn.close()
 
 
 @with_db

@@ -18,6 +18,10 @@ if not config or not config.get("host"):
     print("no valid config")
     sys.exit(1)
 
+if not config.get("password"):
+    print("no password stored in keyring, run main.py to set it up")
+    sys.exit(1)
+
 client = NNTPClient(
     host=config["host"],
     username=config["username"],
@@ -59,7 +63,7 @@ signal.signal(signal.SIGTERM, handle_stop)
 def idle_sleep(duration):
     deadline = time.time() + duration
     while not stop_requested and time.time() < deadline:
-        time.sleep(min(1, deadline - time.time()))
+        time.sleep(max(0, min(1, deadline - time.time())))
 
 current_group = config["group"]
 errors = 0
@@ -79,7 +83,11 @@ try:
             print("error with config, stopped")
             break
 
-        conn = (config["host"], config["username"], config["password"], config["port"])
+        conn = (config.get("host"), config.get("username"), config.get("password"), config.get("port"))
+
+        if not all(conn):
+            print("config missing required fields")
+            break
 
         if conn != last_conn:
             try:
@@ -91,7 +99,7 @@ try:
             last_conn = conn
             print("config changed")
 
-        group = config["group"]
+        group = config.get("group", "")
         indexer.mode = config.get("index_mode", "dynamic")
 
         #new group picked soo reset the error count
@@ -154,6 +162,8 @@ try:
                 client.connect()
             except Exception as reconnect_error:
                 print(f"Reconnect failed: {reconnect_error}")
+except Exception as e:
+    print(f"indexer crashed: {e}")
 finally:
     update_status(False, "", status="stopped")
 

@@ -174,8 +174,8 @@ def ask(text, default=None):
     while True:
         value = prompt(text).strip()
 
-        if not value and default is not None:
-            return default
+        if not value:
+            return default if default is not None else 0
 
         try:
             return int(value)
@@ -459,6 +459,10 @@ def main():
     else:
         setup()
         config = load_config()
+
+        if not config:
+            print(f"{red}setup failed, no config found {reset}")
+            return
 
     while True:
         clear()

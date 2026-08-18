@@ -63,7 +63,7 @@ def configure_servers():
             ("password", atlas.get("password", "")),
             ("ssl", "1" if current_port == 563 else "0"),):
             
-            body = re.sub(rf"^({key}\s*=\s*).*$", rf"\g<1>{value}", body, count=1, flags=re.MULTILINE)
+            body = re.sub(rf"^({key}\s*=\s*).*$", lambda m: m.group(1) + value, body, count = 1, flags = re.MULTILINE)
 
         text = text[:section.start()] + f"[[s{section.group(1)}]]" + body + text[section.end():]
 

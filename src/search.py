@@ -14,15 +14,19 @@ def fts_query(query):
     return " AND ".join(terms)
 
 
+def like_query(query):
+    return f"%{query.strip()}%"
+
+
 #try fts first, fall back to like if it chokes
 @with_db
-def _fts_or_like(conn, fts_sql, like_sql, params, fetch_one = False):
+def _fts_or_like(conn, fts_sql, like_sql, fts_vals, like_vals, fetch_one = False):
     cur = conn.cursor()
 
     try:
-        cur.execute(fts_sql, params)
+        cur.execute(fts_sql, fts_vals)
     except sqlite3.OperationalError:
-        cur.execute(like_sql, params)
+        cur.execute(like_sql, like_vals)
 
     if fetch_one:
         result = cur.fetchone()
@@ -50,7 +54,7 @@ def search_releases(query, group, page = 0, page_size = 10):
         where r.name like ? and r.group_name = ?
         order by r.name
         limit ? offset ?
-    """, (fts_query(query), group, page_size, offset))
+    """, (fts_query(query), group, page_size, offset), (like_query(query), group, page_size, offset))
 
 
 def search_all_releases(query, page = 0, page_size = 10):
@@ -68,7 +72,7 @@ def search_all_releases(query, page = 0, page_size = 10):
         where r.name like ?
         order by r.name
         limit ? offset ?
-    """, (fts_query(query), page_size, offset))
+    """, (fts_query(query), page_size, offset), (like_query(query), page_size, offset))
 
 
 def count_releases(query, group):
@@ -80,7 +84,7 @@ def count_releases(query, group):
     """, """
         select count(*) from releases r
         where r.name like ? and r.group_name = ?
-    """, (fts_query(query), group), fetch_one = True)
+    """, (fts_query(query), group), (like_query(query), group), fetch_one = True)
 
     return row[0]
 
@@ -94,7 +98,7 @@ def count_all_releases(query):
     """, """
         select count(*) from releases r
         where r.name like ?
-    """, (fts_query(query),), fetch_one = True)
+    """, (fts_query(query),), (like_query(query),), fetch_one = True)
 
     return row[0]
 

@@ -1,9 +1,11 @@
 import json
 import os
+import keyring
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 config_file = BASE_DIR / "config.json"
+SERVICE = "atlas"
 
 
 def load_config():
@@ -12,17 +14,24 @@ def load_config():
 
     try:
         with open(config_file, "r") as f:
-            return json.load(f)
-    
+            config = json.load(f)
+
     except (OSError, json.JSONDecodeError):
         return None
 
+    password = keyring.get_password(SERVICE, config.get("username", ""))
+    if password:
+        config["password"] = password
+
+    return config
+
 
 def save_config(host, username, password, port, group, index_mode="dynamic"):
+    keyring.set_password(SERVICE, username, password)
+
     config = {
         "host": host,
         "username": username,
-        "password": password,
         "port": port,
         "group": group,
         "index_mode": index_mode
