@@ -1,6 +1,6 @@
 import re
 
-FILE_COUNT_RE = re.compile(r'^\[(\d+)\s*/\s*(\d+)\]')
+FILE_COUNT_RE = re.compile(r'\[(\d+)\s*/\s*(\d+)\]')
 
 def parse_subject(subject):
 
@@ -40,7 +40,7 @@ def parse_subject(subject):
             r"\.(part\d+|r\d+|vol\d+\+\d+|par2|nfo|sfv|rar|\d{3})$",
             "",
             release_name,
-            flags=re.IGNORECASE,
+            flags = re.IGNORECASE,
         )
 
         if new_name == release_name:
@@ -59,11 +59,14 @@ def parse_subject(subject):
     file_index = None
     file_total = None
     
-    count_match = FILE_COUNT_RE.match(subject.strip())
+    count_match = FILE_COUNT_RE.search(subject.strip())
 
     if count_match:
         file_index = int(count_match.group(1))
         file_total = int(count_match.group(2))
+
+    if file_total and len(release_name) <= 2:
+        release_name = f"{release_name} [{file_total}]"
 
     return {
         "filename": filename,

@@ -134,6 +134,16 @@ def stop_background_indexer():
         PID_FILE.unlink(missing_ok=True)
         return False
 
+    if Path("/proc").exists():
+        try:
+            cmdline = Path(f"/proc/{pid}/cmdline").read_bytes()
+        except OSError:
+            cmdline = b""
+
+        if b"bg_indexer.py" not in cmdline:
+            PID_FILE.unlink(missing_ok = True)
+            return False
+
     try:
         os.kill(pid, signal.SIGTERM)
     except ProcessLookupError:
