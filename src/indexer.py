@@ -58,6 +58,7 @@ class Indexer:
             self.backfill(group, state, int(first), int(last))
 
     def live(self, group, state, last):
+        self.backfilling = False
         start = state["live_cursor"] + 1
 
         #nothing new since last check

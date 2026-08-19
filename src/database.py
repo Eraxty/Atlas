@@ -299,6 +299,9 @@ def get_group_state(conn, group):
     if result is None:
         return None
 
+    if result[0] is None or result[1] is None:
+        return None
+
     return {
         "live_cursor":result[0],
         "backfill_cursor":result[1],

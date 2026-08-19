@@ -77,14 +77,6 @@ def indexer_alive():
         return False
 
     try:
-        status = get_status()
-    except Exception:
-        status = {}
-
-    if status.get("pid") != pid:
-        return False
-
-    try:
         #signal 0 checks if alive
         os.kill(pid, 0)
 

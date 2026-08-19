@@ -19,7 +19,11 @@ def load_config():
     except (OSError, json.JSONDecodeError):
         return None
 
-    password = keyring.get_password(SERVICE, config.get("username", ""))
+    try:
+        password = keyring.get_password(SERVICE, config.get("username", ""))
+    except keyring.errors.KeyringError:
+        password = None
+
     if password:
         config["password"] = password
 
@@ -27,7 +31,11 @@ def load_config():
 
 
 def save_config(host, username, password, port, group, index_mode="dynamic"):
-    keyring.set_password(SERVICE, username, password)
+    try:
+        keyring.set_password(SERVICE, username, password)
+        store_password = False
+    except keyring.errors.KeyringError:
+        store_password = True
 
     config = {
         "host": host,
@@ -36,6 +44,9 @@ def save_config(host, username, password, port, group, index_mode="dynamic"):
         "group": group,
         "index_mode": index_mode
     }
+
+    if store_password:
+        config["password"] = password
 
     config_file.parent.mkdir(parents = True, exist_ok = True)
 

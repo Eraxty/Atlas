@@ -1,5 +1,5 @@
 from src.nzb import generate_nzb, nzb_filename
-from src.sab import configure_watched_dir, get_complete_dir, is_running, job_in_sab, start, wait_ready
+from src.sab import configure_servers, configure_watched_dir, get_complete_dir, is_running, job_in_sab, start, wait_ready
 from src.search import get_articles, get_release
 from src.colors import red, green, yellow, reset
 
@@ -21,6 +21,8 @@ def download_release(release_id):
     if (complete_dir / first_file).exists():
         print(f"{yellow}already downloaded{reset}")
         return False
+
+    configure_servers()
 
     if not is_running():
         if not start():
