@@ -33,7 +33,7 @@ client = NNTPClient(
 indexer = Indexer(client, mode = config.get("index_mode", "dynamic"))
 
 #main reads this file to draw the status line
-def update_status(running, group, idle=False, status="running"):
+def update_status(running, group, idle = False, status = "running", error = False, errors = 0):
     try:
         with open(STATUS_FILE, "w") as f:
             json.dump({
@@ -76,7 +76,7 @@ last_written_idle = indexer.idle
 #soo we can spot when the config changes
 last_conn = (config["host"], config["username"], config["password"], config["port"])
 
-update_status(True, current_group, indexer.idle, "running")
+update_status(True, current_group, indexer.idle, "running", error = error, errors = errors)
 
 try:
     while not stop_requested:
@@ -113,7 +113,7 @@ try:
             indexer.idle = False
             indexer.backfilling = False
             last_written_idle = indexer.idle
-            update_status(True, group, indexer.idle, "running")
+            update_status(True, group, indexer.idle, "running", error = error, errors = errors)
 
         try:
             #reconnect on demand
@@ -126,10 +126,11 @@ try:
                 break
 
             indexer.index_group(group)
+            recovered = errors > 0
             errors = 0
 
-            if indexer.idle != last_written_idle:
-                update_status(True, current_group, indexer.idle, "idle" if indexer.idle else "running")
+            if indexer.idle != last_written_idle or recovered:
+                update_status(True, current_group, indexer.idle, "idle" if indexer.idle else "running", error = error, errors = errors)
                 last_written_idle = indexer.idle
 
             if indexer.idle and not indexer.backfilling:
@@ -145,13 +146,13 @@ try:
 
             #set warning status while we still have retries left
             if errors < 3:
-                update_status(True, current_group, indexer.idle, "warning")
+                update_status(True, current_group, indexer.idle, "warning", error = error, errors = errors)
 
             #3 strikes and we stop bcs we aint hammering a dead server
             if errors >= 3:
                 print(f"{red}Too many errors on {group} Stopping{reset}")
                 error = True
-                update_status(True, current_group, indexer.idle, "error")
+                update_status(True, current_group, indexer.idle, "error", error = True, errors = errors)
                 break
 
             print(f"{red}Indexing error ({group}): {e}{reset}")
@@ -172,7 +173,7 @@ except Exception as e:
     print(f"{red}indexer crashed: {e}{reset}")
     error = True
 finally:
-    update_status(False, "", status="error" if error else "stopped")
+    update_status(False, "", status = "error" if error else "stopped", error = error, errors = errors)
 
     try:
         #only clear the pid if its ours, another one might be running

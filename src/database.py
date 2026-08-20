@@ -261,6 +261,7 @@ def save_releases_bulk(releases):
                     continue
 
                 size, complete, part_count = _release_stats(cur, release_id)
+                complete = complete and int(release["complete"])
                 cur.execute("""
                     update releases set size = ?, complete = ?, parts = ?
                     where id = ?

@@ -37,7 +37,7 @@ def parse_subject(subject):
     #remove the .part1/r.00 type shi soo every part of release maps to one name
     while True:
         new_name = re.sub(
-            r"\.(part\d+|r\d+|vol\d+\+\d+|par2|nfo|sfv|rar|\d{3})$",
+            r"\.(part\d+|r\d+|vol\d+\+\d+|par2|nfo|sfv|rar|0\d\d)$",
             "",
             release_name,
             flags = re.IGNORECASE,

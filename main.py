@@ -416,7 +416,7 @@ def do_settings():
             save_config(
                 config["host"],
                 config["username"],
-                config["password"],
+                config.get("password", ""),
                 config["port"],
                 config["group"],
                 modes[mode],
@@ -431,7 +431,7 @@ def do_settings():
     print()
     host = prompt(f"Host ({config['host']}): ").strip() or config["host"]
     username = prompt(f"Username ({config['username']}): ").strip() or config["username"]
-    password = prompt("Password: ").strip() or config["password"]
+    password = prompt("Password: ").strip() or config.get("password", "")
 
     while True:
         group = prompt("Newsgroup: ").strip()
@@ -548,6 +548,5 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        stop_background_indexer()
         #byee
         print("\nbyeee")
