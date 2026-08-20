@@ -12,11 +12,32 @@ def clear():
     os.system("cls" if os.name == "nt" else "clear")
 
 
+_groups_cache = {}
+
+
+def load_groups(client, host):
+    if host in _groups_cache:
+        return _groups_cache[host]
+
+    groups = []
+
+    for line in client.list_groups():
+        line = line.strip()
+
+        if line:
+            groups.append(line.split()[0])
+
+    _groups_cache[host] = groups
+    return groups
+
+
 def groups_menu(config):
     if not config.get("host"):
         print(f"{red}no server configured, setup in Settings first{reset}")
         prompt("[enter]")
         return
+
+    host = config["host"]
 
     client = NNTPClient(
         config["host"],
@@ -25,24 +46,18 @@ def groups_menu(config):
         config["port"]
     )
 
+    if host not in _groups_cache:
+        try:
+            client.connect()
+
+        except (OSError, nntp.NNTPReplyError):
+            print(f"{red}couldnt connect to server{reset}")
+            prompt("[enter]")
+            return
 
     try:
-        client.connect()
+        groups = load_groups(client, host)
 
-    except (OSError, nntp.NNTPReplyError):
-        print(f"{red}couldnt connect to server{reset}")
-        prompt("[enter]")
-        return
-
-    groups = []
-
-    try:
-        for line in client.list_groups():
-            line = line.strip()
-
-            if line:
-                groups.append(line.split()[0])
-    
     except (OSError, nntp.NNTPError):
         print(f"{red}couldnt fetch groups from the server{reset}")
         prompt("[enter]")
@@ -139,6 +154,15 @@ def groups_menu(config):
 
             #map the page choice back to the full list index
             config["group"] = matches[start + selected - 1]
+
+            if not client.server:
+                try:
+                    client.connect()
+
+                except (OSError, nntp.NNTPReplyError):
+                    print(f"{red}couldnt connect to server{reset}")
+                    prompt("[enter]")
+                    continue
 
             try:
                 count, first, last, _ = client.select_group(config["group"])

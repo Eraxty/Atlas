@@ -4,7 +4,7 @@ from src.download import download_release
 from src.groups_menu import groups_menu
 from src.nzb import generate_nzb
 from src.prompts import prompt
-from src.search import count_all_releases, count_releases, get_release, search_all_releases, search_releases
+from src.search import count_all_releases, count_releases, get_articles, search_all_releases, search_releases
 from src.colors import reset, bold, dim, red, green, yellow, magenta, cyan
 from pathlib import Path
 import json
@@ -195,15 +195,17 @@ def show_results(releases, query, page, total_pages, total, page_size):
     end = min((page + 1) * page_size, total)
     print(f"{dim}Showing {start}-{end} of {total} results{reset}\n")
 
-    for release in releases:
+    width = max(20, shutil.get_terminal_size().columns - 40)
+
+    for i, release in enumerate(releases, 1):
         name = release[1]
 
-        if len(name) > 42:
-            name = name[:39] + "..."
+        if len(name) > width:
+            name = name[:width - 3] + "..."
 
         broken = f"  {red}[broken]{reset}" if not release[6] else ""
 
-        print(f"[{release[0]}] {name}  {fmt_size(release[5])} - {release[7]} parts - {fmt_date(release[4])}{broken}")
+        print(f"{i}. {name}  {fmt_size(release[5])} - {release[7]} parts - {fmt_date(release[4])}{broken}")
 
     print("\n0. Back")
 
@@ -213,6 +215,41 @@ def show_results(releases, query, page, total_pages, total, page_size):
         print("n. Next Page")
 
     print("g. Go to Page")
+
+
+def show_release(release, articles):
+    print(f"Release: {release[1]}")
+    print(f"{dim}poster: {release[3] or 'unknown'}   posted: {fmt_date(release[4])}{reset}")
+
+    status = f"{green}complete{reset}" if release[6] else f"{red}incomplete{reset}"
+    print(f"{fmt_size(release[5])} - {release[7]} parts - {status}\n")
+
+    if not articles:
+        return
+
+    files = {}
+
+    for a in articles:
+        files.setdefault(a[1] or "?", []).append(a)
+
+    width = max(20, shutil.get_terminal_size().columns - 20)
+
+    print(f"files ({len(files)}):")
+
+    shown = list(files.items())[:30]
+
+    for filename, parts in shown:
+        present = len({p[2] for p in parts})
+        expected = max((p[3] for p in parts if p[3]), default = present)
+
+        name = filename if len(filename) <= width else filename[:width - 3] + "..."
+
+        print(f"  {name}  {dim}{present}/{expected}{reset}")
+
+    if len(files) > len(shown):
+        print(f"  {dim}... and {len(files) - len(shown)} more{reset}")
+
+    print()
 
 
 def setup():
@@ -278,9 +315,6 @@ def do_search(config):
                 page = total_pages - 1
                 continue
 
-            #only ids on this page are valid
-            release_ids = {release[0] for release in releases}
-
             show_results(releases, query, page, total_pages, total, page_size)
 
             choice = prompt("\nChoice: ").strip()
@@ -320,28 +354,26 @@ def do_search(config):
                 continue
 
             try:
-                choice_id = int(choice)
+                selected = int(choice)
             except ValueError:
                 print(f"{red}invalid{reset}")
                 prompt("[enter]")
                 continue
 
-            if choice_id not in release_ids:
-                print(f"{red}not valid release id{reset}")
+            if selected < 1 or selected > len(releases):
+                print(f"{red}not on this page{reset}")
                 prompt("[enter]")
                 continue
 
-            release = get_release(choice_id)
-            release_name = release[1] if release else f"#{choice_id}"
+            release = releases[selected - 1]
+            choice_id = release[0]
+            articles = get_articles(choice_id)
 
             while True:
                 clear()
 
                 #actions for the picked release
-                print(f"Release: {release_name}")
-
-                if release:
-                    print(f"{fmt_size(release[5])} - {release[7]} parts - {fmt_date(release[4])}")
+                show_release(release, articles)
 
                 print("1. Download")
                 print("2. Save NZB")
@@ -361,7 +393,7 @@ def do_search(config):
                         print(f"\n{green}Download queued it is downloading in background.{reset}")
                         print(f"{dim}Finished files land ~/Downloads{reset}")
                     prompt("[enter]")
-                    return
+                    break
 
                 if choice == "2":
                     try:
@@ -369,7 +401,7 @@ def do_search(config):
                     except Exception as e:
                         print(f"{red}couldnt save nzb: {e}{reset}")
                     prompt("[enter]")
-                    return
+                    break
                 if choice == "0":
                     break
 
