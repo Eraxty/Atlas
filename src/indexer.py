@@ -2,7 +2,7 @@ import nntp
 
 from src.mapper import headers_to_articles
 from src.parser import group_articles, is_complete
-from src.database import save_releases_bulk, get_group_state, update_live_cursor, update_backfill_cursor
+from src.database import save_releases_bulk, get_group_state, init_group_state, update_live_cursor, update_backfill_cursor
 
 BACKFILL_SIZE = 5000
 
@@ -27,8 +27,7 @@ class Indexer:
             live_cursor = int(last)
             backfill_cursor = int(last)
 
-            update_live_cursor(group, live_cursor)
-            update_backfill_cursor(group, backfill_cursor)
+            init_group_state(group, int(last))
 
             state = {
                 "live_cursor": live_cursor,
@@ -41,8 +40,7 @@ class Indexer:
             state["live_cursor"] = int(last)
             state["backfill_cursor"] = int(last)
 
-            update_live_cursor(group,int(last))
-            update_backfill_cursor(group, int(last))
+            init_group_state(group, int(last))
             self.phase = "backfill"
 
         if self.mode == "live":

@@ -214,6 +214,7 @@ def save_releases_bulk(releases):
                     on conflict(name, group_name) do update set
                     poster = excluded.poster,
                     posted_date = excluded.posted_date
+                    returning id
                 """, (
                     release["name"],
                     release["size"],
@@ -223,11 +224,6 @@ def save_releases_bulk(releases):
                     release["date"]
                 ))
 
-                cur.execute("""
-                    select id from releases 
-                    where name = ? and group_name = ?
-                """, (release["name"], release["group"]))
-                    
                 row = cur.fetchone()
 
                 if row is None:
@@ -307,6 +303,21 @@ def get_group_state(conn, group):
         "live_cursor":result[0],
         "backfill_cursor":result[1],
     }
+
+
+@with_db
+def init_group_state(conn, group, cursor):
+    conn.execute("""
+        insert into groups(name, live_cursor, backfill_cursor)
+        values(?, ?, ?)
+        on conflict(name)
+        do update set
+        live_cursor = excluded.live_cursor,
+        backfill_cursor = excluded.backfill_cursor
+    """, (group, cursor, cursor)
+    )
+
+    conn.commit()
 
 
 @with_db

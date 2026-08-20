@@ -15,7 +15,8 @@ def fts_query(query):
 
 
 def like_query(query):
-    return f"%{query.strip()}%"
+    q = query.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{q}%"
 
 
 #try fts first, fall back to like if it chokes
@@ -49,12 +50,12 @@ def search_releases(query, group, page = 0, page_size = 10):
         from releases r
         join releases_fts on releases_fts.rowid = r.id
         where releases_fts match ? and r.group_name = ?
-        order by r.name
+        order by bm25(releases_fts)
         limit ? offset ?
     """, """
         select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
         from releases r
-        where r.name like ? and r.group_name = ?
+        where r.name like ? escape '\\' and r.group_name = ?
         order by r.name
         limit ? offset ?
     """, (fts_query(query), group, page_size, offset), (like_query(query), group, page_size, offset))
@@ -70,12 +71,12 @@ def search_all_releases(query, page = 0, page_size = 10):
         from releases r
         join releases_fts on releases_fts.rowid = r.id
         where releases_fts match ?
-        order by r.name
+        order by bm25(releases_fts)
         limit ? offset ?
     """, """
         select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
         from releases r
-        where r.name like ?
+        where r.name like ? escape '\\'
         order by r.name
         limit ? offset ?
     """, (fts_query(query), page_size, offset), (like_query(query), page_size, offset))
@@ -92,7 +93,7 @@ def count_releases(query, group):
         where releases_fts match ? and r.group_name = ?
     """, """
         select count(*) from releases r
-        where r.name like ? and r.group_name = ?
+        where r.name like ? escape '\\' and r.group_name = ?
     """, (fts_query(query), group), (like_query(query), group), fetch_one = True)
 
     return row[0]
@@ -109,7 +110,7 @@ def count_all_releases(query):
         where releases_fts match ?
     """, """
         select count(*) from releases r
-        where r.name like ?
+        where r.name like ? escape '\\'
     """, (fts_query(query),), (like_query(query),), fetch_one = True)
 
     return row[0]
