@@ -295,7 +295,7 @@ def job_in_sab(name, timeout=10):
             with urllib.request.urlopen(queue_url, timeout=2) as r:
                 slots = json.load(r).get("queue", {}).get("slots", [])
 
-            if any(name in s.get("filename", "") for s in slots):
+            if any(s.get("filename", "") in (name, name + ".nzb") for s in slots):
                 #still in the queue
                 return "queued"
 
@@ -307,7 +307,7 @@ def job_in_sab(name, timeout=10):
                 slots = json.load(r).get("history", {}).get("slots", [])
 
             for s in slots:
-                if name in s.get("name", ""):
+                if s.get("name", "") == name:
                     return s.get("status", "done").lower()
 
         except (OSError, ValueError):

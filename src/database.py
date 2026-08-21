@@ -44,12 +44,61 @@ def migrate(conn):
             ) where parts is null
         """)
 
+    if "file_total" not in release_columns:
+        cursor.execute("alter table releases add column file_total INTEGER")
+
     cursor.execute("pragma table_info(articles)")
     
     article_columns = {column[1] for column in cursor.fetchall()}
 
     if "subject" not in article_columns:
         cursor.execute("alter table articles add column subject TEXT")
+
+    if "file_total" not in article_columns:
+        cursor.execute("alter table articles add column file_total INTEGER")
+
+    _rebuild_articles_unique(cursor)
+
+
+def _rebuild_articles_unique(cursor):
+    row = cursor.execute("""
+        select sql from sqlite_master
+        where type = 'table' and name = 'articles'
+    """).fetchone()
+
+    if row is None or "unique(release_id, message_id)" in row[0].lower():
+        return
+
+    cursor.execute("""
+        create table articles_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            release_id INTEGER,
+            message_id TEXT,
+            subject TEXT,
+            filename TEXT,
+            part INTEGER,
+            total_parts INTEGER,
+            bytes INTEGER,
+            file_total INTEGER,
+            foreign key (release_id) references releases(id),
+            unique(release_id, message_id)
+        )
+    """)
+
+    cursor.execute("""
+        insert into articles_new
+        (id, release_id, message_id, subject, filename, part, total_parts, bytes, file_total)
+        select id, release_id, message_id, subject, filename, part, total_parts, bytes, file_total
+        from articles
+    """)
+
+    cursor.execute("drop table articles")
+    cursor.execute("alter table articles_new rename to articles")
+
+    cursor.execute("""
+        create index if not exists idx_articles_release
+        on articles(release_id)
+    """)
 
 
 def create_db():
@@ -67,7 +116,8 @@ def create_db():
             posted_date TEXT,
             size INTEGER,
             complete INTEGER,
-            parts INTEGER
+            parts INTEGER,
+            file_total INTEGER
         )
     """)
 
@@ -77,18 +127,19 @@ def create_db():
         on releases(name, group_name)
     """)
 
-    #one row per usenet message, unique message_id soo we never store the same message twice
     cursor.execute("""
         create table if not exists articles (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             release_id INTEGER,
-            message_id TEXT UNIQUE,
+            message_id TEXT,
             subject TEXT,
             filename TEXT,
             part INTEGER,
             total_parts INTEGER,
             bytes INTEGER,
-            foreign key (release_id) references releases(id)
+            file_total INTEGER,
+            foreign key (release_id) references releases(id),
+            unique(release_id, message_id)
         )
     """)
 
@@ -169,29 +220,39 @@ def create_db():
 def _release_stats(cur, release_id):
     files = {}
     size = 0
+    file_total = None
 
-    for filename, part, total, b in cur.execute("""
-        select filename, part, total_parts, bytes
+    for filename, part, total, b, ft in cur.execute("""
+        select filename, part, total_parts, bytes, file_total
         from articles where release_id = ?
     """, (release_id,)):
         files.setdefault(filename, []).append((part, total))
         size += b
 
+        if ft is not None and (file_total is None or ft > file_total):
+            file_total = ft
+
     part_count = sum(len(file_parts) for file_parts in files.values())
+    complete = 1
 
     for file_parts in files.values():
         totals = [total for _, total in file_parts if total is not None]
 
         if not totals:
-            return size, 0, part_count
+            complete = 0
+            break
 
         expected = max(totals)
         parts = {part for part, _ in file_parts if part is not None}
 
         if parts != set(range(1, expected + 1)):
-            return size, 0, part_count
+            complete = 0
+            break
 
-    return size, 1, part_count
+    if complete and file_total is not None and len(files) != file_total:
+        complete = 0
+
+    return size, complete, part_count, file_total
 
 
 def save_releases_bulk(releases):
@@ -239,8 +300,8 @@ def save_releases_bulk(releases):
                 cur.executemany("""
                     insert or ignore into articles
                     (release_id, message_id, subject, 
-                    filename, part, total_parts, bytes)
-                    values (?, ?, ?, ?, ?, ?, ?)
+                    filename, part, total_parts, bytes, file_total)
+                    values (?, ?, ?, ?, ?, ?, ?, ?)
                 """, [
                     (release_id,
                     a.message_id, 
@@ -248,7 +309,8 @@ def save_releases_bulk(releases):
                     a.filename, 
                     a.part, 
                     a.total_parts, 
-                    a.bytes)
+                    a.bytes,
+                    a.file_total)
                     for a in articles
                 ])
 
@@ -256,12 +318,12 @@ def save_releases_bulk(releases):
                 if conn.total_changes == before:
                     continue
 
-                size, complete, part_count = _release_stats(cur, release_id)
-                complete = complete and int(release["complete"])
+                size, complete, part_count, file_total = _release_stats(cur, release_id)
+
                 cur.execute("""
-                    update releases set size = ?, complete = ?, parts = ?
+                    update releases set size = ?, complete = ?, parts = ?, file_total = ?
                     where id = ?
-                """, (size, complete, part_count, release_id))
+                """, (size, complete, part_count, file_total, release_id))
     finally:
         conn.close()
 

@@ -1,4 +1,5 @@
 from src.config import load_config
+from src.database import create_db
 from src.nntp_client import NNTPClient
 from src.indexer import Indexer
 from src.colors import red, yellow, reset
@@ -23,6 +24,8 @@ if not config.get("password"):
     print(f"{yellow}no password stored in keyring, run main.py to set it up{reset}")
     sys.exit(1)
 
+create_db()
+
 client = NNTPClient(
     host = config["host"],
     username = config["username"],
@@ -35,7 +38,9 @@ indexer = Indexer(client, mode = config.get("index_mode", "dynamic"))
 #main reads this file to draw the status line
 def update_status(running, group, idle = False, status = "running", error = False, errors = 0):
     try:
-        with open(STATUS_FILE, "w") as f:
+        tmp = STATUS_FILE.with_suffix(".json.tmp")
+
+        with open(tmp, "w") as f:
             json.dump({
                 "running": running,
                 "group": group,
@@ -47,7 +52,9 @@ def update_status(running, group, idle = False, status = "running", error = Fals
                 #soo main can tell if this process is actually alive
                 "pid": os.getpid()
             }, f)
-    
+
+        os.replace(tmp, STATUS_FILE)
+
     except OSError as e:
         print(f"couldnt write status: {e}")
 
@@ -103,7 +110,15 @@ try:
             print("config changed")
 
         group = config.get("group", "")
-        indexer.mode = config.get("index_mode", "dynamic")
+        mode = config.get("index_mode", "dynamic")
+
+        if mode != indexer.mode:
+            indexer.mode = mode
+            indexer.phase = "backfill"
+            indexer.idle = False
+            indexer.backfilling = False
+            last_written_idle = indexer.idle
+            update_status(True, current_group, indexer.idle, "running", error = error, errors = errors)
 
         #new group picked soo reset the error count
         if group != current_group:

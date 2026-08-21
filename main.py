@@ -61,9 +61,50 @@ def fmt_date(value):
 def get_status():
     try:
         with open(STATUS_FILE) as f:
-            return json.load(f)
+            status = json.load(f)
     except (OSError, json.JSONDecodeError):
         return {"running": False, "group": ""}
+
+    pid = status.get("pid")
+
+    status["stale"] = not (isinstance(pid, int) and _is_indexer_pid(pid))
+
+    return status
+
+
+def _pid_state(pid):
+    try:
+        data = Path(f"/proc/{pid}/stat").read_bytes()
+    except OSError:
+        return None
+
+    end = data.rfind(b")")
+
+    if end == -1 or end + 2 >= len(data):
+        return None
+
+    return chr(data[end + 2])
+
+
+def _is_indexer_pid(pid):
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+
+    except PermissionError:
+        return True
+
+    if Path("/proc").exists():
+        try:
+            cmdline = Path(f"/proc/{pid}/cmdline").read_bytes()
+
+        except OSError:
+            return False
+
+        return b"bg_indexer.py" in cmdline
+
+    return True
 
 
 def indexer_alive():
@@ -76,29 +117,11 @@ def indexer_alive():
         PID_FILE.unlink(missing_ok=True)
         return False
 
-    try:
-        #signal 0 checks if alive
-        os.kill(pid, 0)
-
-        #pids get reused soo double check its our indexer
-        if Path("/proc").exists():
-            try:
-                cmdline = Path(f"/proc/{pid}/cmdline").read_bytes()
-            except OSError:
-                cmdline = b""
-
-            if b"bg_indexer.py" not in cmdline:
-                PID_FILE.unlink(missing_ok=True)
-                return False
-
+    if _is_indexer_pid(pid):
         return True
 
-    except ProcessLookupError:
-        PID_FILE.unlink(missing_ok=True)
-        return False
-
-    except PermissionError:
-        return True
+    PID_FILE.unlink(missing_ok=True)
+    return False
 
 
 def start_background_indexer():
@@ -134,15 +157,9 @@ def stop_background_indexer():
         PID_FILE.unlink(missing_ok=True)
         return False
 
-    if Path("/proc").exists():
-        try:
-            cmdline = Path(f"/proc/{pid}/cmdline").read_bytes()
-        except OSError:
-            cmdline = b""
-
-        if b"bg_indexer.py" not in cmdline:
-            PID_FILE.unlink(missing_ok = True)
-            return False
+    if not _is_indexer_pid(pid):
+        PID_FILE.unlink(missing_ok = True)
+        return False
 
     try:
         os.kill(pid, signal.SIGTERM)
@@ -152,9 +169,7 @@ def stop_background_indexer():
 
     #5 sec to comply or die
     for _ in range(50):
-        try:
-            os.kill(pid, 0)
-        except ProcessLookupError:
+        if not _is_indexer_pid(pid):
             PID_FILE.unlink(missing_ok=True)
             return True
 
@@ -528,10 +543,16 @@ def main():
                 print(f"Indexing      : {green}{label} [active]{reset}")
         
         elif st == "error":
-            print(f"Indexing      : {red}FAILED (error){reset}")
+            if status.get("stale"):
+                print(f"Indexing      : {dim}stopped (last run failed){reset}")
+            else:
+                print(f"Indexing      : {red}FAILED (error){reset}")
         
         elif st == "warning":
-            print(f"Indexing      : {yellow}stopped (warning){reset}")
+            if status.get("stale"):
+                print(f"Indexing      : {dim}stopped (last run: warning){reset}")
+            else:
+                print(f"Indexing      : {yellow}stopped (warning){reset}")
         
         else:
             print(f"Indexing      : {dim}stopped{reset}")

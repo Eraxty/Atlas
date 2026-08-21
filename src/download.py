@@ -44,7 +44,7 @@ def download_release(release_id):
         output_dir=watched_dir,
     )
 
-    status = job_in_sab(release[1])
+    status = job_in_sab(nzb_filename(release[1]).removesuffix(".nzb"))
 
     if status == "queued":
         print(f"{green}download queued{reset}")
