@@ -27,21 +27,28 @@ def load_config():
     if password:
         config["password"] = password
 
+    if not config.get("groups") and config.get("group"):
+        config["groups"] = [config["group"]]
+
     return config
 
 
-def save_config(host, username, password, port, group, index_mode="dynamic"):
+def save_config(host, username, password, port, group, index_mode="dynamic", groups=None):
     try:
         keyring.set_password(SERVICE, username, password)
         store_password = False
     except keyring.errors.KeyringError:
         store_password = True
 
+    if groups is None:
+        groups = [group] if group else []
+
     config = {
         "host": host,
         "username": username,
         "port": port,
         "group": group,
+        "groups": [g for g in groups if g],
         "index_mode": index_mode
     }
 

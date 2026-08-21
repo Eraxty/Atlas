@@ -73,17 +73,27 @@ def idle_sleep(duration):
     while not stop_requested and time.time() < deadline:
         time.sleep(max(0, min(1, deadline - time.time())))
 
-current_group = config["group"]
-errors = 0
+def tracked_groups(cfg):
+    groups = [g for g in (cfg.get("groups") or []) if g]
+
+    if not groups and cfg.get("group"):
+        groups = [cfg["group"]]
+
+    return groups
+
+groups = tracked_groups(config)
+group_idx = 0
+errors = {}
+failed = set()
 error = False
 
 #only rewrite status when the idle flag flips
-last_written_idle = indexer.idle
+last_written_idle = None
 
 #soo we can spot when the config changes
 last_conn = (config["host"], config["username"], config["password"], config["port"])
 
-update_status(True, current_group, indexer.idle, "running", error = error, errors = errors)
+update_status(True, ", ".join(groups), indexer.all_idle(groups), "running", error = error)
 
 try:
     while not stop_requested:
@@ -109,46 +119,48 @@ try:
             last_conn = conn
             print("config changed")
 
-        group = config.get("group", "")
+        groups = tracked_groups(config)
+        failed &= set(groups)
+
+        if not groups:
+            idle_sleep(10)
+            continue
+
         mode = config.get("index_mode", "dynamic")
 
         if mode != indexer.mode:
             indexer.mode = mode
-            indexer.phase = "backfill"
-            indexer.idle = False
-            indexer.backfilling = False
-            last_written_idle = indexer.idle
-            update_status(True, current_group, indexer.idle, "running", error = error, errors = errors)
 
-        #new group picked soo reset the error count
-        if group != current_group:
-            current_group = group
-            errors = 0
-            indexer.phase = "backfill"
-            indexer.idle = False
-            indexer.backfilling = False
-            last_written_idle = indexer.idle
-            update_status(True, group, indexer.idle, "running", error = error, errors = errors)
+            for st in indexer.state.values():
+                st.update(phase = "backfill", idle = False, backfilling = False)
+
+            last_written_idle = None
+
+        #next group in rotation
+        group = groups[group_idx % len(groups)]
+        group_idx += 1
+
+        if group in failed:
+            continue
 
         try:
             #reconnect on demand
             if not client.server:
                 client.connect()
 
-            #no group set in config yet
-            if not group:
-                print(f"{yellow}no newsgroup configured{reset}")
-                break
-
             indexer.index_group(group)
-            recovered = errors > 0
-            errors = 0
 
-            if indexer.idle != last_written_idle or recovered:
-                update_status(True, current_group, indexer.idle, "idle" if indexer.idle else "running", error = error, errors = errors)
-                last_written_idle = indexer.idle
+            recovered = errors.get(group, 0) > 0
+            errors[group] = 0
 
-            if indexer.idle and not indexer.backfilling:
+            active = [g for g in groups if g not in failed]
+            idle_now = indexer.all_idle(active) and not any(indexer.is_backfilling(g) for g in active)
+
+            if idle_now != last_written_idle or recovered:
+                update_status(True, ", ".join(groups), idle_now, "idle" if idle_now else "running", error = error, errors = sum(errors.values()))
+                last_written_idle = idle_now
+
+            if idle_now:
                 idle_sleep(10)
             else:
                 time.sleep(0.1)
@@ -157,18 +169,17 @@ try:
             if stop_requested:
                 break
 
-            errors += 1
+            errors[group] = errors.get(group, 0) + 1
 
             #set warning status while we still have retries left
-            if errors < 3:
-                update_status(True, current_group, indexer.idle, "warning", error = error, errors = errors)
+            if errors[group] < 3:
+                update_status(True, ", ".join(groups), indexer.is_idle(group), "warning", error = error, errors = sum(errors.values()))
 
-            #3 strikes and we stop bcs we aint hammering a dead server
-            if errors >= 3:
-                print(f"{red}Too many errors on {group} Stopping{reset}")
-                error = True
-                update_status(True, current_group, indexer.idle, "error", error = True, errors = errors)
-                break
+            #3 strikes and the group sits out, the rest keep going
+            if errors[group] >= 3:
+                print(f"{red}Too many errors on {group}, skipping it{reset}")
+                failed.add(group)
+                continue
 
             print(f"{red}Indexing error ({group}): {e}{reset}")
             
@@ -178,7 +189,7 @@ try:
                 pass
 
             #back off before retrying
-            time.sleep(min(2 ** errors, 30))
+            time.sleep(min(2 ** errors[group], 30))
 
             try:
                 client.connect()
@@ -188,7 +199,7 @@ except Exception as e:
     print(f"{red}indexer crashed: {e}{reset}")
     error = True
 finally:
-    update_status(False, "", status = "error" if error else "stopped", error = error, errors = errors)
+    update_status(False, "", status = "error" if error else "stopped", error = error, errors = sum(errors.values()))
 
     try:
         #only clear the pid if its ours, another one might be running

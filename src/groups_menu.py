@@ -153,7 +153,9 @@ def groups_menu(config):
                 continue
 
             #map the page choice back to the full list index
-            config["group"] = matches[start + selected - 1]
+            chosen = matches[start + selected - 1]
+            config["group"] = chosen
+            config["groups"] = list(dict.fromkeys((config.get("groups") or []) + [chosen]))
 
             if not client.server:
                 try:
@@ -200,7 +202,8 @@ def groups_menu(config):
                 config["password"],
                 config["port"],
                 config["group"],
-                config.get("index_mode", "dynamic")
+                config.get("index_mode", "dynamic"),
+                config.get("groups")
             )
 
             client.disconnect()
