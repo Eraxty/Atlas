@@ -4,8 +4,9 @@ from src.download import download_release
 from src.groups_menu import groups_menu
 from src.nzb import generate_nzb
 from src.prompts import prompt
+from src.sab import rotate_log
 from src.search import count_all_releases, count_releases, get_articles, search_all_releases, search_releases
-from src.colors import reset, bold, dim, red, green, yellow, magenta, cyan
+from src.colors import reset, bold, dim, red, green, yellow, cyan
 from pathlib import Path
 import json
 import math
@@ -126,9 +127,12 @@ def indexer_alive():
 
 def start_background_indexer():
     if indexer_alive():
+        print(f"{yellow}indexer already running{reset}")
         return False
 
     try:
+        rotate_log(LOG_FILE)
+
         with LOG_FILE.open("a") as log_file:
             process = subprocess.Popen(
                 [sys.executable, "-u", "bg_indexer.py"],
@@ -575,10 +579,10 @@ def main():
         if choice == "1":
             if indexing:
                 stopped = stop_background_indexer()
-                print(f"{green}indexing stopped{reset}" if stopped else "indexer wasnt running")
+                print(f"{green}indexing stopped{reset}" if stopped else f"{yellow}indexer wasnt running{reset}")
             else:
-                started = start_background_indexer()
-                print(f"{green}indexing started{reset}" if started else "indexer already running")
+                if start_background_indexer():
+                    print(f"{green}indexing started{reset}")
 
         elif choice == "2":
             do_search(config)

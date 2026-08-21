@@ -35,7 +35,7 @@ def download_release(release_id):
 
     watched_dir = configure_watched_dir()
 
-    if (watched_dir / nzb_filename(release[1])).exists():
+    if (watched_dir / nzb_filename(release[1], release[0])).exists():
         print(f"{yellow}already queued{reset}")
         return False
 
@@ -44,7 +44,7 @@ def download_release(release_id):
         output_dir=watched_dir,
     )
 
-    status = job_in_sab(nzb_filename(release[1]).removesuffix(".nzb"))
+    status = job_in_sab(nzb_filename(release[1], release[0]).removesuffix(".nzb"))
 
     if status == "queued":
         print(f"{green}download queued{reset}")

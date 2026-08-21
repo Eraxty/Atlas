@@ -178,7 +178,7 @@ try:
                 pass
 
             #back off before retrying
-            time.sleep(2)
+            time.sleep(min(2 ** errors, 30))
 
             try:
                 client.connect()

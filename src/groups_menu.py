@@ -5,7 +5,7 @@ from src.nntp_client import NNTPClient
 from src.config import save_config
 from src.parser import parse_subject
 from src.prompts import prompt
-from src.colors import red, green, yellow, dim, reset
+from src.colors import red, yellow, dim, reset
 
 
 def clear():

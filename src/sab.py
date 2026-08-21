@@ -125,6 +125,8 @@ def start():
     configure_watched_dir()
     configure_servers()
 
+    rotate_log(LOG_FILE)
+
     try:
         with LOG_FILE.open("a") as log_file:
             process = subprocess.Popen(
@@ -139,7 +141,15 @@ def start():
     
     except OSError as e:
         print(f"{red}couldnt start sabnzbd: {e}{reset}")
-        process = None
+process = None
+
+
+def rotate_log(path, max_bytes=5 * 1024 * 1024):
+    try:
+        if path.exists() and path.stat().st_size > max_bytes:
+            path.replace(path.with_suffix(path.suffix + ".old"))
+    except OSError:
+        pass
         return False
 
     print(f"{green}started sabnzbd{reset}")
