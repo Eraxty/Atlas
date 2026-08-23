@@ -1,5 +1,6 @@
 from src.search import get_release, get_articles
 from src.colors import red, green, reset
+import os
 import time
 import xml.etree.ElementTree as et
 from datetime import datetime
@@ -94,16 +95,23 @@ def generate_nzb(release_id, output_dir=None):
     #elementtree cant write doctype, so build the body ourselves
     body = et.tostring(nzb, encoding="unicode")
 
+    target = Path(filename)
+    tmp = target.with_suffix(target.suffix + ".tmp")
+
     try:
-        with open(filename, "w", encoding="utf-8") as f:
+        with open(tmp, "w", encoding="utf-8") as f:
             f.write(
                 '<?xml version="1.0" encoding="utf-8"?>\n'
                 '<!DOCTYPE nzb PUBLIC "-//newzBin//DTD NZB 1.1//EN" '
                 '"http://www.newzbin.com/DTD/nzb/nzb-1.1.dtd">\n'
                 + body
             )
+
+        os.replace(tmp, target)
+
     except OSError as e:
         print(f"{red}couldnt save nzb: {e}{reset}")
+        tmp.unlink(missing_ok=True)
         return
 
     print(f"{green}Saved {filename}{reset}")

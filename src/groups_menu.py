@@ -42,7 +42,7 @@ def groups_menu(config):
     client = NNTPClient(
         config["host"],
         config["username"],
-        config["password"],
+        config.get("password", ""),
         config["port"]
     )
 
@@ -169,10 +169,17 @@ def groups_menu(config):
             try:
                 count, first, last, _ = client.select_group(config["group"])
 
-            except (OSError, nntp.NNTPError) as e:
-                print(f"{red}couldnt select group: {e}{reset}")
-                prompt("[enter]")
-                continue
+            except (OSError, nntp.NNTPError):
+                client.disconnect()
+
+                try:
+                    client.connect()
+                    count, first, last, _ = client.select_group(config["group"])
+
+                except (OSError, nntp.NNTPError) as e:
+                    print(f"{red}couldnt select group: {e}{reset}")
+                    prompt("[enter]")
+                    continue
 
             #empty group has last == first soo skip the sample
             if last > first:

@@ -16,7 +16,8 @@ def parse_subject(subject):
         r'"(.+?)"\s+\((\d+)\s*/\s*(\d+)\)',
         r'([^\s"]+\.[^\s"]+)\s+yEnc\s+\((\d+)\s*/\s*(\d+)\)',
         r'([^\s"]+\.[^\s"]+)\s+\((\d+)\s*/\s*(\d+)\)',
-        r'\[\d+\s*/\s*\d+\]\s+([^\s"]+\.[^\s"]+)\s+yEnc',
+        r'\[\d+\s*/\s*\d+\]\s+(?:-\s+)?([^\s"]+\.[^\s"]+)\s+yEnc',
+        r'\[\d+\s*/\s*\d+\]\s+(?:-\s+)?([^\s"]+\.[^\s"]+)\s+\(',
     ]
 
     match = None
@@ -78,6 +79,33 @@ def parse_subject(subject):
     }
 
 
+def _remap_bracket_parts(articles):
+    by_filename = {}
+
+    for article in articles:
+        by_filename.setdefault(article.filename, []).append(article)
+
+    for file_articles in by_filename.values():
+        if len(file_articles) < 2:
+            continue
+
+        if any(a.total_parts != 1 for a in file_articles):
+            continue
+
+        indexes = [a.file_index for a in file_articles]
+
+        if None in indexes:
+            continue
+
+        total = max([a.file_total or 0 for a in file_articles] + [len(file_articles)])
+
+        for article in file_articles:
+            article.part = article.file_index
+            article.total_parts = total
+            article.file_index = None
+            article.file_total = None
+
+
 def group_articles(articles):
     releases = {}
     dropped = 0
@@ -108,6 +136,9 @@ def group_articles(articles):
 
         releases[name]["articles"].append(article)
         releases[name]["size"] += article.bytes
+
+    for release in releases.values():
+        _remap_bracket_parts(release["articles"])
 
     if dropped:
         print(f"Dropped {dropped}/{len(articles)} unparsable")

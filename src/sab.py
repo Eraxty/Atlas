@@ -141,19 +141,19 @@ def start():
     
     except OSError as e:
         print(f"{red}couldnt start sabnzbd: {e}{reset}")
-process = None
+        return False
+
+    print(f"{green}started sabnzbd{reset}")
+    return True
 
 
 def rotate_log(path, max_bytes=5 * 1024 * 1024):
     try:
         if path.exists() and path.stat().st_size > max_bytes:
             path.replace(path.with_suffix(path.suffix + ".old"))
+
     except OSError:
         pass
-        return False
-
-    print(f"{green}started sabnzbd{reset}")
-    return True
 
 
 def stop():
@@ -264,7 +264,7 @@ def configure_watched_dir():
         config["misc"]["dirscan_dir"] = str(folder)
         save_config(config)
 
-    folder.mkdir(parents=True, exist_ok=True)
+    folder.mkdir(parents = True, exist_ok = True)
 
     return folder
 
@@ -293,7 +293,7 @@ def get_api_key():
     return load_config()["misc"].get("api_key", "")
 
 
-def job_in_sab(name, timeout=10):
+def job_in_sab(name, timeout = 10):
     key = get_api_key()
     queue_url = get_url() + f"api?mode=queue&output=json&apikey={key}"
     history_url = get_url() + f"api?mode=history&output=json&apikey={key}&start=0&limit=50"
