@@ -40,7 +40,10 @@ def clear():
 
 
 def fmt_size(size):
-    if not size:
+    if size is None:
+        return "?"
+
+    if size <= 0:
         return "0 B"
 
     #try the units till it fits
@@ -71,20 +74,6 @@ def get_status():
     status["stale"] = not (isinstance(pid, int) and _is_indexer_pid(pid))
 
     return status
-
-
-def _pid_state(pid):
-    try:
-        data = Path(f"/proc/{pid}/stat").read_bytes()
-    except OSError:
-        return None
-
-    end = data.rfind(b")")
-
-    if end == -1 or end + 2 >= len(data):
-        return None
-
-    return chr(data[end + 2])
 
 
 def _is_indexer_pid(pid):
@@ -134,7 +123,8 @@ def start_background_indexer():
         rotate_log(LOG_FILE)
 
         with LOG_FILE.open("a") as log_file:
-            process = subprocess.Popen(
+            #the indexer writes its own pid file, main just waits for it
+            subprocess.Popen(
                 [sys.executable, "-u", "bg_indexer.py"],
                 cwd = BASE_DIR,
                 stdin = subprocess.DEVNULL,
@@ -142,13 +132,18 @@ def start_background_indexer():
                 stderr = subprocess.STDOUT,
                 start_new_session = True,
             )
-   
+
     except OSError as e:
         print(f"{red}couldnt start indexer: {e}{reset}")
         return False
 
-    PID_FILE.write_text(str(process.pid))
-    return True
+    for _ in range(50):
+        if indexer_alive():
+            return True
+        time.sleep(0.1)
+
+    print(f"{red}indexer didnt come up, check {LOG_FILE.name}{reset}")
+    return False
 
 
 def stop_background_indexer():
@@ -461,7 +456,7 @@ def do_settings():
             modes = {1: "dynamic", 2: "live", 3: "backfill"}
 
             if mode not in modes:
-                print(f"{red}that is not a number{reset}")
+                print(f"{red}pick 1, 2, or 3{reset}")
                 continue
 
             save_config(

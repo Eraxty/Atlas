@@ -86,7 +86,7 @@ def _rebuild_articles_unique(cursor):
     """)
 
     cursor.execute("""
-        insert into articles_new
+        insert or ignore into articles_new
         (id, release_id, message_id, subject, filename, part, total_parts, bytes, file_total)
         select id, release_id, message_id, subject, filename, part, total_parts, bytes, file_total
         from articles
@@ -387,8 +387,8 @@ def update_live_cursor(conn, group, article):
     cursor = conn.cursor()
 
     cursor.execute("""
-        insert into groups(name, live_cursor)
-        values(?, ?)
+        insert into groups(name, live_cursor, backfill_cursor)
+        values(?, ?, 0)
         on conflict(name)
         do update set live_cursor = excluded.live_cursor
     """, (group, article)
@@ -401,8 +401,8 @@ def update_backfill_cursor(conn, group, article):
     cursor = conn.cursor()
 
     cursor.execute("""
-        insert into groups(name, backfill_cursor)
-        values(?, ?)
+        insert into groups(name, live_cursor, backfill_cursor)
+        values(?, 0, ?)
         on conflict(name)
         do update set backfill_cursor = excluded.backfill_cursor
     """, (group, article)

@@ -1,4 +1,5 @@
 import os
+import time
 import nntp
 
 from src.nntp_client import NNTPClient
@@ -16,8 +17,11 @@ _groups_cache = {}
 
 
 def load_groups(client, host):
-    if host in _groups_cache:
-        return _groups_cache[host]
+    #refetch every 10 min so new groups show up without a restart
+    cached = _groups_cache.get(host)
+
+    if cached and time.time() - cached[0] < 600:
+        return cached[1]
 
     groups = []
 
@@ -27,7 +31,7 @@ def load_groups(client, host):
         if line:
             groups.append(line.split()[0])
 
-    _groups_cache[host] = groups
+    _groups_cache[host] = (time.time(), groups)
     return groups
 
 
@@ -46,14 +50,15 @@ def groups_menu(config):
         config["port"]
     )
 
-    if host not in _groups_cache:
-        try:
+    try:
+        #always connect before talking to the server, cache or not
+        if not client.server:
             client.connect()
 
-        except (OSError, nntp.NNTPReplyError):
-            print(f"{red}couldnt connect to server{reset}")
-            prompt("[enter]")
-            return
+    except (OSError, nntp.NNTPReplyError):
+        print(f"{red}couldnt connect to server{reset}")
+        prompt("[enter]")
+        return
 
     try:
         groups = load_groups(client, host)
@@ -206,7 +211,7 @@ def groups_menu(config):
             save_config(
                 config["host"],
                 config["username"],
-                config["password"],
+                config.get("password", ""),
                 config["port"],
                 config["group"],
                 config.get("index_mode", "dynamic"),

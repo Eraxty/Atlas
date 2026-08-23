@@ -1,5 +1,6 @@
 import json
 import os
+import stat
 import keyring
 from pathlib import Path
 
@@ -63,3 +64,6 @@ def save_config(host, username, password, port, group, index_mode="dynamic", gro
         json.dump(config, f, indent=4)
 
     os.replace(tmp, config_file)
+
+    if store_password:
+        os.chmod(config_file, stat.S_IRUSR | stat.S_IWUSR)

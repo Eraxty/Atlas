@@ -28,6 +28,8 @@ def configure_servers():
     if not atlas or not atlas.get("host"):
         return
 
+    atlas["host"] = atlas["host"].replace("\n", "").replace("\r", "").strip()
+
     try:
         atlas["port"] = int(atlas.get("port", 563))
 
