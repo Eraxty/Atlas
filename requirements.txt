@@ -1,3 +1,6 @@
 pynntp
 prompt_toolkit
 keyring
+textual
+colorama
+rich

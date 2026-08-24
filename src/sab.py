@@ -130,20 +130,27 @@ def start():
     rotate_log(LOG_FILE)
 
     try:
-        with LOG_FILE.open("a") as log_file:
-            process = subprocess.Popen(
-                [sys.executable, "-u", "SABnzbd.py"],
-                cwd = SAB_DIR,
-                stdin = subprocess.DEVNULL,
-                stdout = log_file,
-                stderr = subprocess.STDOUT,
-                #detach from our terminal soo it survives after the app closes
-                start_new_session = True,
-            )
-    
+        log_file = LOG_FILE.open("a")
     except OSError as e:
         print(f"{red}couldnt start sabnzbd: {e}{reset}")
         return False
+
+    try:
+        process = subprocess.Popen(
+            [sys.executable, "-u", "SABnzbd.py"],
+            cwd = SAB_DIR,
+            stdin = subprocess.DEVNULL,
+            stdout = log_file,
+            stderr = subprocess.STDOUT,
+            start_new_session = True,
+        )
+
+    except OSError as e:
+        log_file.close()
+        print(f"{red}couldnt start sabnzbd: {e}{reset}")
+        return False
+
+    log_file.close()
 
     print(f"{green}started sabnzbd{reset}")
     return True
@@ -152,7 +159,9 @@ def start():
 def rotate_log(path, max_bytes=5 * 1024 * 1024):
     try:
         if path.exists() and path.stat().st_size > max_bytes:
-            path.replace(path.with_suffix(path.suffix + ".old"))
+            old = path.with_suffix(path.suffix + ".old")
+            old.unlink(missing_ok=True)
+            path.replace(old)
 
     except OSError:
         pass

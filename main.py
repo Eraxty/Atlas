@@ -104,13 +104,13 @@ def indexer_alive():
     try:
         pid = int(PID_FILE.read_text().strip())
     except ValueError:
-        PID_FILE.unlink(missing_ok=True)
+        PID_FILE.unlink(missing_ok = True)
         return False
 
     if _is_indexer_pid(pid):
         return True
 
-    PID_FILE.unlink(missing_ok=True)
+    PID_FILE.unlink(missing_ok = True)
     return False
 
 
@@ -121,21 +121,28 @@ def start_background_indexer():
 
     try:
         rotate_log(LOG_FILE)
-
-        with LOG_FILE.open("a") as log_file:
-            #the indexer writes its own pid file, main just waits for it
-            subprocess.Popen(
-                [sys.executable, "-u", "bg_indexer.py"],
-                cwd = BASE_DIR,
-                stdin = subprocess.DEVNULL,
-                stdout = log_file,
-                stderr = subprocess.STDOUT,
-                start_new_session = True,
-            )
+        log_file = LOG_FILE.open("a")
 
     except OSError as e:
         print(f"{red}couldnt start indexer: {e}{reset}")
         return False
+
+    try:
+        subprocess.Popen(
+            [sys.executable, "-u", "bg_indexer.py"],
+            cwd = BASE_DIR,
+            stdin = subprocess.DEVNULL,
+            stdout = log_file,
+            stderr = subprocess.STDOUT,
+            start_new_session = True,
+        )
+
+    except OSError as e:
+        log_file.close()
+        print(f"{red}couldnt start indexer: {e}{reset}")
+        return False
+
+    log_file.close()
 
     for _ in range(50):
         if indexer_alive():
@@ -163,13 +170,13 @@ def stop_background_indexer():
     try:
         os.kill(pid, signal.SIGTERM)
     except ProcessLookupError:
-        PID_FILE.unlink(missing_ok=True)
+        PID_FILE.unlink(missing_ok = True)
         return False
 
     #5 sec to comply or die
     for _ in range(50):
         if not _is_indexer_pid(pid):
-            PID_FILE.unlink(missing_ok=True)
+            PID_FILE.unlink(missing_ok = True)
             return True
 
         time.sleep(0.1)
@@ -186,7 +193,7 @@ def stop_background_indexer():
     return True
     
 
-def ask(text, default=None):
+def ask(text, default = None):
     while True:
         value = prompt(text).strip()
 
@@ -456,7 +463,7 @@ def do_settings():
             modes = {1: "dynamic", 2: "live", 3: "backfill"}
 
             if mode not in modes:
-                print(f"{red}pick 1, 2, or 3{reset}")
+                print(f"{red}that is not a number{reset}")
                 continue
 
             save_config(
@@ -530,15 +537,12 @@ def main():
 
         if indexing:
             if st == "warning":
-                #yellow warning - errors happening but still running
                 indicator = f"{yellow}WARNING{reset}"
                 extra = f" ({err_count} errors)" if err_count else ""
                 print(f"Indexing      : {yellow}{label}{reset} {dim}[{indicator}]{reset}{extra}")
             elif status.get("idle"):
-                #cyan for idle - alive but waiting
                 print(f"Indexing      : {cyan}{label} (idle){reset}")
             else:
-                #green - actively running
                 print(f"Indexing      : {green}{label} [active]{reset}")
         
         elif st == "error":

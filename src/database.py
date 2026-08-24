@@ -292,9 +292,8 @@ def save_releases_bulk(releases):
 
                 release_id = row[0]
 
-                #remembers the change count soo we can tell if this pass added anything
-                before = conn.total_changes
-                
+                before = conn.execute("select total_changes()").fetchone()[0]
+
                 articles = [a for a in release["articles"] if a.message_id]
 
                 cur.executemany("""
@@ -314,8 +313,9 @@ def save_releases_bulk(releases):
                     for a in articles
                 ])
 
-                #nothing new added so the stored stats are still same
-                if conn.total_changes == before:
+                after = conn.execute("select total_changes()").fetchone()[0]
+
+                if after == before:
                     continue
 
                 size, complete, part_count, file_total = _release_stats(cur, release_id)
@@ -386,13 +386,13 @@ def init_group_state(conn, group, cursor):
 def update_live_cursor(conn, group, article):
     cursor = conn.cursor()
 
-    cursor.execute("""
-        insert into groups(name, live_cursor, backfill_cursor)
-        values(?, ?, 0)
-        on conflict(name)
-        do update set live_cursor = excluded.live_cursor
-    """, (group, article)
-    )
+    cursor.execute("select 1 from groups where name = ?", (group,))
+    exists = cursor.fetchone()
+
+    if exists:
+        cursor.execute("update groups set live_cursor = ? where name = ?", (article, group))
+    else:
+        cursor.execute("insert into groups(name, live_cursor, backfill_cursor) values(?, ?, ?)", (group, article, article))
 
     conn.commit()
 
@@ -400,12 +400,12 @@ def update_live_cursor(conn, group, article):
 def update_backfill_cursor(conn, group, article):
     cursor = conn.cursor()
 
-    cursor.execute("""
-        insert into groups(name, live_cursor, backfill_cursor)
-        values(?, 0, ?)
-        on conflict(name)
-        do update set backfill_cursor = excluded.backfill_cursor
-    """, (group, article)
-    )
+    cursor.execute("select 1 from groups where name = ?", (group,))
+    exists = cursor.fetchone()
+
+    if exists:
+        cursor.execute("update groups set backfill_cursor = ? where name = ?", (article, group))
+    else:
+        cursor.execute("insert into groups(name, live_cursor, backfill_cursor) values(?, ?, ?)", (group, article, article))
 
     conn.commit()

@@ -122,6 +122,10 @@ def main():
             groups = tracked_groups(config)
             failed &= set(groups)
 
+            for g in list(failed):
+                if g not in groups:
+                    failed.discard(g)
+
             if not groups:
                 idle_sleep(10, lambda: stop_requested)
                 continue
@@ -150,6 +154,7 @@ def main():
 
                 recovered = errors.get(group, 0) > 0
                 errors[group] = 0
+                failed.discard(group)
 
                 active = [g for g in groups if g not in failed]
                 idle_now = indexer.all_idle(active) and not any(indexer.is_backfilling(g) for g in active)
