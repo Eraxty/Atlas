@@ -205,12 +205,6 @@ def main():
     finally:
         update_status(False, "", indexer, status="error" if error else "stopped", error=error, errors=sum(errors.values()))
 
-        try:
-            if PID_FILE.read_text().strip() == str(os.getpid()):
-                PID_FILE.unlink(missing_ok = True)
-
-        except (OSError, ValueError):
-            pass
 
         try:
             client.disconnect()

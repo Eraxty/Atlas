@@ -69,152 +69,166 @@ def _rebuild_articles_unique(cursor):
     if row is None or "unique(release_id, message_id)" in row[0].lower():
         return
 
-    cursor.execute("""
-        create table articles_new (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            release_id INTEGER,
-            message_id TEXT,
-            subject TEXT,
-            filename TEXT,
-            part INTEGER,
-            total_parts INTEGER,
-            bytes INTEGER,
-            file_total INTEGER,
-            foreign key (release_id) references releases(id),
-            unique(release_id, message_id)
-        )
-    """)
+    cursor.execute("begin")
 
-    cursor.execute("""
-        insert or ignore into articles_new
-        (id, release_id, message_id, subject, filename, part, total_parts, bytes, file_total)
-        select id, release_id, message_id, subject, filename, part, total_parts, bytes, file_total
-        from articles
-    """)
-
-    cursor.execute("drop table articles")
-    cursor.execute("alter table articles_new rename to articles")
-
-    cursor.execute("""
-        create index if not exists idx_articles_release
-        on articles(release_id)
-    """)
-
-
-def create_db():
-    conn = sqlite3.connect(database, timeout=30)
-    cursor = conn.cursor()
-    #wal soo the indexer can write while search reads
-    cursor.execute("pragma journal_mode = wal")
-
-    cursor.execute("""
-        create table if not exists releases (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT,
-            group_name TEXT,
-            poster TEXT,
-            posted_date TEXT,
-            size INTEGER,
-            complete INTEGER,
-            parts INTEGER,
-            file_total INTEGER
-        )
-    """)
-
-    #this is the key the upsert matches on, same release = same row
-    cursor.execute("""
-        create unique index if not exists idx_release_unique
-        on releases(name, group_name)
-    """)
-
-    cursor.execute("""
-        create table if not exists articles (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            release_id INTEGER,
-            message_id TEXT,
-            subject TEXT,
-            filename TEXT,
-            part INTEGER,
-            total_parts INTEGER,
-            bytes INTEGER,
-            file_total INTEGER,
-            foreign key (release_id) references releases(id),
-            unique(release_id, message_id)
-        )
-    """)
-
-    cursor.execute("""
-        create table if not exists groups(
-            name TEXT PRIMARY KEY,
-            live_cursor INTEGER,
-            backfill_cursor INTEGER
-        )
-    """)
-
-    cursor.execute("""
-        create index if not exists idx_release_name
-        on releases(name)
-    """)
-
-    cursor.execute("""
-        create index if not exists idx_release_group
-        on releases(group_name)
-    """)
-
-    cursor.execute("""
-        create index if not exists idx_release_date
-        on releases(posted_date)
-    """)
-
-    cursor.execute("""
-        create index if not exists idx_articles_release
-        on articles(release_id)
-    """)
-
-    migrate(conn)
-
-    #external content fts only holds the name column, real data stays in releases
-    fts_exists = cursor.execute("""
-        select name from sqlite_master
-        where type = 'table' and name = 'releases_fts'
-    """).fetchone()
-
-    if fts_exists is None:
+    try:
         cursor.execute("""
-            create virtual table releases_fts using fts5(
-                name,
-                content='releases',
-                content_rowid='id'
+            create table articles_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                release_id INTEGER,
+                message_id TEXT,
+                subject TEXT,
+                filename TEXT,
+                part INTEGER,
+                total_parts INTEGER,
+                bytes INTEGER,
+                file_total INTEGER,
+                foreign key (release_id) references releases(id),
+                unique(release_id, message_id)
             )
         """)
 
-    #keep fts in sync with releases
-    cursor.execute("""
-        create trigger if not exists releases_ai after insert on releases begin
-            insert into releases_fts(rowid, name) values (new.id, new.name);
-        end
-    """)
+        cursor.execute("""
+            insert or ignore into articles_new
+            (id, release_id, message_id, subject, filename, part, total_parts, bytes, file_total)
+            select id, release_id, message_id, subject, filename, part, total_parts, bytes, file_total
+            from articles
+        """)
 
-    cursor.execute("""
-        create trigger if not exists releases_ad after delete on releases begin
-            insert into releases_fts(releases_fts, rowid, name) values ('delete', old.id, old.name);
-        end
-    """)
+        cursor.execute("drop table articles")
+        cursor.execute("alter table articles_new rename to articles")
 
-    cursor.execute("""
-        create trigger if not exists releases_au after update on releases begin
-            insert into releases_fts(releases_fts, rowid, name) values ('delete', old.id, old.name);
-            insert into releases_fts(rowid, name) values (new.id, new.name);
-        end
-    """)
+        cursor.execute("""
+            create index if not exists idx_articles_release
+            on articles(release_id)
+        """)
+
+        cursor.execute("commit")
+
+    except Exception:
+        cursor.execute("rollback")
+        raise
 
 
-    if fts_exists is None:
-        #fill fts with whatever rows already exist
-        cursor.execute("insert into releases_fts(releases_fts) values ('rebuild')")
+def create_db():
+    conn = sqlite3.connect(database, timeout = 30)
 
-    conn.commit()
-    conn.close()
+    try:
+        cursor = conn.cursor()
+        #wal soo the indexer can write while search reads
+        cursor.execute("pragma journal_mode = wal")
+
+        cursor.execute("""
+            create table if not exists releases (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT,
+                group_name TEXT,
+                poster TEXT,
+                posted_date TEXT,
+                size INTEGER,
+                complete INTEGER,
+                parts INTEGER,
+                file_total INTEGER
+            )
+        """)
+
+        cursor.execute("""
+            create unique index if not exists idx_release_unique
+            on releases(name, group_name)
+        """)
+
+        cursor.execute("""
+            create table if not exists articles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                release_id INTEGER,
+                message_id TEXT,
+                subject TEXT,
+                filename TEXT,
+                part INTEGER,
+                total_parts INTEGER,
+                bytes INTEGER,
+                file_total INTEGER,
+                foreign key (release_id) references releases(id),
+                unique(release_id, message_id)
+            )
+        """)
+
+        cursor.execute("""
+            create table if not exists groups(
+                name TEXT PRIMARY KEY,
+                live_cursor INTEGER,
+                backfill_cursor INTEGER
+            )
+        """)
+
+        cursor.execute("""
+            create index if not exists idx_release_name
+            on releases(name)
+        """)
+
+        cursor.execute("""
+            create index if not exists idx_release_group
+            on releases(group_name)
+        """)
+
+        cursor.execute("""
+            create index if not exists idx_release_date
+            on releases(posted_date)
+        """)
+
+        cursor.execute("""
+            create index if not exists idx_articles_release
+            on articles(release_id)
+        """)
+
+        migrate(conn)
+
+        #external content fts only holds the name column, real data stays in releases
+        fts_exists = cursor.execute("""
+            select name from sqlite_master
+            where type = 'table' and name = 'releases_fts'
+        """).fetchone()
+
+        if fts_exists is None:
+            try:
+                cursor.execute("""
+                    create virtual table releases_fts using fts5(
+                        name,
+                        content='releases',
+                        content_rowid='id'
+                    )
+                """)
+            except sqlite3.OperationalError:
+                pass
+
+        #keep fts in sync with releases
+        cursor.execute("""
+            create trigger if not exists releases_ai after insert on releases begin
+                insert into releases_fts(rowid, name) values (new.id, new.name);
+            end
+        """)
+
+        cursor.execute("""
+            create trigger if not exists releases_ad after delete on releases begin
+                insert into releases_fts(releases_fts, rowid, name) values ('delete', old.id, old.name);
+            end
+        """)
+
+        cursor.execute("""
+            create trigger if not exists releases_au after update on releases begin
+                insert into releases_fts(releases_fts, rowid, name) values ('delete', old.id, old.name);
+                insert into releases_fts(rowid, name) values (new.id, new.name);
+            end
+        """)
+
+        if fts_exists is None:
+            #fill fts with whatever rows already exist
+            cursor.execute("insert into releases_fts(releases_fts) values ('rebuild')")
+
+        conn.commit()
+
+    finally:
+        conn.close()
 
 
 def _release_stats(cur, release_id):
@@ -384,28 +398,22 @@ def init_group_state(conn, group, cursor):
 
 @with_db
 def update_live_cursor(conn, group, article):
-    cursor = conn.cursor()
-
-    cursor.execute("select 1 from groups where name = ?", (group,))
-    exists = cursor.fetchone()
-
-    if exists:
-        cursor.execute("update groups set live_cursor = ? where name = ?", (article, group))
-    else:
-        cursor.execute("insert into groups(name, live_cursor, backfill_cursor) values(?, ?, ?)", (group, article, article))
+    conn.execute("""
+        insert into groups(name, live_cursor, backfill_cursor)
+        values(?, ?, ?)
+        on conflict(name)
+        do update set live_cursor = excluded.live_cursor
+    """, (group, article, article))
 
     conn.commit()
 
 @with_db
 def update_backfill_cursor(conn, group, article):
-    cursor = conn.cursor()
-
-    cursor.execute("select 1 from groups where name = ?", (group,))
-    exists = cursor.fetchone()
-
-    if exists:
-        cursor.execute("update groups set backfill_cursor = ? where name = ?", (article, group))
-    else:
-        cursor.execute("insert into groups(name, live_cursor, backfill_cursor) values(?, ?, ?)", (group, article, article))
+    conn.execute("""
+        insert into groups(name, live_cursor, backfill_cursor)
+        values(?, ?, ?)
+        on conflict(name)
+        do update set backfill_cursor = excluded.backfill_cursor
+    """, (group, article, article))
 
     conn.commit()

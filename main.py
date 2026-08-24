@@ -184,10 +184,9 @@ def stop_background_indexer():
     #didnt exit in time soo kill him
     try:
         os.kill(pid, signal.SIGKILL)
-    
-    except ProcessLookupError:
-        PID_FILE.unlink(missing_ok = True)
-        return True
+
+    except (ProcessLookupError, PermissionError):
+        pass
 
     PID_FILE.unlink(missing_ok = True)
     return True

@@ -1,6 +1,7 @@
 from pathlib import Path
 import configparser
 import json
+import os
 import re
 import subprocess
 import sys
@@ -70,7 +71,9 @@ def configure_servers():
         text = text[:section.start()] + f"[[s{section.group(1)}]]" + body + text[section.end():]
 
         CONFIG_DIR.mkdir(parents = True, exist_ok = True)
-        CONFIG_FILE.write_text(text, encoding = "utf-8")
+        tmp = CONFIG_FILE.with_suffix(".ini.tmp")
+        tmp.write_text(text, encoding = "utf-8")
+        os.replace(tmp, CONFIG_FILE)
         return
 
     sections = re.findall(r"^\[\[s(\d+)\]\]\s*$", text, re.MULTILINE)
@@ -94,7 +97,7 @@ def configure_servers():
         f"port = {port}\n"
         f"timeout = 60\n"
         f"username = {atlas.get('username', '')}\n"
-        f"password = {atlas.get('password', '')}\n"
+        f"password = \"{atlas.get('password', '')}\"\n"
         f"connections = 8\n"
         f"ssl = {ssl}\n"
         f"ssl_verify = 1\n"
@@ -113,7 +116,9 @@ def configure_servers():
         text += "\n[servers]\n" + block
 
     CONFIG_DIR.mkdir(parents = True, exist_ok = True)
-    CONFIG_FILE.write_text(text, encoding="utf-8")
+    tmp = CONFIG_FILE.with_suffix(".ini.tmp")
+    tmp.write_text(text, encoding = "utf-8")
+    os.replace(tmp, CONFIG_FILE)
 
 
 def start():
@@ -160,7 +165,7 @@ def rotate_log(path, max_bytes=5 * 1024 * 1024):
     try:
         if path.exists() and path.stat().st_size > max_bytes:
             old = path.with_suffix(path.suffix + ".old")
-            old.unlink(missing_ok=True)
+            old.unlink(missing_ok = True)
             path.replace(old)
 
     except OSError:
@@ -173,10 +178,14 @@ def stop():
     if process and process.poll() is None:
         try:
             process.terminate()
-            process.wait()
+            process.wait(timeout = 10)
     
         except OSError as e:
             print(f"{red}couldnt stop sab: {e}{reset}")
+
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait(timeout = 5)
     
         else:
             print(f"{green}Stopped{reset}")
@@ -238,7 +247,7 @@ def load_config():
 
 
 def save_config(config):
-    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    CONFIG_DIR.mkdir(parents = True, exist_ok = True)
 
     with open(CONFIG_FILE, "w") as f:
         config.write(f)
@@ -313,7 +322,7 @@ def job_in_sab(name, timeout = 10):
 
     while time.time() < deadline:
         try:
-            with urllib.request.urlopen(queue_url, timeout=2) as r:
+            with urllib.request.urlopen(queue_url, timeout = 2) as r:
                 slots = json.load(r).get("queue", {}).get("slots", [])
 
             if any(s.get("filename", "") in (name, name + ".nzb") for s in slots):
@@ -324,7 +333,7 @@ def job_in_sab(name, timeout = 10):
             pass
 
         try:
-            with urllib.request.urlopen(history_url, timeout=2) as r:
+            with urllib.request.urlopen(history_url, timeout = 2) as r:
                 slots = json.load(r).get("history", {}).get("slots", [])
 
             for s in slots:
@@ -348,7 +357,7 @@ def get_url():
     return f"http://{host}:{port}/"
 
 
-def wait_ready(timeout=60):
+def wait_ready(timeout = 60):
     global process
 
     deadline = time.time() + timeout
@@ -356,7 +365,7 @@ def wait_ready(timeout=60):
     while time.time() < deadline:
 
         try:
-            with urllib.request.urlopen(get_url(), timeout=2):
+            with urllib.request.urlopen(get_url(), timeout = 2):
                 return True
 
         except OSError:
