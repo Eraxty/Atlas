@@ -159,7 +159,10 @@ def is_complete(release):
         by_filename.setdefault(a.filename, []).append(a)
 
     for files_articles in by_filename.values():
-        expected = max(a.total_parts for a in files_articles)    
+        totals = [a.total_parts for a in files_articles if a.total_parts is not None]
+        if not totals:
+            return False
+        expected = max(totals)
         parts = {a.part for a in files_articles}
 
         if parts != set(range(1, expected + 1)):

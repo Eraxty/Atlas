@@ -58,12 +58,11 @@ def save_config(host, username, password, port, group, index_mode="dynamic", gro
 
     config_file.parent.mkdir(parents = True, exist_ok = True)
 
-    #temp file + rename soo the indexer never sees a half written config
     tmp = config_file.with_suffix(".json.tmp")
     with open(tmp, "w") as f:
         json.dump(config, f, indent=4)
 
-    os.replace(tmp, config_file)
-
     if store_password:
-        os.chmod(config_file, stat.S_IRUSR | stat.S_IWUSR)
+        os.chmod(tmp, stat.S_IRUSR | stat.S_IWUSR)
+
+    os.replace(tmp, config_file)

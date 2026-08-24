@@ -15,7 +15,7 @@ STATUS_FILE = BASE_DIR / "status.json"
 PID_FILE = BASE_DIR / "bg_indexer.pid"
 
 
-def update_status(running, group, indexer, idle=False, status="running", error=False, errors=0):
+def update_status(running, group, indexer, idle = False, status = "running", error = False, errors = 0):
     try:
         tmp = STATUS_FILE.with_suffix(".json.tmp")
 
@@ -63,18 +63,20 @@ def main():
         print(f"{yellow}no password stored in keyring, run main.py to set it up{reset}")
         sys.exit(1)
 
-    PID_FILE.write_text(str(os.getpid()))
+    tmp = PID_FILE.with_suffix(".pid.tmp")
+    tmp.write_text(str(os.getpid()))
+    os.replace(tmp, PID_FILE)
 
     create_db()
 
     client = NNTPClient(
-        host=config["host"],
-        username=config["username"],
-        password=config["password"],
-        port=config["port"],
+        host = config["host"],
+        username = config["username"],
+        password = config["password"],
+        port = config["port"],
     )
 
-    indexer = Indexer(client, mode=config.get("index_mode", "dynamic"))
+    indexer = Indexer(client, mode = config.get("index_mode", "dynamic"))
 
     stop_requested = False
 
@@ -136,7 +138,7 @@ def main():
                 indexer.mode = mode
 
                 for st in indexer.state.values():
-                    st.update(phase="backfill", idle=False, backfilling=False)
+                    st.update(phase ="backfill", idle = False, backfilling = False)
 
                 last_written_idle = None
 
@@ -205,7 +207,7 @@ def main():
 
         try:
             if PID_FILE.read_text().strip() == str(os.getpid()):
-                PID_FILE.unlink(missing_ok=True)
+                PID_FILE.unlink(missing_ok = True)
 
         except (OSError, ValueError):
             pass

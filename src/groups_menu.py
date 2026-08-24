@@ -202,7 +202,7 @@ def groups_menu(config):
                     parsed = sum(1 for _, header in headers if parse_subject(header["subject"]))
 
                     if parsed == 0:
-                        answer = prompt(f"only {parsed}/{len(headers)} look like binaries, probs a text group. index anyway? (y/n) ").strip().lower()
+                        answer = prompt(f"none of {len(headers)} look like binaries, probs a text group. index anyway? (y/n) ").strip().lower()
 
                         if answer not in ("y", "yes"):
                             continue
