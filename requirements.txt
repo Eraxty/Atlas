@@ -4,3 +4,4 @@ keyring
 textual
 colorama
 rich
+ollama

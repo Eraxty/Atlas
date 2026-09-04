@@ -501,6 +501,11 @@ def do_settings():
     print(f"\n{green}saved{reset}")
 
 
+def auto_mode(config):
+    from src.auto_mode import auto_mode as _auto
+    _auto(config, start_background_indexer, indexer_alive, do_search)
+
+
 def main():
     create_db()
 
@@ -569,6 +574,7 @@ def main():
         print("2. Search")
         print("3. Groups")
         print("4. Settings")
+        print("5. Auto")
         print("0. Exit")
         print("=" * 55)
 
@@ -591,6 +597,10 @@ def main():
 
         elif choice == "4":
             do_settings()
+            config = load_config()
+
+        elif choice == "5":
+            auto_mode(config)
             config = load_config()
 
         elif choice == "0":
