@@ -7,6 +7,11 @@ from src.prompts import prompt
 from src.sab import rotate_log
 from src.search import count_all_releases, count_releases, get_articles, search_all_releases, search_releases
 from src.colors import reset, bold, dim, red, green, yellow, cyan
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+from rich.text import Text
+from rich.console import Group
 from pathlib import Path
 import json
 import math
@@ -24,6 +29,8 @@ PID_FILE = BASE_DIR / "bg_indexer.pid"
 LOG_FILE = BASE_DIR / "bg_index.log"
 STATUS_FILE = BASE_DIR / "status.json"
 
+console = Console()
+
 #my logo
 LOGO = r"""
          █████╗ ████████╗ ██╗       █████╗  ███████╗
@@ -33,6 +40,10 @@ LOGO = r"""
         ██║  ██║   ██║    ███████╗ ██║  ██║ ███████║
         ╚═╝  ╚═╝   ╚═╝    ╚══════╝ ╚═╝  ╚═╝ ╚══════╝
 """
+
+
+def panel(content, border = "blue"):
+    return Panel(content, border_style = border)
 
 
 def clear():
@@ -116,7 +127,7 @@ def indexer_alive():
 
 def start_background_indexer():
     if indexer_alive():
-        print(f"{yellow}indexer already running{reset}")
+        console.print("[yellow]indexer already running[/yellow]")
         return False
 
     try:
@@ -124,7 +135,7 @@ def start_background_indexer():
         log_file = LOG_FILE.open("a")
 
     except OSError as e:
-        print(f"{red}couldnt start indexer: {e}{reset}")
+        console.print(f"[red]couldnt start indexer: {e}[/red]")
         return False
 
     try:
@@ -139,7 +150,7 @@ def start_background_indexer():
 
     except OSError as e:
         log_file.close()
-        print(f"{red}couldnt start indexer: {e}{reset}")
+        console.print(f"[red]couldnt start indexer: {e}[/red]")
         return False
 
     log_file.close()
@@ -149,7 +160,7 @@ def start_background_indexer():
             return True
         time.sleep(0.1)
 
-    print(f"{red}indexer didnt come up, check {LOG_FILE.name}{reset}")
+    console.print(f"[red]indexer didnt come up, check {LOG_FILE.name}[/red]")
     return False
 
 
@@ -160,7 +171,7 @@ def stop_background_indexer():
     try:
         pid = int(PID_FILE.read_text().strip())
     except ValueError:
-        PID_FILE.unlink(missing_ok=True)
+        PID_FILE.unlink(missing_ok = True)
         return False
 
     if not _is_indexer_pid(pid):
@@ -202,18 +213,26 @@ def ask(text, default = None):
         try:
             return int(value)
         except ValueError:
-            print(f"{red}that aint a number{reset}\n")
+            console.print("[red]that aint a number[/red]\n")
 
 
 def show_results(releases, query, page, total_pages, total, page_size):
     clear()
 
-    print(f"Search: {query}")
-    print(f"Page {page + 1} of {total_pages}")
-
+    header = Text()
+    header.append(f"Search: {query}\n", style = "bold")
+    header.append(f"Page {page + 1} of {total_pages}\n")
     start = page * page_size + 1
     end = min((page + 1) * page_size, total)
-    print(f"{dim}Showing {start}-{end} of {total} results{reset}\n")
+    header.append(f"Showing {start}-{end} of {total} results", style = "dim")
+
+    table = Table(show_header = True, header_style = "bold cyan", box = None, padding = (0, 2))
+    table.add_column("#", width = 4, justify = "right")
+    table.add_column("Name", ratio = 3)
+    table.add_column("Size", width = 10, justify = "right")
+    table.add_column("Parts", width = 8, justify = "right")
+    table.add_column("Date", width = 12)
+    table.add_column("Status", width = 10)
 
     width = max(20, shutil.get_terminal_size().columns - 40)
 
@@ -223,26 +242,36 @@ def show_results(releases, query, page, total_pages, total, page_size):
         if len(name) > width:
             name = name[:width - 3] + "..."
 
-        broken = f"  {red}[broken]{reset}" if not release[6] else ""
+        broken = "[red][broken][/red]" if not release[6] else ""
 
-        print(f"{i}. {name}  {fmt_size(release[5])} - {release[7]} parts - {fmt_date(release[4])}{broken}")
+        table.add_row(
+            str(i),
+            name,
+            fmt_size(release[5]),
+            str(release[7]),
+            fmt_date(release[4]),
+            broken
+        )
 
-    print("\n0. Back")
+    console.print(panel(header, "cyan"))
+    console.print(table)
+    console.print("\n[dim]0. Back[/dim]")
 
     if page > 0:
-        print("p. Previous Page")
+        console.print("[cyan]p.[/cyan] Previous Page")
     if page < total_pages - 1:
-        print("n. Next Page")
-
-    print("g. Go to Page")
+        console.print("[cyan]n.[/cyan] Next Page")
+    console.print("[cyan]g.[/cyan] Go to Page")
 
 
 def show_release(release, articles):
-    print(f"Release: {release[1]}")
-    print(f"{dim}poster: {release[3] or 'unknown'}   posted: {fmt_date(release[4])}{reset}")
+    info = Text()
+    info.append(f"Release: {release[1]}\n", style = "bold")
+    info.append(f"poster: {release[3] or 'unknown'}   posted: {fmt_date(release[4])}\n", style = "dim")
+    status = "[green]complete[/green]" if release[6] else "[red]incomplete[/red]"
+    info.append(f"{fmt_size(release[5])} - {release[7]} parts - {status}\n")
 
-    status = f"{green}complete{reset}" if release[6] else f"{red}incomplete{reset}"
-    print(f"{fmt_size(release[5])} - {release[7]} parts - {status}\n")
+    console.print(panel(info))
 
     if not articles:
         return
@@ -252,28 +281,27 @@ def show_release(release, articles):
     for a in articles:
         files.setdefault(a[1] or "?", []).append(a)
 
-    width = max(20, shutil.get_terminal_size().columns - 20)
-
-    print(f"files ({len(files)}):")
+    table = Table(title = f"files ({len(files)})", show_header = False, box = None, padding = (0, 1))
+    table.add_column("name", style = "white")
+    table.add_column("parts", style = "dim")
 
     shown = list(files.items())[:30]
+    width = max(20, shutil.get_terminal_size().columns - 20)
 
     for filename, parts in shown:
         present = len({p[2] for p in parts})
         expected = max((p[3] for p in parts if p[3]), default = present)
-
         name = filename if len(filename) <= width else filename[:width - 3] + "..."
+        table.add_row(name, f"{present}/{expected}")
 
-        print(f"  {name}  {dim}{present}/{expected}{reset}")
+    console.print(table)
 
     if len(files) > len(shown):
-        print(f"  {dim}... and {len(files) - len(shown)} more{reset}")
-
-    print()
+        console.print(f"  [dim]... and {len(files) - len(shown)} more[/dim]")
 
 
 def setup():
-    print(f"{red}no config found{reset}")
+    console.print(panel("[red]no config found[/red]", "red"))
 
     host = prompt("Host: ")
     username = prompt("Username: ")
@@ -281,17 +309,20 @@ def setup():
     port = ask("Port (563): ", 563)
 
     save_config(host, username, password, port, "")
-    print(f"\n{yellow}group empty rn, select one from the Groups menu{reset}")
+    console.print(panel("[yellow]group empty rn, select one from the Groups menu[/yellow]", "yellow"))
 
 
 def do_search(config):
     while True:
         clear()
 
-        print("Search")
-        print("1. Current Group")
-        print("2. All Groups")
-        print("0. Back")
+        menu = Table(show_header = False, box = None, padding = (0, 2))
+        menu.add_column("num", style = "bold cyan", width = 3)
+        menu.add_column("label", style = "white")
+        menu.add_row("1.", "Current Group")
+        menu.add_row("2.", "All Groups")
+        menu.add_row("0.", "Back")
+        console.print(panel(menu, "green"))
 
         scope = ask("\nChoice: ")
         if scope not in (1, 2):
@@ -318,11 +349,11 @@ def do_search(config):
                     releases = search_all_releases(query, page, page_size)
             
             except sqlite3.Error:
-                print(f"\n{red}couldnt search, db error{reset}")
+                console.print(panel("[red]couldnt search, db error[/red]", "red"))
                 return
 
             if not total:
-                print(f"\n{red}no releases found{reset}")
+                console.print(panel("[red]no releases found[/red]", "red"))
                 query = prompt("\nSearch: ").strip()
                 if not query or query == "0":
                     break
@@ -346,7 +377,7 @@ def do_search(config):
                 if page > 0:
                     page -= 1
                 else:
-                    print(f"{dim}already on the first page{reset}")
+                    console.print("[dim]already on the first page[/dim]")
                     prompt("[enter]")
                 continue
 
@@ -354,7 +385,7 @@ def do_search(config):
                 if page < total_pages - 1:
                     page += 1
                 else:
-                    print(f"{dim}already on the last page{reset}")
+                    console.print("[dim]already on the last page[/dim]")
                     prompt("[enter]")
                 continue
 
@@ -369,19 +400,19 @@ def do_search(config):
                 if 1 <= target <= total_pages:
                     page = target - 1
                 else:
-                    print(f"{red}page must be between 1 and {total_pages}{reset}")
+                    console.print(f"[red]page must be between 1 and {total_pages}[/red]")
                     prompt("[enter]")
                 continue
 
             try:
                 selected = int(choice)
             except ValueError:
-                print(f"{red}invalid{reset}")
+                console.print("[red]invalid[/red]")
                 prompt("[enter]")
                 continue
 
             if selected < 1 or selected > len(releases):
-                print(f"{red}not on this page{reset}")
+                console.print("[red]not on this page[/red]")
                 prompt("[enter]")
                 continue
 
@@ -395,23 +426,26 @@ def do_search(config):
                 #actions for the picked release
                 show_release(release, articles)
 
-                print("1. Download")
-                print("2. Save NZB")
-                print("0. Back")
+                menu = Table(show_header = False, box = None, padding = (0, 2))
+                menu.add_column("num", style = "bold cyan", width = 3)
+                menu.add_column("label", style = "white")
+                menu.add_row("1.", "Download")
+                menu.add_row("2.", "Save NZB")
+                menu.add_row("0.", "Back")
+                console.print(menu)
 
                 choice = prompt("\nChoice: ").strip()
 
                 if choice == "1":
                     try:
                         ok = download_release(choice_id)
-                    
+
                     except Exception as e:
-                        print(f"{red}couldnt queue download: {e}{reset}")
+                        console.print(f"[red]couldnt queue download: {e}[/red]")
                         ok = False
 
                     if ok:
-                        print(f"\n{green}Download queued it is downloading in background.{reset}")
-                        print(f"{dim}Finished files land ~/Downloads{reset}")
+                        console.print(panel("[green]Download queued it is downloading in background.[/green]\n[dim]Finished files land ~/Downloads[/dim]", "green"))
                     prompt("[enter]")
                     break
 
@@ -419,13 +453,13 @@ def do_search(config):
                     try:
                         generate_nzb(choice_id)
                     except Exception as e:
-                        print(f"{red}couldnt save nzb: {e}{reset}")
+                        console.print(f"[red]couldnt save nzb: {e}[/red]")
                     prompt("[enter]")
                     break
                 if choice == "0":
                     break
 
-                print(f"{red}invalid{reset}")
+                console.print("[red]invalid[/red]")
                 prompt("[enter]")
 
 
@@ -434,11 +468,13 @@ def do_settings():
 
     config = load_config()
 
-    print("Settings")
-    print(f"Indexer mode : {config.get('index_mode', 'dynamic')}")
-    print("1. Change config")
-    print("2. Change indexer mode")
-    print("0. Back")
+    menu = Table(show_header = False, box = None, padding = (0, 2))
+    menu.add_column("num", style = "bold cyan", width = 3)
+    menu.add_column("label", style = "white")
+    menu.add_row("1.", "Change config")
+    menu.add_row("2.", f"Change indexer mode ({config.get('index_mode', 'dynamic')})")
+    menu.add_row("0.", "Back")
+    console.print(panel(menu, "blue"))
 
     choice = ask("\nChoice: ")
 
@@ -446,23 +482,26 @@ def do_settings():
         while True:
             clear()
 
-            print("Indexer mode")
-            print(f"Current : {config.get('index_mode', 'dynamic')}")
-            print("1. dynamic")
-            print("2. live")
-            print("3. backfill")
-            print("0. Back")
+            #modes
+            modes = {1: "dynamic", 2: "live", 3: "backfill"}
+
+            menu = Table(show_header = False, box = None, padding = (0, 2))
+            menu.add_column("num", style = "bold cyan", width = 3)
+            menu.add_column("label", style = "white")
+            
+            for k, v in modes.items():
+                menu.add_row(str(k), v)
+            
+            menu.add_row("0.", "Back")
+            console.print(panel(menu, "blue"))
 
             mode = ask("\nChoice: ")
 
             if mode == 0:
                 return
 
-            #modes
-            modes = {1: "dynamic", 2: "live", 3: "backfill"}
-
             if mode not in modes:
-                print(f"{red}that is not a number{reset}")
+                console.print("[red]that is not a number[/red]")
                 continue
 
             save_config(
@@ -474,13 +513,12 @@ def do_settings():
                 modes[mode],
             )
 
-            print(f"{green}indexer mode set to {modes[mode]}{reset}")
+            console.print(f"[green]indexer mode set to {modes[mode]}[/green]")
             return
 
     if choice != 1:
         return
 
-    print()
     host = prompt(f"Host ({config['host']}): ").strip() or config["host"]
     username = prompt(f"Username ({config['username']}): ").strip() or config["username"]
     password = prompt("Password: ").strip() or config.get("password", "")
@@ -492,13 +530,13 @@ def do_settings():
             group = config["group"]
         if group:
             break
-        print(f"{yellow}newsgroup cant be empty{reset}\n")
+        console.print("[yellow]newsgroup cant be empty[/yellow]\n")
 
     port = ask(f"Port ({config['port']}): ", config["port"])
 
     save_config(host, username, password, port, group, config.get("index_mode", "dynamic"))
     
-    print(f"\n{green}saved{reset}")
+    console.print("[green]saved[/green]")
 
 
 def auto_mode(config):
@@ -512,15 +550,18 @@ def main():
     config = load_config()
 
     if config:
-        print(f"{green}config loaded:{reset}")
-        print(f"Server: {config['host']}")
-        print(f"Current Group: {config['group']}\n")
+        console.print(panel(
+            f"[green]config loaded[/green]\n"
+            f"Server: {config['host']}\n"
+            f"Current Group: {config['group']}",
+            "cyan"
+        ))
     else:
         setup()
         config = load_config()
 
         if not config:
-            print(f"{red}setup failed, no config found {reset}")
+            console.print("[red]setup failed, no config found[/red]")
             return
 
     while True:
@@ -529,64 +570,75 @@ def main():
         indexing = indexer_alive()
         status = get_status()
 
-        print("=" * 55)
-        print(f"{cyan}{bold}{LOGO}{reset}")
-        print("=" * 55)
-        print(f"Current Group : {config['group']}")
-
         #build the status line
         st = status.get("status", "stopped")
         label = status.get("group") or config["group"]
         err_count = status.get("error_count", 0)
 
+        idx_text = Text()
         if indexing:
             if st == "warning":
-                indicator = f"{yellow}WARNING{reset}"
                 extra = f" ({err_count} errors)" if err_count else ""
-                print(f"Indexing      : {yellow}{label}{reset} {dim}[{indicator}]{reset}{extra}")
+                idx_text.append(f"{label} ", style = "yellow")
+                idx_text.append("[WARNING]", style = "yellow bold")
+                idx_text.append(extra, style = "yellow")
             elif status.get("idle"):
-                print(f"Indexing      : {cyan}{label} (idle){reset}")
+                idx_text.append(f"{label} (idle)", style = "cyan")
             else:
-                print(f"Indexing      : {green}{label} [active]{reset}")
-        
+                idx_text.append(f"{label} ", style = "green")
+                idx_text.append("[active]", style = "green bold")
         elif st == "error":
             if status.get("stale"):
-                print(f"Indexing      : {dim}stopped (last run failed){reset}")
+                idx_text.append("stopped (last run failed)", style = "dim")
             else:
-                print(f"Indexing      : {red}FAILED (error){reset}")
-        
+                idx_text.append("FAILED (error)", style = "red bold")
         elif st == "warning":
             if status.get("stale"):
-                print(f"Indexing      : {dim}stopped (last run: warning){reset}")
+                idx_text.append("stopped (last run: warning)", style = "dim")
             else:
-                print(f"Indexing      : {yellow}stopped (warning){reset}")
-        
+                idx_text.append("stopped (warning)", style = "yellow")
         else:
-            print(f"Indexing      : {dim}stopped{reset}")
+            idx_text.append("stopped", style = "dim")
 
-        print("=" * 55)
+        content = Text()
+        content.append(Text(LOGO, style = "bold cyan"))
+        content.append("\n")
+        content.append("Current Group : ", style = "bold")
+        content.append(config["group"])
+        content.append("\nIndexing      : ", style = "bold")
+        content.append_text(idx_text)
+
+        menu = Table(show_header = False, box = None, padding = (0, 2))
+        menu.add_column("num", style = "bold cyan", width = 2)
+        menu.add_column("label", style = "white")
 
         if indexing:
-            print("1. Stop Indexing")
+            menu.add_row("1.", "Stop Indexing")
         else:
-            print("1. Start Indexing")
+            menu.add_row("1.", "Start Indexing")
 
-        print("2. Search")
-        print("3. Groups")
-        print("4. Settings")
-        print("5. Auto")
-        print("0. Exit")
-        print("=" * 55)
+        menu.add_row("2.", "Search")
+        menu.add_row("3.", "Groups")
+        menu.add_row("4.", "Settings")
+        menu.add_row("0.", "Exit")
+
+        full = Group(
+            content,
+            "",
+            menu,
+        )
+
+        console.print(panel(full, "cyan"))
 
         choice = prompt("\nChoice: ")
 
         if choice == "1":
             if indexing:
                 stopped = stop_background_indexer()
-                print(f"{green}indexing stopped{reset}" if stopped else f"{yellow}indexer wasnt running{reset}")
+                console.print("[green]indexing stopped[/green]" if stopped else "[yellow]indexer wasnt running[/yellow]")
             else:
                 if start_background_indexer():
-                    print(f"{green}indexing started{reset}")
+                    console.print("[green]indexing started[/green]")
 
         elif choice == "2":
             do_search(config)
@@ -599,13 +651,9 @@ def main():
             do_settings()
             config = load_config()
 
-        elif choice == "5":
-            auto_mode(config)
-            config = load_config()
-
         elif choice == "0":
             #byee
-            print("\nbyee.")
+            console.print("\n[bold cyan]byee.[/bold cyan]")
             break
 
 
