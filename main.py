@@ -544,11 +544,6 @@ def do_settings():
     console.print("[green]saved[/green]")
 
 
-def auto_mode(config):
-    from src.auto_mode import auto_mode as _auto
-    _auto(config, start_background_indexer, indexer_alive, do_search)
-
-
 def main():
     create_db()
 
