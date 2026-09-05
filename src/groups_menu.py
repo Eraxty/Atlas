@@ -7,6 +7,15 @@ from src.config import save_config
 from src.parser import parse_subject
 from src.prompts import prompt
 from src.colors import red, yellow, dim, reset
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+
+console = Console()
+
+
+def panel(content, border = "blue"):
+    return Panel(content, border_style = border)
 
 
 def clear():
@@ -16,28 +25,36 @@ def clear():
 _groups_cache = {}
 
 
-def load_groups(client, host):
+def load_groups(client, host, pattern = None):
+    cache_key = (host, pattern)
     #refetch every 10 min so new groups show up without a restart
-    cached = _groups_cache.get(host)
+    cached = _groups_cache.get(cache_key)
 
     if cached and time.time() - cached[0] < 600:
         return cached[1]
 
     groups = []
 
-    for line in client.list_groups():
-        line = line.strip()
+    try:
+        for line in client.list_groups(pattern):
+            line = line.strip()
 
-        if line:
-            groups.append(line.split()[0])
+            if line:
+                groups.append(line.split()[0])
 
-    _groups_cache[host] = (time.time(), groups)
+    except (OSError, nntp.NNTPError):
+        #server doesnt support wildcards soo load everything and filter client side
+        if pattern:
+            return load_groups(client, host, None)
+        raise
+
+    _groups_cache[cache_key] = (time.time(), groups)
     return groups
 
 
 def groups_menu(config):
     if not config.get("host"):
-        print(f"{red}no server configured, setup in Settings first{reset}")
+        console.print("[red]no server configured, setup in Settings first[/red]")
         prompt("[enter]")
         return
 
@@ -56,47 +73,53 @@ def groups_menu(config):
             client.connect()
 
     except (OSError, nntp.NNTPReplyError):
-        print(f"{red}couldnt connect to server{reset}")
+        console.print("[red]couldnt connect to server[/red]")
         prompt("[enter]")
         return
 
     try:
-        try:
-            groups = load_groups(client, host)
-
-        except (OSError, nntp.NNTPError):
-            print(f"{red}couldnt fetch groups from the server{reset}")
-            prompt("[enter]")
-            return
-
         while True:
             clear()
 
-            query = prompt("Search groups: ").strip()
+            console.print(panel("[bold cyan]Groups[/bold cyan]", "cyan"))
+            console.print("[dim]Search for groups to add. Append 'all' to include text groups.[/dim]\n")
+
+            query = prompt("Search: ").strip()
 
             if not query:
                 break
 
             #"something all" includes every group, not just binaries
+            search_all = False
             if query.lower().endswith(" all"):
                 search_all = True
                 query = query[:-4].strip()
-            else:
-                search_all = False
 
             if len(query) < 3:
-                print(f"{yellow}Search atleast 3 characters bruh{reset}\n")
+                console.print("[yellow]Search at least 3 characters bruh[/yellow]\n")
                 prompt("[enter]")
                 continue
 
-            matches = [group for group in groups if query.lower() in group.lower()]
+            #build a server side wildcard pattern for fast filtering
+            pattern = f"*{query}*"
+
+            try:
+                groups = load_groups(client, host, pattern)
+
+            except (OSError, nntp.NNTPError):
+                console.print("[red]couldnt fetch groups from the server[/red]")
+                prompt("[enter]")
+                continue
+
+            #client side filtering if server doesnt support wildcards
+            groups = [g for g in groups if query.lower() in g.lower()]
 
             #default skips text groups
             if not search_all:
-                matches = [group for group in matches if ".binaries." in group.lower()]
+                groups = [g for g in groups if ".binaries." in g.lower()]
 
-            if not matches:
-                print(f"{red}No matching groups found{reset}\n")
+            if not groups:
+                console.print("[red]No matching groups found[/red]\n")
                 prompt("[enter]")
                 continue
 
@@ -106,22 +129,31 @@ def groups_menu(config):
                 clear()
 
                 start = page * 30
-                end = min(start + 30, len(matches))
+                end = min(start + 30, len(groups))
                 #30 per page
-                total_pages = max(1, (len(matches) + 29) // 30)
+                total_pages = max(1, (len(groups) + 29) // 30)
 
-                print(f"Page {page + 1} of {total_pages}")
-                print(f"{dim}Showing {start + 1}-{end} of {len(matches)} matches{reset}\n")
+                console.print(panel(
+                    f"[bold]Results[/bold]\n"
+                    f"Page {page + 1} of {total_pages}\n"
+                    f"[dim]Showing {start + 1}-{end} of {len(groups)} matches[/dim]",
+                    "green"
+                ))
 
-                for i, group in enumerate(matches[start:end], 1):
-                    print(f"{i}. {group}")
+                table = Table(show_header = True, header_style = "bold cyan", box = None, padding = (0, 2))
+                table.add_column("#", width = 4, justify = "right")
+                table.add_column("Group", ratio = 1)
 
-                print("0. Back")
+                for i, group in enumerate(groups[start:end], 1):
+                    table.add_row(str(i), group)
+
+                console.print(table)
+                console.print("\n[dim]0. Back[/dim]")
 
                 if page > 0:
-                    print("p. Previous Page")
-                if end < len(matches):
-                    print("n. Next Page")
+                    console.print("[cyan]p.[/cyan] Previous Page")
+                if end < len(groups):
+                    console.print("[cyan]n.[/cyan] Next Page")
 
                 choice = prompt("\nChoice: ").strip()
 
@@ -132,33 +164,34 @@ def groups_menu(config):
                     if page > 0:
                         page -= 1
                     else:
-                        print(f"{dim}already on the first page{reset}")
+                        console.print("[dim]already on the first page[/dim]")
                         prompt("[enter]")
                     continue
 
                 if choice == "n":
-                    if end < len(matches):
+                    if end < len(groups):
                         page += 1
                     else:
-                        print(f"{dim}already on the last page{reset}")
+                        console.print("[dim]already on the last page[/dim]")
                         prompt("[enter]")
                     continue
 
                 try:
                     selected = int(choice)
                 except ValueError:
-                    print(f"{red}invalid{reset}")
+                    console.print("[red]invalid[/red]")
                     prompt("[enter]")
                     continue
 
                 #choices count from 1 on the current page only
                 if selected < 1 or selected > end - start:
-                    print(f"{red}invalid{reset}")
+                    console.print("[red]invalid[/red]")
                     prompt("[enter]")
                     continue
 
+                chosen = groups[start + selected - 1]
+
                 #map the page choice back to the full list index
-                chosen = matches[start + selected - 1]
                 config["group"] = chosen
                 config["groups"] = list(dict.fromkeys((config.get("groups") or []) + [chosen]))
 
@@ -167,7 +200,7 @@ def groups_menu(config):
                         client.connect()
 
                     except (OSError, nntp.NNTPReplyError):
-                        print(f"{red}couldnt connect to server{reset}")
+                        console.print("[red]couldnt connect to server[/red]")
                         prompt("[enter]")
                         continue
 
@@ -182,7 +215,7 @@ def groups_menu(config):
                         count, first, last, _ = client.select_group(config["group"])
 
                     except (OSError, nntp.NNTPError) as e:
-                        print(f"{red}couldnt select group: {e}{reset}")
+                        console.print(f"[red]couldnt select group: {e}[/red]")
                         prompt("[enter]")
                         continue
 
