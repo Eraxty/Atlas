@@ -357,23 +357,29 @@ def get_url():
     return f"http://{host}:{port}/"
 
 
-def wait_ready(timeout = 60):
+def wait_ready(timeout = 90):
     global process
 
     deadline = time.time() + timeout
 
+    time.sleep(2)
+
+    url = get_url()
+
     while time.time() < deadline:
 
-        try:
-            with urllib.request.urlopen(get_url(), timeout = 2):
-                return True
-
-        except OSError:
-            pass
-
         if process and process.poll() is not None:
+            print(f"{yellow}sabnzbd process exited with code {process.poll()}{reset}")
             return False
 
-        time.sleep(1)
+        try:
+            with urllib.request.urlopen(url, timeout = 3):
+                return True
 
+        except OSError as e:
+            print(f"{yellow}sab not ready yet: {e}{reset}")
+
+        time.sleep(2)
+
+    print(f"{yellow}sabnzbd didnt respond at {url}{reset}")
     return False

@@ -612,6 +612,8 @@ def main():
         menu.add_column("num", style = "bold cyan", width = 2)
         menu.add_column("label", style = "white")
 
+        groups = config.get("groups") or []
+
         if indexing:
             menu.add_row("1.", "Stop Indexing")
         else:
@@ -619,7 +621,10 @@ def main():
 
         menu.add_row("2.", "Search")
         menu.add_row("3.", "Groups")
-        menu.add_row("4.", "Settings")
+        if len(groups) > 1:
+            menu.add_row("4.", "Remove group")
+        else:
+            menu.add_row("4.", "Settings")
         menu.add_row("0.", "Exit")
 
         full = Group(
@@ -648,8 +653,92 @@ def main():
             config = load_config()
 
         elif choice == "4":
-            do_settings()
-            config = load_config()
+            groups = config.get("groups") or []
+            
+            if len(groups) > 1:
+                page = 0
+            
+                while True:
+                    clear()
+
+                    start = page * 5
+                    end = min(start + 5, len(groups))
+                    total_pages = max(1, (len(groups) + 4) // 5)
+
+                    console.print(panel(
+                        f"[bold]Remove group[/bold]\n"
+                        f"Page {page + 1} of {total_pages}\n"
+                        f"[dim]Showing {start + 1}-{end} of {len(groups)} groups[/dim]",
+                        "red"
+                    ))
+
+                    table = Table(show_header = True, header_style = "bold cyan", box = None, padding = (0, 2))
+                    table.add_column("#", width = 4, justify = "right")
+                    table.add_column("Group", ratio = 1)
+
+                    for i, group in enumerate(groups[start:end], 1):
+                        table.add_row(str(i), group)
+
+                    console.print(table)
+                    console.print("\n[dim]0. Back[/dim]")
+
+                    if page > 0:
+                        console.print("[cyan]p.[/cyan] Previous Page")
+            
+                    if end < len(groups):
+                        console.print("[cyan]n.[/cyan] Next Page")
+
+                    choice = prompt("\nChoice: ").strip()
+
+                    if choice == "0":
+                        break
+
+                    if choice == "p":
+                        if page > 0:
+                            page -= 1
+                        else:
+                            console.print("[dim]already on the first page[/dim]")
+                            prompt("[enter]")
+                        continue
+
+                    if choice == "n":
+                        if end < len(groups):
+                            page += 1
+                        else:
+                            console.print("[dim]already on the last page[/dim]")
+                            prompt("[enter]")
+                        continue
+
+                    try:
+                        selected = int(choice)
+                    except ValueError:
+                        console.print("[red]invalid[/red]")
+                        prompt("[enter]")
+                        continue
+
+                    if selected < 1 or selected > end - start:
+                        console.print("[red]invalid[/red]")
+                        prompt("[enter]")
+                        continue
+
+                    chosen = groups[start + selected - 1]
+                    config["groups"] = [g for g in config["groups"] if g != chosen]
+
+                    save_config(
+                        config["host"],
+                        config["username"],
+                        config.get("password", ""),
+                        config["port"],
+                        config["group"],
+                        config.get("index_mode", "dynamic"),
+                        config["groups"],
+                    )
+                    console.print(f"[green]removed {chosen}[/green]")
+                    prompt("[enter]")
+                    break
+            else:
+                do_settings()
+                config = load_config()
 
         elif choice == "0":
             #byee

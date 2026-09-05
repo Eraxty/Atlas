@@ -3,6 +3,7 @@ from src.database import create_db
 from src.nntp_client import NNTPClient
 from src.indexer import Indexer
 from src.colors import red, yellow, reset
+from src.sab import start as start_sab, is_running as sab_running, wait_ready as sab_wait_ready
 from pathlib import Path
 import os
 import signal
@@ -77,6 +78,11 @@ def main():
     )
 
     indexer = Indexer(client, mode = config.get("index_mode", "dynamic"))
+
+    #start sabnzbd so its ready when you wanna download
+    if not sab_running():
+        start_sab()
+        sab_wait_ready()
 
     stop_requested = False
 
