@@ -13,7 +13,10 @@ import json
 
 BASE_DIR = Path(__file__).resolve().parent
 STATUS_FILE = BASE_DIR / "status.json"
+STATS_FILE = BASE_DIR / "stats.json"
 PID_FILE = BASE_DIR / "bg_indexer.pid"
+
+HISTORY_LEN = 60
 
 
 def update_status(running, group, indexer, idle = False, status = "running", error = False, errors = 0):
@@ -36,6 +39,49 @@ def update_status(running, group, indexer, idle = False, status = "running", err
 
     except OSError as e:
         print(f"couldnt write status: {e}")
+
+
+class Stats:
+    def __init__(self):
+        self.history = []
+        self.total_articles = 0
+        self.total_bytes = 0
+        self.total_releases = 0
+        self.start_time = time.time()
+
+    def tick(self, articles, bytes_downloaded, releases = 0):
+        now = time.time()
+        self.total_articles += articles
+        self.total_bytes += bytes_downloaded
+        self.total_releases += releases
+        self.history.append({"t": now, "a": articles, "b": bytes_downloaded})
+
+        cutoff = now - HISTORY_LEN
+        self.history = [h for h in self.history if h["t"] >= cutoff]
+
+    def write(self, group, mode, running, idle):
+        try:
+            data = {
+                "running": running,
+                "idle": idle,
+                "group": group,
+                "mode": mode,
+                "uptime": int(time.time() - self.start_time),
+                "total_articles": self.total_articles,
+                "total_bytes": self.total_bytes,
+                "total_releases": self.total_releases,
+                "history": self.history[-HISTORY_LEN:],
+            }
+            
+            tmp = STATS_FILE.with_suffix(".json.tmp")
+            
+            with open(tmp, "w") as f:
+                json.dump(data, f)
+            
+            os.replace(tmp, STATS_FILE)
+        
+        except OSError:
+            pass
 
 
 def idle_sleep(duration, is_stopped):
@@ -97,8 +143,10 @@ def main():
     errors = {}
     failed = set()
     error = False
+    stats = Stats()
 
     last_written_idle = None
+    last_stats_write = 0
     last_conn = (config["host"], config["username"], config["password"], config["port"])
 
     update_status(True, ", ".join(groups), indexer, indexer.all_idle(groups), "running", error=error)
@@ -160,6 +208,19 @@ def main():
 
                 indexer.index_group(group)
 
+                stats.tick(
+                    indexer.last_batch_articles,
+                    indexer.last_batch_bytes,
+                    indexer.last_batch_releases,
+                )
+
+                now = time.time()
+                
+                if now - last_stats_write >= 1:
+                    idle_now = indexer.all_idle([g for g in groups if g not in failed]) and not any(indexer.is_backfilling(g) for g in groups if g not in failed)
+                    stats.write(group, indexer.mode, True, idle_now)
+                    last_stats_write = now
+
                 recovered = errors.get(group, 0) > 0
                 errors[group] = 0
                 failed.discard(group)
@@ -210,7 +271,7 @@ def main():
 
     finally:
         update_status(False, "", indexer, status="error" if error else "stopped", error=error, errors=sum(errors.values()))
-
+        stats.write("", "", False, False)
 
         try:
             client.disconnect()

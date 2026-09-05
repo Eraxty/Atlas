@@ -7,6 +7,7 @@ from src.prompts import prompt
 from src.sab import rotate_log
 from src.search import count_all_releases, count_releases, get_articles, search_all_releases, search_releases
 from src.colors import reset, bold, dim, red, green, yellow, cyan
+from src.dashboard import load as load_stats, render as render_dashb
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -28,6 +29,7 @@ BASE_DIR = Path(__file__).resolve().parent
 PID_FILE = BASE_DIR / "bg_indexer.pid"
 LOG_FILE = BASE_DIR / "bg_index.log"
 STATUS_FILE = BASE_DIR / "status.json"
+STATS_FILE = BASE_DIR / "stats.json"
 
 console = Console()
 
@@ -625,6 +627,7 @@ def main():
             menu.add_row("4.", "Remove group")
         else:
             menu.add_row("4.", "Settings")
+        menu.add_row("5.", "Live Dashboard")
         menu.add_row("0.", "Exit")
 
         full = Group(
@@ -739,6 +742,17 @@ def main():
             else:
                 do_settings()
                 config = load_config()
+
+        elif choice == "5":
+            from rich.live import Live
+            try:
+                with Live(render_dashb(None), console = console, refresh_per_second = 4, screen = True) as live:
+                    while True:
+                        live.update(render_dashb(load_stats()))
+                        time.sleep(0.25)
+            
+            except KeyboardInterrupt:
+                pass
 
         elif choice == "0":
             #byee

@@ -13,6 +13,9 @@ class Indexer:
         self.mode = mode
         self.verbose = verbose
         self.state = {}
+        self.last_batch_articles = 0
+        self.last_batch_bytes = 0
+        self.last_batch_releases = 0
 
     #per group phase/idle/backfilling
     def _gs(self, group):
@@ -119,10 +122,16 @@ class Indexer:
             if e.code != 423:
                 raise
             print(f"[{kind}] {start}-{end} empty, skipping")
+            self.last_batch_articles = 0
+            self.last_batch_bytes = 0
+            self.last_batch_releases = 0
             return
         
         except nntp.NNTPPermanentError as e:
             print(f"[{kind}] {start}-{end} not available ({e.code}), skipping")
+            self.last_batch_articles = 0
+            self.last_batch_bytes = 0
+            self.last_batch_releases = 0
             return
 
         self._gs(group)["idle"] = False
@@ -134,6 +143,7 @@ class Indexer:
         releases = group_articles(articles)
 
         to_save = []
+        total_bytes = 0
 
         for release in releases.values():
             release["complete"] = is_complete(release)
@@ -141,5 +151,10 @@ class Indexer:
             release["poster"] = release["articles"][0].author
             release["date"] = release["articles"][0].date
             to_save.append(release)
+            total_bytes += sum(a.bytes for a in release["articles"] if a.bytes)
 
         save_releases_bulk(to_save)
+
+        self.last_batch_articles = len(headers)
+        self.last_batch_bytes = total_bytes
+        self.last_batch_releases = len(to_save)
