@@ -88,5 +88,7 @@ class NNTPClient:
         #xover fetches the whole header range in one shot
         return self.server.xover((start, end))
 
-    def list_groups(self):
+    def list_groups(self, pattern = None):
+        if pattern:
+            return self.server.list(pattern)
         return self.server.list()

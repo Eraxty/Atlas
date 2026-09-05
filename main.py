@@ -268,8 +268,13 @@ def show_release(release, articles):
     info = Text()
     info.append(f"Release: {release[1]}\n", style = "bold")
     info.append(f"poster: {release[3] or 'unknown'}   posted: {fmt_date(release[4])}\n", style = "dim")
-    status = "[green]complete[/green]" if release[6] else "[red]incomplete[/red]"
-    info.append(f"{fmt_size(release[5])} - {release[7]} parts - {status}\n")
+    info.append(f"{fmt_size(release[5])} - {release[7]} parts - ")
+  
+    if release[6]:
+        info.append("complete", style = "green")
+    else:
+        info.append("incomplete", style = "red")
+    info.append("\n")
 
     console.print(panel(info))
 

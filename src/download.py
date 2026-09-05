@@ -1,7 +1,11 @@
 from src.nzb import generate_nzb, nzb_filename
-from src.sab import configure_servers, configure_watched_dir, get_complete_dir, is_running, job_in_sab, start, wait_ready
+from src.sab import configure_servers, configure_watched_dir, get_complete_dir, get_url, is_running, job_in_sab, start, wait_ready
 from src.search import get_articles, get_release
 from src.colors import red, green, yellow, reset
+from rich.console import Console
+import webbrowser
+
+console = Console()
 
 def download_release(release_id):
     release = get_release(release_id)
@@ -25,6 +29,7 @@ def download_release(release_id):
     configure_servers()
 
     if not is_running():
+        console.print("[dim]starting sabnzbd...[/dim]")
         if not start():
             print(f"{red}couldnt start sabnzbd{reset}")
             return False
@@ -42,13 +47,14 @@ def download_release(release_id):
 
     generate_nzb(
         release_id,
-        output_dir=watched_dir,
+        output_dir = watched_dir,
     )
 
     status = job_in_sab(nzb_filename(release_name, release[0]).removesuffix(".nzb"))
 
     if status == "queued":
         print(f"{green}download queued{reset}")
+        webbrowser.open(get_url())
         return True
     elif status:
         print(f"{yellow}already did this one bruh: {status}{reset}")
