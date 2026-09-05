@@ -1,41 +1,27 @@
 # Atlas
 
-this is a self hosted usenet indexer
-it indexes newsgroups into a local SQLite database
+self hosted usenet indexer
+indexes newsgroups into a local SQLite database
 
 ## Features
 
-1) **NNTP indexing** :-
-   connects to nntp over ssl
-
-2) **Dynamic indexing** :-
-   indexer can switch between modes - backfill only, live only, or dynamic which does both
-
-3) **release parsing** :-
-   it can handle multiple subject formats and detects complete and broken releases
-
-4) **local database** :-
-   db is stored as `atlas.db` it stores groups, releases, articles, and indexing states
-
-5) **Terminal UI** :-
-   UI is simple and fast it also includes pagination
-
-6) **NZB generation** :-
-   generates NZB 1.1 files locally
-
-7) **SABnzbd integration** :-
-   it includes SABnzbd 5.0.4 and u can download files directly without leaving atlas, it auto configs with your NNTP provider
-
-8) **Background indexing** :-
-   indexer runs separately from the main terminal UI
-   start and stop without leaving atlas and progress state is saved in a local file
+- **NNTP indexing** - connects over SSL can index multiple groups at once
+- **Dynamic indexing** - switch between backfill only, live only, or dynamic mode
+- **release parsing** - handles multiple subject formats, detects complete/broken releases
+- **local database** - stores groups, releases, articles, and indexing states in `atlas.db`
+- **Terminal UI** - rich formatted menus, tables, and pagination
+- **NZB generation** - generates NZB 1.1 files locally
+- **SABnzbd integration** - bundled SABnzbd 5.0.4, auto configs with your provider, opens in browser on download
+- **Background indexing** - runs separately from the UI, start/stop without leaving atlas
+- **multi group indexing** - index multiple groups at the same time
+- **remove groups** - remove specific groups from the index list from the main menu
 
 ## Installation
 
 ### requirements
 - `requirements.txt`
-- An NNTP provider account
-- An NNTP server with SSL support
+- A NNTP provider account
+- A NNTP server with SSL support
 
 ### clone
 
@@ -63,27 +49,61 @@ pip install -r requirements.txt
 python main.py
 ```
 
-## Setup
-![first time setup](img/start.png)
-
-configure the indexer with the credentials your usenet provider gave you
-the config is stored locally as `config.json`
-u can change that anytime in the settings menu or by editing it directly
-
 ## Usage
 
-after starting atlas u will be greeted by this menu
-![Menu](img/menu.png)
+![Atlas](img/atlas.png)
 
-here u can index, search, select groups and change config and indexer settings
+U can index, search, select groups, remove groups, and change config and indexer settings
 
-## Downloading
+
+---
+
+## How to use
+
+### first time setup
+
+when u first run atlas it will ask for your usenet provider credentials
+
+![first time setup](img/login.png)
+
+fill in the fields like this:
+
+- **Host** - put your providers NNTP server address like `news.usenet.farm` (just the domain, no https or anything)
+- **Username** - your provider username
+- **Password** - your provider password
+- **Port (563)** - leave as `563` thats the SSL port
+
+press enter
+
+### selecting groups
+
+go to groups from the main menu, it'll show u all available groups on the server. search for what u want and add
+
+### indexing
+
+go back to the main menu and start indexer. atlas will start downloading headers from your selected groups. 
+
+### indexer modes 
+
+- **dynamic mode**:- it'll backfill old articles first then switch to live for new ones and repeats 
+- **backfill**:- it only indexes back from the latest release
+-  **live**:- it only indexes after the latest release nothing before it
+
+### Searching 
+There are currently 2 search modes **current group** and **all groups**
+
+1) **current group** only searches stuff in the group u have selected 
+2) **all groups** searches in all the groups u have indexed  
+
+
+### Downloading
 
 after picking a group and indexing it articles will start to appear u can select them and u have the option to make an NZB or download
 
-selecting download starts SABnzbd if it is not already running, generates an NZB for the selected release, and drops it into SABnzbd's watched directory which downloads it
+selecting download starts SABnzbd if it is not already running, generates an NZB for the selected release, and drops it into SABnzbd's watched directory which downloads it. it also opens SABnzbd in your browser so u can see the progress
 
-making an NZB on the other hand creates a nzb file which u can give to any usenet downloader and u can download it from there
+
+---
 
 ## Release
 
@@ -91,6 +111,12 @@ this release is intended for:
 
 - Architecture: x86_64
 - OS: Arch Linux
+
+## Special Thanks
+special thanks to hackclub community for inspiring me to make this project cuz ever since i was in this community it always pushed me to build something good this is my biggest and largest project yet it took me 40+ days and 50+ hours to make this 
+
+## AI usage 
+- AI was used to help stuff like fixing bugs, improve, refactor parts of the db, SABnzbd integration, and improving the terminal UI and Rich formatting 
 
 ## License
 
