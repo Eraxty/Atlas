@@ -191,10 +191,6 @@ def groups_menu(config):
 
                 chosen = groups[start + selected - 1]
 
-                #map the page choice back to the full list index
-                config["group"] = chosen
-                config["groups"] = list(dict.fromkeys((config.get("groups") or []) + [chosen]))
-
                 if not client.server:
                     try:
                         client.connect()
@@ -239,6 +235,10 @@ def groups_menu(config):
 
                             if answer not in ("y", "yes"):
                                 continue
+
+                #only add the group after user confirms they want to index it
+                config["group"] = chosen
+                config["groups"] = list(dict.fromkeys((config.get("groups") or []) + [chosen]))
 
                 #save the pick soo it sticks after restart
                 save_config(
