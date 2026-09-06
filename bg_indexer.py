@@ -48,18 +48,73 @@ class Stats:
         self.total_bytes = 0
         self.total_releases = 0
         self.start_time = time.time()
+        self.groups_indexed = set()
+        self.error_count = 0
+        self.group_stats = {}
 
-    def tick(self, articles, bytes_downloaded, releases = 0):
+    def tick(self, articles, bytes_downloaded, releases = 0, group = None):
         now = time.time()
         self.total_articles += articles
         self.total_bytes += bytes_downloaded
         self.total_releases += releases
         self.history.append({"t": now, "a": articles, "b": bytes_downloaded})
 
+        if group:
+            self.groups_indexed.add(group)
+            gs = self.group_stats.setdefault(group, {"articles": 0, "releases": 0})
+            gs["articles"] += articles
+            gs["releases"] += releases
+            gs["last_indexed"] = now
+
         cutoff = now - HISTORY_LEN
         self.history = [h for h in self.history if h["t"] >= cutoff]
 
+    def record_error(self):
+        self.error_count += 1
+
+    def _calc_speeds(self):
+        if len(self.history) < 2:
+            return 0, 0, 0, 0
+
+        a_speeds = []
+        b_speeds = []
+
+        for i in range(1, len(self.history)):
+            dt = self.history[i]["t"] - self.history[i - 1]["t"]
+            if dt > 0:
+                a_speeds.append(self.history[i]["a"] / dt)
+                b_speeds.append(self.history[i]["b"] / dt)
+
+        if not a_speeds:
+            return 0, 0, 0, 0
+
+        return (
+            max(a_speeds),
+            max(b_speeds),
+            sum(a_speeds) / len(a_speeds),
+            sum(b_speeds) / len(b_speeds),
+        )
+
+    def _db_size(self):
+        db = BASE_DIR / "atlas.db"
+
+        if db.exists():
+            return db.stat().st_size
+
+        return 0
+
     def write(self, group, mode, running, idle):
+        peak_a, peak_b, avg_a, avg_b = self._calc_speeds()
+
+        groups_data = {}
+
+        for name, gs in self.group_stats.items():
+            groups_data[name] = {
+                "articles": gs["articles"],
+                "releases": gs["releases"],
+                "last_indexed": gs.get("last_indexed", 0),
+            }
+
         try:
             data = {
                 "running": running,
@@ -71,10 +126,18 @@ class Stats:
                 "total_bytes": self.total_bytes,
                 "total_releases": self.total_releases,
                 "history": self.history[-HISTORY_LEN:],
+                "groups_indexed": len(self.groups_indexed),
+                "error_count": self.error_count,
+                "peak_art_speed": peak_a,
+                "peak_byte_speed": peak_b,
+                "avg_art_speed": avg_a,
+                "avg_byte_speed": avg_b,
+                "db_size": self._db_size(),
+                "groups": groups_data,
             }
             
             tmp = STATS_FILE.with_suffix(".json.tmp")
-            
+
             with open(tmp, "w") as f:
                 json.dump(data, f)
             
@@ -212,6 +275,7 @@ def main():
                     indexer.last_batch_articles,
                     indexer.last_batch_bytes,
                     indexer.last_batch_releases,
+                    group,
                 )
 
                 now = time.time()
@@ -241,6 +305,7 @@ def main():
                 if stop_requested:
                     break
 
+                stats.record_error()
                 errors[group] = errors.get(group, 0) + 1
 
                 if errors[group] < 3:
