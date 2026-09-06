@@ -3,3 +3,4 @@ prompt_toolkit
 keyring
 colorama
 rich
+plotext<6

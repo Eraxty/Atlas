@@ -13,6 +13,7 @@ from rich.table import Table
 from rich.text import Text
 from rich.console import Group
 from pathlib import Path
+
 import json
 import math
 import os
@@ -22,6 +23,7 @@ import sqlite3
 import subprocess
 import sys
 import time
+import select
 
 #paths
 BASE_DIR = Path(__file__).resolve().parent
@@ -743,8 +745,16 @@ def main():
                 config = load_config()
 
         elif choice == "5":
-            console.print("[yellow]coming soon[/yellow]")
-            prompt("[enter]")
+            from rich.live import Live
+            from src.dashboard import render as dash_render
+            try:
+                with Live(dash_render(80, 24), console = console, refresh_per_second = 2, screen = True) as live:
+                    while True:
+                        time.sleep(0.5)
+                        w, h = live.console.size
+                        live.update(dash_render(w, h))
+            except KeyboardInterrupt:
+                pass
 
         elif choice == "0":
             #byee
