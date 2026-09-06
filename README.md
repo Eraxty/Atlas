@@ -15,6 +15,9 @@ indexes newsgroups into a local SQLite database
 - **Background indexing** - runs separately from the UI, start/stop without leaving atlas
 - **multi group indexing** - index multiple groups at the same time
 - **remove groups** - remove specific groups from the index list from the main menu
+- **live dashboard** - real time stats, throughput graphs, and group status in terminal
+
+![Dashboard](img/dash.png)
 
 ## Installation
 

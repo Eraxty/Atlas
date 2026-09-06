@@ -126,14 +126,14 @@ def render(w, h):
     layout = Layout()
     layout.split_column(
         Layout(name = "top", size = 8),
-        Layout(name = "mid", size = 12),
+        Layout(name = "mid", size = 10),
         Layout(name = "bottom", ratio = 1),
     )
     layout["top"].split_row(
         Layout(status_panel(s, color, label)),
         Layout(totals_panel(s)),
     )
-    layout["mid"].update(speed_panel(s, w, 12))
+    layout["mid"].update(speed_panel(s, w, 10))
     layout["bottom"].update(groups_panel(s))
 
     footer = Text()
