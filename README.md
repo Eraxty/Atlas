@@ -16,6 +16,7 @@ indexes newsgroups into a local SQLite database
 - **multi group indexing** - index multiple groups at the same time
 - **remove groups** - remove specific groups from the index list from the main menu
 - **live dashboard** - real time stats, throughput graphs, and group status in terminal
+- **docker support** - run it in docker if u want, compose file included
 
 ![Dashboard](img/dash.png)
 
@@ -50,6 +51,52 @@ pip install -r requirements.txt
 
 ```bash
 python main.py
+```
+
+## Docker
+
+if u dont wanna deal with venvs and deps u can just run it in docker
+
+### with docker compose
+
+fill in your creds in `docker_compose.yml` then:
+
+```bash
+docker compose -f docker_compose.yml up -d
+docker compose -f docker_compose.yml exec atlas bash
+```
+
+to stop: `docker compose -f docker_compose.yml down`
+
+### env vars
+
+u can set these in docker_compose.yml instead with config files:
+
+- `ATLAS_NNTP_HOST` - ur provider server
+- `ATLAS_NNTP_PORT` - default 563
+- `ATLAS_NNTP_USER` - ur username
+- `ATLAS_NNTP_PASS` - ur password
+- `ATLAS_INDEX_MODE` - dynamic/live/backfill
+
+### backup the db
+
+the database lives in a docker volume, to copy it out:
+
+```bash
+docker compose -f docker_compose.yml exec atlas cp /app/data/atlas.db /app/atlas.db
+docker cp atlas:/app/atlas.db ./backup.db
+```
+
+### just docker (no compose)
+
+```bash
+docker build -t atlas .
+docker run -it --rm \
+  -e ATLAS_NNTP_HOST=news.usenet.farm \
+  -e ATLAS_NNTP_USER=youruser \
+  -e ATLAS_NNTP_PASS=yourpass \
+  -v atlas-data:/app/data \
+  atlas
 ```
 
 ## Usage
@@ -119,7 +166,7 @@ this release is intended for:
 special thanks to hackclub community for inspiring me to make this project cuz ever since i was in this community it always pushed me to build something good this is my biggest and largest project yet it took me 40+ days and 50+ hours to make this 
 
 ## AI usage 
-- AI was used to help stuff like fixing bugs, improve, refactor parts of the db, SABnzbd integration, and improving the terminal UI and Rich formatting 
+- AI was used to help stuff like fixing bugs, improve, refactor parts of the db, SABnzbd integration, making bg indexer and improving the terminal UI and Rich formatting and making dashboard look clean
 
 ## License
 

@@ -1,0 +1,15 @@
+.git
+__pycache__
+*.pyc
+*.pyo
+*.db
+*.log
+*.pid
+*.tmp
+.venv
+.env
+img/
+SABnzbd-5.0.4/
+agent/
+*.md
+LICENSE

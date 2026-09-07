@@ -26,7 +26,7 @@ import time
 import select
 
 #paths
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(os.environ.get("ATLAS_HOME", Path(__file__).resolve().parent))
 PID_FILE = BASE_DIR / "bg_indexer.pid"
 LOG_FILE = BASE_DIR / "bg_index.log"
 STATUS_FILE = BASE_DIR / "status.json"
