@@ -629,6 +629,7 @@ def main():
         else:
             menu.add_row("4.", "Settings")
         menu.add_row("5.", "Live Dashboard")
+        menu.add_row("6.", "AI Search")
         menu.add_row("0.", "Exit")
 
         full = Group(
@@ -755,6 +756,10 @@ def main():
                         live.update(dash_render(w, h))
             except KeyboardInterrupt:
                 pass
+
+        elif choice == "6":
+            from src.ai import ai_search
+            ai_search(config)
 
         elif choice == "0":
             #byee
