@@ -1,5 +1,7 @@
 from src.nntp_client import NNTPClient
-from src.parser import parse_subject
+from src.parser import parse_subject, group_articles, is_complete
+from src.mapper import headers_to_articles
+from src.database import save_releases_bulk
 
 
 def fmt_size(n):
@@ -24,7 +26,7 @@ def _get_password(config):
     return pwd or ""
 
 
-def fetch_releases(config, groups, keywords, max_per_group=500):
+def fetch_releases(config, groups, keywords, max_per_group = 500):
 
     password = _get_password(config)
 
@@ -93,3 +95,65 @@ def fetch_releases(config, groups, keywords, max_per_group=500):
         client.disconnect()
 
     return results
+
+
+def fetch_and_store(config, groups, keywords, max_per_group = 500):
+    password = _get_password(config)
+    client = NNTPClient(config["host"], config["username"], password, config["port"])
+    saved = 0
+
+    try:
+        client.connect()
+    
+    except Exception as e:
+        print(f"couldnt connect: {e}")
+        return 0
+
+    try:
+        for grp in groups:
+            try:
+                count, first, last, name = client.select_group(grp)
+            except Exception as e:
+                print(f"couldnt select {grp}: {e}")
+                continue
+
+            if last <= first:
+                print(f"{grp} empty")
+                continue
+
+            start = max(first, last - max_per_group + 1)
+            print(f"fetching {grp} [{start}-{last}]...")
+
+            try:
+                headers = list(client.fetch_headers(start, last))
+            except Exception as e:
+                print(f"fetch failed {grp}: {e}")
+                continue
+
+            articles = headers_to_articles(headers)
+            releases = group_articles(articles)
+            to_save = []
+
+            for rel in releases.values():
+                rel["complete"] = is_complete(rel)
+                rel["group"] = grp
+                rel["poster"] = rel["articles"][0].author
+                rel["date"] = rel["articles"][0].date
+
+                if keywords:
+                    name_lower = rel["name"].lower()
+    
+                    if not any(kw.lower() in name_lower for kw in keywords):
+                        continue
+
+                to_save.append(rel)
+
+            if to_save:
+                save_releases_bulk(to_save)
+                saved += len(to_save)
+                print(f"saved {len(to_save)} from {grp}")
+
+    finally:
+        client.disconnect()
+
+    return saved
