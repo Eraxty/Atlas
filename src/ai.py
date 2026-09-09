@@ -44,12 +44,20 @@ def ai_search(config):
             prompt("[enter]")
             continue
 
-        print(f"fetching from {len(groups)} groups...")
-        saved = fetch_and_store(config, groups, keywords)
-        print(f"saved {saved} releases\n")
-
         term = " ".join(keywords) if keywords else query
+
+        # check local db first
         total = count_all_releases(term)
+        print(f"found {total} in local db")
+
+        if total == 0:
+            print(f"fetching from {len(groups)} groups...")
+            saved = fetch_and_store(config, groups, keywords)
+            
+            print(f"saved {saved} releases\n")
+            total = count_all_releases(term)
+
+
         releases = search_all_releases(term, 0, 20)
 
         if not total:
