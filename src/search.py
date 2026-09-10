@@ -132,6 +132,22 @@ def get_release(conn, id):
 
 
 @with_db
+def recent_in_groups(conn, groups, limit = 20):
+    cur = conn.cursor()
+    qs = ",".join("?" * len(groups))
+
+    cur.execute(f"""
+        select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
+        from releases r
+        where r.group_name in ({qs})
+        order by r.id desc
+        limit ?
+    """, (*groups, limit))
+
+    return cur.fetchall()
+
+
+@with_db
 def get_articles(conn, release_id):
     cur = conn.cursor()
 

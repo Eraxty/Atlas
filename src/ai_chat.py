@@ -1,7 +1,4 @@
-import json
-import re
-import ollama
-
+import json, re, ollama
 
 SYSTEM = """You are Atlas AI, an indexer assistant.
 given what the user wants, respond with ONLY valid JSON (no markdown, no explanation).
@@ -28,7 +25,15 @@ def ask_ai(prompt):
         ],
         options = {"temperature": 0.1},
     )
+
     raw = resp["message"]["content"]
     raw = re.sub(r"```json\s*", "", raw)
     raw = re.sub(r"```\s*", "", raw)
-    return json.loads(raw.strip())
+
+    try:
+        return json.loads(raw.strip())
+    except json.JSONDecodeError:
+        match = re.search(r"\{.*\}", raw, re.DOTALL)
+        if match:
+            return json.loads(match.group())
+        return {"message": "couldnt understand ai response", "groups": [], "keywords": []}

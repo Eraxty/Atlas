@@ -1,7 +1,9 @@
 from src.config import load_config
 from src.ai_chat import ask_ai
 from src.ai_fetch import fetch_releases, fetch_and_store, fmt_size
-from src.search import search_all_releases, count_all_releases, get_articles
+from src.search import search_all_releases, count_all_releases, get_articles, recent_in_groups
+from src.download import download_release
+from src.nzb import generate_nzb
 from src.prompts import prompt
 
 from rich.console import Console
@@ -49,6 +51,7 @@ def ai_search(config):
         # check local db first
         total = count_all_releases(term)
         print(f"found {total} in local db")
+        saved = 0
 
         if total == 0:
             print(f"fetching from {len(groups)} groups...")
@@ -59,6 +62,11 @@ def ai_search(config):
 
 
         releases = search_all_releases(term, 0, 20)
+
+        if not total and saved:
+            #keywords too vague, just show what we just indexed
+            releases = recent_in_groups(groups, 20)
+            total = len(releases)
 
         if not total:
             print("nothing found")
@@ -75,7 +83,62 @@ def ai_search(config):
             table.add_row(str(i), r[1][:60], fmt_size(r[5]), r[2])
 
         console.print(table)
-        prompt("\n[enter]")
+        print("\n0. Back")
+
+        choice = prompt("\npick one: ").strip()
+
+        if choice == "0" or not choice:
+            continue
+
+        try:
+            selected = int(choice)
+        except ValueError:
+            print("invalid")
+            prompt("[enter]")
+            continue
+
+        if selected < 1 or selected > len(releases):
+            print("not on this page")
+            prompt("[enter]")
+            continue
+
+        release = releases[selected - 1]
+        rid = release[0]
+
+        while True:
+            print(f"\n{release[1][:60]}")
+            print("1. Download")
+            print("2. Save NZB")
+            print("0. Back")
+
+            act = prompt("\nChoice: ").strip()
+
+            if act == "1":
+                try:
+                    ok = download_release(rid)
+                except Exception as e:
+                    print(f"couldnt queue: {e}")
+                    ok = False
+                if ok:
+                    print("download queued")
+                prompt("[enter]")
+                break
+
+
+            if act == "2":
+                try:
+                    generate_nzb(rid)
+                except Exception as e:
+                    print(f"couldnt save nzb: {e}")
+                prompt("[enter]")
+                break
+
+
+            if act == "0":
+                break
+
+            print("invalid")
+            prompt("[enter]")
 
 
 def main():

@@ -4,3 +4,4 @@ keyring
 colorama
 rich
 plotext<6
+ollama

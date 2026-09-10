@@ -139,14 +139,13 @@ def fetch_and_store(config, groups, keywords, max_per_group = 500):
                 rel["group"] = grp
                 rel["poster"] = rel["articles"][0].author
                 rel["date"] = rel["articles"][0].date
-
-                if keywords:
-                    name_lower = rel["name"].lower()
-    
-                    if not any(kw.lower() in name_lower for kw in keywords):
-                        continue
-
                 to_save.append(rel)
+
+            if keywords and to_save:
+                matched = [r for r in to_save if any(kw.lower() in r["name"].lower() for kw in keywords)]
+
+                if matched:
+                    to_save = matched
 
             if to_save:
                 save_releases_bulk(to_save)
