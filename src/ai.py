@@ -1,6 +1,6 @@
 from src.config import load_config
 from src.ai_chat import ask_ai
-from src.ai_fetch import fetch_releases, fetch_and_store, fmt_size
+from src.ai_fetch import fetch_releases, fetch_and_store, fetch_group_candidates, fmt_size
 from src.search import search_all_releases, count_all_releases, get_articles, recent_in_groups
 from src.download import download_release
 from src.nzb import generate_nzb
@@ -29,7 +29,8 @@ def ai_search(config):
         print("\nthinking...\n")
 
         try:
-            plan = ask_ai(query)
+            candidate_groups = fetch_group_candidates(config)
+            plan = ask_ai(query, candidate_groups or None)
         except Exception as e:
             print(f"ai error: {e}")
             prompt("[enter]")
@@ -202,7 +203,8 @@ def main():
     print("\nthinking...")
 
     try:
-        plan = ask_ai(query)
+        candidate_groups = fetch_group_candidates(config)
+        plan = ask_ai(query, candidate_groups or None)
     except Exception as e:
         print(f"ai failed: {e}")
         return

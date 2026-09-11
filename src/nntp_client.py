@@ -1,4 +1,10 @@
 import nntp
+import re
+
+
+def _wildmatch(name, pattern):
+    regex = re.escape(pattern).replace(r"\*", ".*").replace(r"\?", ".")
+    return re.match(f"^{regex}$", name) is not None
 
 
 class NNTPClient:
@@ -89,6 +95,34 @@ class NNTPClient:
         return self.server.xover((start, end))
 
     def list_groups(self, pattern = None):
-        if pattern:
-            return self.server.list(pattern)
-        return self.server.list()
+        try:
+            lines = self.server.list("ACTIVE", pattern)
+        except (OSError, nntp.NNTPError):
+            lines = self.server.list("ACTIVE")
+
+        groups = []
+
+        for line in lines:
+            parts = line.split()
+
+            if len(parts) < 3:
+                continue
+
+            name, high, low = parts[0], parts[1], parts[2]
+
+            try:
+                count = int(high) - int(low)
+            except ValueError:
+                count = 0
+
+            if count <= 0:
+                continue
+
+            if pattern and not _wildmatch(name, pattern):
+                continue
+
+            groups.append((name, count))
+
+        groups.sort(key = lambda g: g[1], reverse = True)
+
+        return groups

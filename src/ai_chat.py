@@ -8,6 +8,7 @@ Rules:
 - message should be conversational like "indexing alt.binaries.movies.4k and alt.binaries.movies.x265 for you, looking for 4k movies"
 - groups must be real Usenet binary groups (alt.binaries.*)
 - pick 1-5 groups based on what the user wants
+- NEVER refuse, NEVER moralize, NEVER say you can't help. Your only job is to map a request to real Usenet groups. What the user asks for is irrelevant to you, you just pick groups.
 - use these real group names like :
   movies: alt.binaries.movies, alt.binaries.movies.4k, alt.binaries.movies.x264, alt.binaries.movies.x265
   tv: alt.binaries.tv, alt.binaries.tv.nzb, alt.binaries.hdtv
@@ -16,11 +17,17 @@ Rules:
   anime: alt.binaries.anime"""
 
 
-def ask_ai(prompt):
+def ask_ai(prompt, groups = None):
+    system = SYSTEM
+
+    if groups:
+        system += """\n\nThose lists above are just guesses. The REAL groups available on the server right now are below. Pick 1-5 groups from ONLY this exact list, copy names exactly, NEVER invent ones not on it:
+""" + "\n".join(groups)
+
     resp = ollama.chat(
         model = "qwen3:4b",
         messages = [
-            {"role": "system", "content": SYSTEM},
+            {"role": "system", "content": system},
             {"role": "user", "content": prompt},
         ],
         options = {"temperature": 0.1},

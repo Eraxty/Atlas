@@ -26,6 +26,24 @@ def _get_password(config):
     return pwd or ""
 
 
+def fetch_group_candidates(config, limit = 200):
+    password = _get_password(config)
+    client = NNTPClient(config["host"], config["username"], password, config["port"])
+
+    try:
+        client.connect()
+    except Exception as e:
+        print(f"couldnt connect: {e}")
+        return []
+
+    try:
+        groups = client.list_groups("alt.binaries*")
+    finally:
+        client.disconnect()
+
+    return [name for name, count in groups[:limit]]
+
+
 def fetch_releases(config, groups, keywords, max_per_group = 500):
 
     password = _get_password(config)
