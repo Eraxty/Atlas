@@ -532,7 +532,7 @@ def do_settings():
             console.print(f"[red]purge failed: {e}[/red]")
         else:
             if freed:
-                console.print(f"[green] broken releases, freed {fmt_size(freed)}[/green]")
+                console.print(f"[green]deleted broken releases, freed {fmt_size(freed)}[/green]")
             else:
                 console.print("[dim]nothing broken to purge[/dim]")
         prompt("[enter]")
@@ -640,10 +640,9 @@ def main():
         menu.add_row("3.", "Groups")
         if len(groups) > 1:
             menu.add_row("4.", "Remove group")
-        else:
-            menu.add_row("4.", "Settings")
         menu.add_row("5.", "Live Dashboard")
         menu.add_row("6.", "AI Search")
+        menu.add_row("7.", "Settings")
         menu.add_row("0.", "Exit")
 
         full = Group(
@@ -755,9 +754,6 @@ def main():
                     console.print(f"[green]removed {chosen}[/green]")
                     prompt("[enter]")
                     break
-            else:
-                do_settings()
-                config = load_config()
 
         elif choice == "5":
             from rich.live import Live
@@ -774,6 +770,10 @@ def main():
         elif choice == "6":
             from src.ai import ai_search
             ai_search(config)
+
+        elif choice == "7":
+            do_settings()
+            config = load_config()
 
         elif choice == "0":
             #byee

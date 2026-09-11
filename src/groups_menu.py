@@ -84,18 +84,12 @@ def groups_menu(config):
             clear()
 
             console.print(panel("[bold cyan]Groups[/bold cyan]", "cyan"))
-            console.print("[dim]Search for groups to add. Append 'all' to include text groups.[/dim]\n")
+            console.print("[dim]Search for binary groups to add.[/dim]\n")
 
             query = prompt("Search: ").strip()
 
             if not query:
                 break
-
-            #"something all" includes every group, not just binaries
-            search_all = False
-            if query.lower().endswith(" all"):
-                search_all = True
-                query = query[:-4].strip()
 
             if len(query) < 3:
                 console.print("[yellow]Search at least 3 characters bruh[/yellow]\n")
@@ -156,6 +150,8 @@ def groups_menu(config):
                     console.print("[cyan]p.[/cyan] Previous Page")
                 if end < len(groups):
                     console.print("[cyan]n.[/cyan] Next Page")
+                if total_pages > 1:
+                    console.print("[cyan]g.[/cyan] Go to Page")
 
                 choice = prompt("\nChoice: ").strip()
 
@@ -175,6 +171,21 @@ def groups_menu(config):
                         page += 1
                     else:
                         console.print("[dim]already on the last page[/dim]")
+                        prompt("[enter]")
+                    continue
+
+                if choice == "g":
+                    goto = prompt(f"Go to page (1-{total_pages}): ")
+
+                    try:
+                        target = int(goto)
+                    except ValueError:
+                        target = -1
+
+                    if 1 <= target <= total_pages:
+                        page = target - 1
+                    else:
+                        console.print(f"[red]page must be between 1 and {total_pages}[/red]")
                         prompt("[enter]")
                     continue
 
