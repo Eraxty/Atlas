@@ -36,11 +36,13 @@ def load_groups(client, host, pattern = None):
     groups = []
 
     try:
-        for line in client.list_groups(pattern):
-            line = line.strip()
-
-            if line:
-                groups.append(line.split()[0])
+        for item in client.list_groups(pattern):
+            if isinstance(item, tuple):
+                groups.append(item[0])
+            else:
+                item = item.strip()
+                if item:
+                    groups.append(item.split()[0])
 
     except (OSError, nntp.NNTPError):
         #server doesnt support wildcards soo load everything and filter client side

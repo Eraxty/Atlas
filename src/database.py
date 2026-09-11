@@ -343,6 +343,23 @@ def save_releases_bulk(releases):
 
 
 @with_db
+def purge_broken(conn):#unparsable headers arent stored 
+    cur = conn.cursor()
+
+    freed = cur.execute("""
+        select coalesce(sum(bytes), 0) from articles
+        where release_id in (select id from releases where complete = 0)
+    """).fetchone()[0]
+
+    cur.execute("delete from releases where complete = 0")
+    cur.execute("delete from articles where release_id not in (select id from releases)")
+
+    conn.commit()
+
+    return freed
+
+
+@with_db
 def get_releases(conn):
     cursor = conn.cursor()
 

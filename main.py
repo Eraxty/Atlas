@@ -1,5 +1,5 @@
 from src.config import load_config, save_config
-from src.database import create_db
+from src.database import create_db, purge_broken
 from src.download import download_release
 from src.groups_menu import groups_menu
 from src.nzb import generate_nzb
@@ -481,6 +481,7 @@ def do_settings():
     menu.add_column("label", style = "white")
     menu.add_row("1.", "Change config")
     menu.add_row("2.", f"Change indexer mode ({config.get('index_mode', 'dynamic')})")
+    menu.add_row("3.", "Purge broken releases")
     menu.add_row("0.", "Back")
     console.print(panel(menu, "blue"))
 
@@ -523,6 +524,19 @@ def do_settings():
 
             console.print(f"[green]indexer mode set to {modes[mode]}[/green]")
             return
+
+    if choice == 3:
+        try:
+            freed = purge_broken()
+        except sqlite3.Error as e:
+            console.print(f"[red]purge failed: {e}[/red]")
+        else:
+            if freed:
+                console.print(f"[green] broken releases, freed {fmt_size(freed)}[/green]")
+            else:
+                console.print("[dim]nothing broken to purge[/dim]")
+        prompt("[enter]")
+        return
 
     if choice != 1:
         return
