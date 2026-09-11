@@ -52,6 +52,7 @@ def ai_search(config):
         total = count_all_releases(term)
         print(f"found {total} in local db")
         saved = 0
+        vague = False
 
         if total == 0:
             print(f"fetching from {len(groups)} groups...")
@@ -60,85 +61,127 @@ def ai_search(config):
             print(f"saved {saved} releases\n")
             total = count_all_releases(term)
 
-
-        releases = search_all_releases(term, 0, 20)
-
-        if not total and saved:
-            #keywords too vague, just show what we just indexed
-            releases = recent_in_groups(groups, 20)
-            total = len(releases)
+            if not total and saved:
+                vague = True    
+                total = saved
 
         if not total:
             print("nothing found")
             prompt("[enter]")
             continue
 
-        table = Table(title = f"{total} results for '{term}'")
-        table.add_column("#", width = 4, justify = "right")
-        table.add_column("Name", ratio = 3)
-        table.add_column("Size", width = 10, justify = "right")
-        table.add_column("Group", ratio = 1)
-
-        for i, r in enumerate(releases, 1):
-            table.add_row(str(i), r[1][:60], fmt_size(r[5]), r[2])
-
-        console.print(table)
-        print("\n0. Back")
-
-        choice = prompt("\npick one: ").strip()
-
-        if choice == "0" or not choice:
-            continue
-
-        try:
-            selected = int(choice)
-        except ValueError:
-            print("invalid")
-            prompt("[enter]")
-            continue
-
-        if selected < 1 or selected > len(releases):
-            print("not on this page")
-            prompt("[enter]")
-            continue
-
-        release = releases[selected - 1]
-        rid = release[0]
+        page = 0
 
         while True:
-            print(f"\n{release[1][:60]}")
-            print("1. Download")
-            print("2. Save NZB")
-            print("0. Back")
+            if vague:
+                releases = recent_in_groups(groups, page, 15)
+            else:
+                releases = search_all_releases(term, page, 15)
 
-            act = prompt("\nChoice: ").strip()
+            total_pages = max(1, math.ceil(total / 15))
 
-            if act == "1":
+            if page > total_pages - 1:
+                page = total_pages - 1
+                continue
+
+            table = Table(title = f"{total} results for '{term}'")
+            table.add_column("#", width = 4, justify = "right")
+            table.add_column("Name", ratio = 3)
+            table.add_column("Size", width = 10, justify = "right")
+            table.add_column("Group", ratio = 1)
+
+            for i, r in enumerate(releases, 1):
+                table.add_row(str(i), r[1][:60], fmt_size(r[5]), r[2])
+
+            console.print(table)
+            print(f"[page {page + 1}/{total_pages}]")
+            print("0. Back   n. Next   p. Prev   g. Goto page")
+
+            choice = prompt("\nChoice: ").strip()
+
+            if choice == "p":
+                if page > 0:
+                    page -= 1
+                else:
+                    print("already on the first page")
+                    prompt("[enter]")
+                continue
+
+            if choice == "n":
+                if page < total_pages - 1:
+                    page += 1
+                else:
+                    print("already on the last page")
+                    prompt("[enter]")
+                continue
+
+            if choice == "g":
+                goto = prompt(f"page (1-{total_pages}): ")
+
                 try:
-                    ok = download_release(rid)
-                except Exception as e:
-                    print(f"couldnt queue: {e}")
-                    ok = False
-                if ok:
-                    print("download queued")
+                    target = int(goto)
+                except ValueError:
+                    target = -1
+
+                if 1 <= target <= total_pages:
+                    page = target - 1
+                else:
+                    print(f"page must be between 1 and {total_pages}")
+                    prompt("[enter]")
+                continue
+
+            if choice == "0" or not choice:
+                break
+
+            try:
+                selected = int(choice)
+            except ValueError:
+                print("invalid")
                 prompt("[enter]")
-                break
+                continue
 
-
-            if act == "2":
-                try:
-                    generate_nzb(rid)
-                except Exception as e:
-                    print(f"couldnt save nzb: {e}")
+            if selected < 1 or selected > len(releases):
+                print("not on this page")
                 prompt("[enter]")
-                break
+                continue
+
+            release = releases[selected - 1]
+            rid = release[0]
+
+            while True:
+                print(f"\n{release[1][:60]}")
+                print("1. Download")
+                print("2. Save NZB")
+                print("0. Back")
+
+                act = prompt("\nChoice: ").strip()
+
+                if act == "1":
+                    try:
+                        ok = download_release(rid)
+                    except Exception as e:
+                        print(f"couldnt queue: {e}")
+                        ok = False
+                    if ok:
+                        print("download queued")
+                    prompt("[enter]")
+                    break
 
 
-            if act == "0":
-                break
+                if act == "2":
+                    try:
+                        generate_nzb(rid)
+                    except Exception as e:
+                        print(f"couldnt save nzb: {e}")
+                    prompt("[enter]")
+                    break
 
-            print("invalid")
-            prompt("[enter]")
+
+                if act == "0":
+                    break
+
+                print("invalid")
+                prompt("[enter]")
 
 
 def main():
