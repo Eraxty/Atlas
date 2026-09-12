@@ -10,3 +10,4 @@ bg_index.log
 bg_indexer.pid
 config.json.tmp
 stats.json
+profile.json

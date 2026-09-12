@@ -84,7 +84,7 @@ def groups_menu(config):
             clear()
 
             console.print(panel("[bold cyan]Groups[/bold cyan]", "cyan"))
-            console.print("[dim]Search for binary groups to add.[/dim]\n")
+            console.print("[dim]Search for newsgroups to add.[/dim]\n")
 
             query = prompt("Search: ").strip()
 
@@ -109,10 +109,7 @@ def groups_menu(config):
 
             #client side filtering if server doesnt support wildcards
             groups = [g for g in groups if query.lower() in g.lower()]
-
-            #default skips text groups
-            if not search_all:
-                groups = [g for g in groups if ".binaries." in g.lower()]
+            groups = [g for g in groups if ".binaries." in g.lower()]
 
             if not groups:
                 console.print("[red]No matching groups found[/red]\n")
@@ -214,31 +211,54 @@ def groups_menu(config):
                         continue
 
                 try:
-                    count, first, last, _ = client.select_group(config["group"])
+                    count, first, last, _ = client.select_group(chosen)
 
                 except (OSError, nntp.NNTPError):
                     client.disconnect()
 
                     try:
                         client.connect()
-                        count, first, last, _ = client.select_group(config["group"])
+                        count, first, last, _ = client.select_group(chosen)
 
                     except (OSError, nntp.NNTPError) as e:
                         console.print(f"[red]couldnt select group: {e}[/red]")
                         prompt("[enter]")
                         continue
 
-                #empty group has last == first soo skip the sample
-                if last > first:
-                    try:
-                        #sample the last 50 posts to see what kinda group it is
-                        headers = list(client.fetch_headers(max(first, last - 49), last))
-                    except nntp.NNTPTemporaryError:
-                        answer = prompt("cant sample this group (empty range?). index anyway? (y/n) ").strip().lower()
+                #empty group has last == first soo skip it
+                if last <= first:
+                    groups = [g for g in groups if g != chosen]
+                    config["groups"] = [g for g in (config.get("groups") or []) if g != chosen]
 
-                        if answer not in ("y", "yes"):
-                            continue
-                    else:
+                    save_config(
+                        config["host"],
+                        config["username"],
+                        config.get("password", ""),
+                        config["port"],
+                        config["group"],
+                        config.get("index_mode", "dynamic"),
+                        config.get("groups")
+                    )
+                    continue
+
+                try:
+                    #sample the last 50 posts to see what kinda group it is
+                    headers = list(client.fetch_headers(max(first, last - 49), last))
+                except nntp.NNTPTemporaryError:
+                    groups = [g for g in groups if g != chosen]
+                    config["groups"] = [g for g in (config.get("groups") or []) if g != chosen]
+
+                    save_config(
+                        config["host"],
+                        config["username"],
+                        config.get("password", ""),
+                        config["port"],
+                        config["group"],
+                        config.get("index_mode", "dynamic"),
+                        config.get("groups")
+                    )
+                    continue
+                else:
                         for _, header in headers: #how many of the sample look like binary releases
                             header.setdefault("subject", "")
                         parsed = sum(1 for _, header in headers if parse_subject(header["subject"]))
