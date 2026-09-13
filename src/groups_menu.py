@@ -4,7 +4,6 @@ import nntp
 
 from src.nntp_client import NNTPClient
 from src.config import save_config
-from src.parser import parse_subject
 from src.prompts import prompt
 from src.colors import red, yellow, dim, reset
 from rich.console import Console
@@ -23,6 +22,24 @@ def clear():
 
 
 _groups_cache = {}
+_empty = {}
+
+
+def _page_nonempty(client, page_groups):
+    kept = []
+
+    for g in page_groups:
+        if g not in _empty:
+            try:
+                count, first, last, _ = client.select_group(g)
+                _empty[g] = last <= first
+            except (OSError, nntp.NNTPError):
+                _empty[g] = True
+
+        if not _empty[g]:
+            kept.append(g)
+
+    return kept
 
 
 def load_groups(client, host, pattern = None):
@@ -123,6 +140,10 @@ def groups_menu(config):
 
                 start = page * 30
                 end = min(start + 30, len(groups))
+                
+                #check the groups on the page if its empty
+                page_groups = _page_nonempty(client, groups[start:end])
+                
                 #30 per page
                 total_pages = max(1, (len(groups) + 29) // 30)
 
@@ -137,7 +158,7 @@ def groups_menu(config):
                 table.add_column("#", width = 4, justify = "right")
                 table.add_column("Group", ratio = 1)
 
-                for i, group in enumerate(groups[start:end], 1):
+                for i, group in enumerate(page_groups, 1):
                     table.add_row(str(i), group)
 
                 console.print(table)
@@ -205,71 +226,12 @@ def groups_menu(config):
                     try:
                         client.connect()
 
-                    except (OSError, nntp.NNTPReplyError):
+                    except (OSError, nntp.NNTPError):
                         console.print("[red]couldnt connect to server[/red]")
                         prompt("[enter]")
                         continue
 
-                try:
-                    count, first, last, _ = client.select_group(chosen)
-
-                except (OSError, nntp.NNTPError):
-                    client.disconnect()
-
-                    try:
-                        client.connect()
-                        count, first, last, _ = client.select_group(chosen)
-
-                    except (OSError, nntp.NNTPError) as e:
-                        console.print(f"[red]couldnt select group: {e}[/red]")
-                        prompt("[enter]")
-                        continue
-
-                #empty group has last == first soo skip it
-                if last <= first:
-                    groups = [g for g in groups if g != chosen]
-                    config["groups"] = [g for g in (config.get("groups") or []) if g != chosen]
-
-                    save_config(
-                        config["host"],
-                        config["username"],
-                        config.get("password", ""),
-                        config["port"],
-                        config["group"],
-                        config.get("index_mode", "dynamic"),
-                        config.get("groups")
-                    )
-                    continue
-
-                try:
-                    #sample the last 50 posts to see what kinda group it is
-                    headers = list(client.fetch_headers(max(first, last - 49), last))
-                except nntp.NNTPTemporaryError:
-                    groups = [g for g in groups if g != chosen]
-                    config["groups"] = [g for g in (config.get("groups") or []) if g != chosen]
-
-                    save_config(
-                        config["host"],
-                        config["username"],
-                        config.get("password", ""),
-                        config["port"],
-                        config["group"],
-                        config.get("index_mode", "dynamic"),
-                        config.get("groups")
-                    )
-                    continue
-                else:
-                        for _, header in headers: #how many of the sample look like binary releases
-                            header.setdefault("subject", "")
-                        parsed = sum(1 for _, header in headers if parse_subject(header["subject"]))
-
-                        if parsed == 0:
-                            answer = prompt(f"none of {len(headers)} look like binaries, probs a text group. index anyway? (y/n) ").strip().lower()
-
-                            if answer not in ("y", "yes"):
-                                continue
-
-                #only add the group after user confirms they want to index it
+                #add the group right away, emptiness was already checked before display
                 config["group"] = chosen
                 config["groups"] = list(dict.fromkeys((config.get("groups") or []) + [chosen]))
 

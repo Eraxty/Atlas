@@ -566,22 +566,19 @@ def do_settings():
     if choice != 1:
         return
 
-    host = prompt(f"Host ({config['host']}): ").strip() or config["host"]
-    username = prompt(f"Username ({config['username']}): ").strip() or config["username"]
-    password = prompt("Password: ").strip() or config.get("password", "")
+    host = prompt("Host: ").strip() or config["host"]
+    username = prompt("Username: ").strip() or config["username"]
 
     while True:
-        group = prompt("Newsgroup: ").strip()
+        password = prompt("Password: ").strip()
 
-        if not group:
-            group = config["group"]
-        if group:
+        if password:
             break
-        console.print("[yellow]newsgroup cant be empty[/yellow]\n")
+        console.print("[yellow]password cant be empty[/yellow]\n")
 
-    port = ask(f"Port ({config['port']}): ", config["port"])
+    port = ask("Port (563): ", 563)
 
-    save_config(host, username, password, port, group, config.get("index_mode", "dynamic"))
+    save_config(host, username, password, port, config["group"], config.get("index_mode", "dynamic"), config.get("groups"))
     
     console.print("[green]saved[/green]")
 

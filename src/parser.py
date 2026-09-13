@@ -49,6 +49,23 @@ def parse_subject(subject):
 
         release_name = new_name
 
+    if re.search(r'[0-9a-f]{24,}', release_name.lower()):
+        return None
+
+    #remove random junk
+    stem = re.sub(r'\.[a-z0-9]{1,4}$', '', release_name, flags = re.IGNORECASE)
+
+    if not re.search(r'[\s._-]', stem):
+        
+        if re.match(r'^[0-9a-f]{15,}$', stem.lower()):
+            return None
+        
+        if len(re.findall(r'\d+', stem)) > 1 and re.fullmatch(r'[a-z0-9]+', stem.lower()) and len(stem) > 15:
+            return None
+        
+        if not re.search(r'[aeiouy]{2,}', stem.lower()):
+            return None
+
     #some formats only give filename no part numbers
     if len(match.groups()) >= 3:
         part = int(match.group(2))
