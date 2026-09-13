@@ -6,7 +6,6 @@ from src.nzb import generate_nzb
 from src.prompts import prompt
 from src.sab import rotate_log
 from src.search import count_all_releases, count_releases, get_articles, search_all_releases, search_releases
-from src.learn import load, top, learn, PROFILE_FILE
 from src.colors import reset, bold, dim, red, green, yellow, cyan
 from rich.console import Console
 from rich.panel import Panel
@@ -342,8 +341,6 @@ def do_search(config):
         if not query or query == "0":
             continue
 
-        learn(query)
-
         page = 0
 
         # terminal size
@@ -457,7 +454,6 @@ def do_search(config):
 
                     if ok:
                         console.print(panel("[green]Download queued it is downloading in background.[/green]\n[dim]Finished files land ~/Downloads[/dim]", "green"))
-                    learn(release[1], "download")
                     prompt("[enter]")
                     break
 
@@ -466,7 +462,6 @@ def do_search(config):
                         generate_nzb(choice_id)
                     except Exception as e:
                         console.print(f"[red]couldnt save nzb: {e}[/red]")
-                    learn(release[1], "download")
                     prompt("[enter]")
                     break
                 if choice == "0":
@@ -474,30 +469,6 @@ def do_search(config):
 
                 console.print("[red]invalid[/red]")
                 prompt("[enter]")
-
-
-def show_cerebrum():
-    clear()
-
-    prof = load()
-    terms = top()
-
-    if not terms:
-        console.print(panel("nothing learned yet, search or download some stuff", "magenta"))
-        prompt("[enter]")
-    
-        return
-
-    text = Text()
-    
-    text.append(f"searches: {prof.get('searches', 0)}   downloads: {prof.get('downloads', 0)}\n\n", style = "bold")
-    
-    for word, weight in terms:
-        text.append(f"{word.ljust(20)} {'#' * int(weight * 4)} {weight:.2f}\n", style = "cyan")
-
-    console.print(panel(text, "magenta"))
-    
-    prompt("[enter]")
 
 
 def do_settings():
@@ -583,7 +554,6 @@ def do_settings():
             LOG_FILE,
             STATUS_FILE,
             STATS_FILE,
-            PROFILE_FILE,
         ]
 
         for f in files:
@@ -698,7 +668,6 @@ def main():
         menu.add_row("5.", "Live Dashboard")
         menu.add_row("6.", "AI Search")
         menu.add_row("7.", "Settings")
-        menu.add_row("8.", "Cerebrum")
         menu.add_row("0.", "Exit")
 
         full = Group(
@@ -830,9 +799,6 @@ def main():
         elif choice == "7":
             do_settings()
             config = load_config()
-
-        elif choice == "8":
-            show_cerebrum()
 
         elif choice == "0":
             #byee
