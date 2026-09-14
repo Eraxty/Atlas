@@ -7,7 +7,6 @@ services:
     tty: true
     volumes:
       - atlas-data:/app/data
-      - ./config.json:/app/config.json
     environment:
       - ATLAS_NNTP_HOST=news.usenet.farm
       - ATLAS_NNTP_PORT=563

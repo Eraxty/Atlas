@@ -23,6 +23,10 @@ WATCHED_DIR = CONFIG_DIR / "watched"
 process = None
 
 
+def available():
+    return SAB_DIR.exists()
+
+
 def configure_servers():
     atlas = load_atlas_config()
 

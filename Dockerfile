@@ -7,10 +7,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-ENV ATLAS_HOME = /app
-ENV PYTHONUNBUFFERED = 1
-
-EXPOSE 8080
+ENV ATLAS_HOME=/app/data
+ENV PYTHONUNBUFFERED=1
 
 VOLUME ["/app/data"]
 

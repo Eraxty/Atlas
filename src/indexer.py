@@ -67,10 +67,14 @@ class Indexer:
             self.backfill(group, state, int(first), int(last))
 
         elif self._gs(group)["phase"] == "live":
+            st = self._gs(group)
             self.live(group, state, int(last))
-            
+            st["phase"] = "backfill"
+
         else:
+            st = self._gs(group)
             self.backfill(group, state, int(first), int(last))
+            st["phase"] = "live"
 
     def live(self, group, state, last):
         st = self._gs(group)

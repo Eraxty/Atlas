@@ -143,7 +143,7 @@ def start_background_indexer():
 
     try:
         subprocess.Popen(
-            [sys.executable, "-u", "bg_indexer.py"],
+            [sys.executable, "-u", str(Path(__file__).resolve().parent / "bg_indexer.py")],
             cwd = BASE_DIR,
             stdin = subprocess.DEVNULL,
             stdout = log_file,

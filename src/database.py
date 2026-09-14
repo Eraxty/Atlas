@@ -1,8 +1,9 @@
 import sqlite3
 from pathlib import Path
+import os
 from functools import wraps
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(os.environ.get("ATLAS_HOME", Path(__file__).resolve().parent.parent))
 database = BASE_DIR / "atlas.db"
 
 
@@ -111,6 +112,7 @@ def _rebuild_articles_unique(cursor):
 
 
 def create_db():
+    database.parent.mkdir(parents = True, exist_ok = True)
     conn = sqlite3.connect(database, timeout = 30)
 
     try:

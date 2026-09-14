@@ -3,7 +3,7 @@ from src.database import create_db
 from src.nntp_client import NNTPClient
 from src.indexer import Indexer
 from src.colors import red, yellow, reset
-from src.sab import start as start_sab, is_running as sab_running, wait_ready as sab_wait_ready
+from src.sab import start as start_sab, is_running as sab_running, wait_ready as sab_wait_ready, available as sab_available
 from pathlib import Path
 import os
 import signal
@@ -11,7 +11,7 @@ import sys
 import time
 import json
 
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(os.environ.get("ATLAS_HOME", Path(__file__).resolve().parent))
 STATUS_FILE = BASE_DIR / "status.json"
 STATS_FILE = BASE_DIR / "stats.json"
 PID_FILE = BASE_DIR / "bg_indexer.pid"
@@ -189,7 +189,7 @@ def main():
     indexer = Indexer(client, mode = config.get("index_mode", "dynamic"))
 
     #start sabnzbd so its ready when you wanna download
-    if not sab_running():
+    if sab_available() and not sab_running():
         start_sab()
         sab_wait_ready()
 
