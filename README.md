@@ -1,93 +1,151 @@
+<div align="center">
+
 # Atlas
 
-self hosted usenet indexer
-indexes newsgroups into a local SQLite database
+**A self hosted Usenet indexer that lives in your terminal.**
+
+Atlas is a Usenet indexer that indexes releases from NNTP newsgroups and stores them locally in SQLite. It comes with features like AI-powered search, a live dashboard, direct NZB downloads through SABnzbd, and more.
+
+
+[![License: WTFPL](https://img.shields.io/badge/license-WTFPL-blue.svg)](LICENSE)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+![Platform](https://img.shields.io/badge/platform-Arch%20Linux%20(x86__64)-informational)
+![Docker](https://img.shields.io/badge/docker-supported-2496ED?logo=docker&logoColor=white)
+
+[Features](#features) • [Install](#installation) • [Usage](#usage) • [Docker](#docker) • [FAQ](#faq)
+
+![Atlas](img/main.png)
+
+</div>
+
+---
+
+## Why Atlas
+
+Most Usenet indexers are either a paid service or a heavyweight self hosted stack (\*arr style) built for automation pipelines, not for someone who just wants to search and grab something from the terminal. Atlas is the middle ground: a single Python app, a local SQLite database, and a search you can describe in plain English.
 
 ## Features
 
-- **NNTP indexing** - connects over SSL can index multiple groups at once
-- **Dynamic indexing** - switch between backfill only, live only, or dynamic mode
-- **release parsing** - handles multiple subject formats, detects complete/broken releases
-- **local database** - stores groups, releases, articles, and indexing states in `atlas.db`
-- **Terminal UI** - rich formatted menus, tables, and pagination
-- **NZB generation** - generates NZB 1.1 files locally
-- **SABnzbd integration** - bundled SABnzbd 5.0.4, auto configs with your provider, opens in browser on download
-- **Background indexing** - runs separately from the UI, start/stop without leaving atlas
-- **multi group indexing** - index multiple groups at the same time
-- **remove groups** - remove specific groups from the index list from the main menu
-- **live dashboard** - real time stats, throughput graphs, and group status in terminal
-- **docker support** - run it in docker if u want, compose file included
+| | |
+|---|---|
+| **NNTP indexing** | Connects over SSL, rotates through all your groups automatically |
+| **Dynamic indexing** | Switch between backfill only, live only, or dynamic mode |
+| **Release parsing** | Handles multiple subject formats, flags complete vs. broken releases |
+| **AI search** | Describe what you want in plain words — Atlas picks the groups and keywords itself |
+| **Live dashboard** | Real time stats, throughput graphs, and group status in terminal |
+| **NZB generation** | Generates NZB 1.1 files locally, no third party service |
+| **SABnzbd integration** | Bundled SABnzbd 5.0.4, auto configured, opens in browser on download |
+| **Background indexing** | Runs independently of the UI, start/stop without closing Atlas |
+| **Local database** | Groups, releases, articles, and indexing state all in `atlas.db` |
+| **Docker support** | Compose file included if you'd rather not manage a venv |
 
-![Dashboard](img/dash.png)
+![Atlas dashboard](img/dash.png)
 
 ## Installation
 
-### requirements
-- `requirements.txt`
-- A NNTP provider account
-- A NNTP server with SSL support
-
-### clone
+**Requirements**
+- Python 3.10+
+- A Usenet provider account (NNTP, SSL enabled)
 
 ```bash
 git clone https://github.com/Eraxty/Atlas
 cd Atlas
-```
-
-### create a venv
-
-```bash
 python -m venv .venv
 source .venv/bin/activate
-```
-
-### install dependencies
-
-```bash
 pip install -r requirements.txt
-```
-
-### running the program
-
-```bash
 python main.py
 ```
 
+Prefer containers? Skip to [Docker](#docker).
+
+## Usage
+
+![Setup](img/login.png)
+
+### First time setup
+
+On first run, Atlas asks for your provider credentials:
+
+| Field | What to enter |
+|---|---|
+| **Host** | Your provider's NNTP server, domain only — e.g. `news.usenet.farm` |
+| **Username** | Your provider username |
+| **Password** | Your provider password |
+| **Port** | `563` (SSL) — leave as default |
+
+Your password is stored in your OS keyring when possible. If keyring isn't available it falls back to `config.json`.
+
+### Selecting groups
+
+**Groups → search → add.** Text only groups are filtered out by default, and empty groups never show up.
+
+### Indexing
+
+Start the indexer from the main menu. Atlas begins pulling headers for every group you've selected. It also fires up the bundled SABnzbd in the background so downloads are ready when you want them. Pick a mode depending on what you need:
+
+| Mode | Behavior |
+|---|---|
+| `dynamic` | Alternates backfill and live passes — keeps up with new posts while building history |
+| `backfill` | Indexes backward from the latest release only |
+| `live` | Indexes forward from the latest release only — nothing older |
+
+### Searching
+
+Two search scopes are available:
+
+- **Current group** — searches only the group you're in
+- **All groups** — searches everything you've indexed
+
+**AI search** lets you describe what you want in plain language (`find me 4k hdr movies`) and Atlas figures out the groups and keywords, fetching anything missing from your database. Requires [Ollama](https://ollama.com) running locally with a model `qwen3:4b`. Speed depends on your hardware. 
+
+### Downloading
+
+Select a release and choose to generate an NZB or download directly. Downloading will:
+
+1. Start SABnzbd if it isn't already running
+2. Generate an NZB for the selected release
+3. Drop it into SABnzbd's watched folder
+4. Open SABnzbd in your browser so you can watch progress
+
+Finished files land in `~/Downloads/complete`.
+
+### Settings
+
+- **Change config** — edit server credentials or groups without a full reset
+- **Change indexer mode** — same three modes as above
+- **Purge broken releases** — deletes incomplete releases, frees space
+- **Wipe DB and cache** — full reset: database, logs, status, stats (stop the indexer first)
+
 ## Docker
 
-if u dont wanna deal with venvs and deps u can just run it in docker
+### With Docker Compose
 
-### with docker compose
-
-fill in your creds in `docker_compose.yml` then:
+Fill in your credentials in `docker_compose.yml`, then:
 
 ```bash
 docker compose -f docker_compose.yml up -d
 docker compose -f docker_compose.yml exec atlas bash
 ```
 
-to stop: `docker compose -f docker_compose.yml down`
-
-### env vars
-
-u can set these in docker_compose.yml instead with config files:
-
-- `ATLAS_NNTP_HOST` - ur provider server
-- `ATLAS_NNTP_PORT` - default 563
-- `ATLAS_NNTP_USER` - ur username
-- `ATLAS_NNTP_PASS` - ur password
-- `ATLAS_INDEX_MODE` - dynamic/live/backfill
-
-### backup the db
-
-the database lives in a docker volume, to copy it out:
+Stop with:
 
 ```bash
-docker compose -f docker_compose.yml exec atlas cp /app/data/atlas.db /app/atlas.db
-docker cp atlas:/app/atlas.db ./backup.db
+docker compose -f docker_compose.yml down
 ```
 
-### just docker (no compose)
+### Environment variables
+
+Set these in `docker_compose.yml` instead of using config files:
+
+| Variable | Description |
+|---|---|
+| `ATLAS_NNTP_HOST` | Your provider's server |
+| `ATLAS_NNTP_PORT` | Default `563` |
+| `ATLAS_NNTP_USER` | Your username |
+| `ATLAS_NNTP_PASS` | Your password |
+| `ATLAS_INDEX_MODE` | `dynamic` / `live` / `backfill` |
+
+### Without Compose
 
 ```bash
 docker build -t atlas .
@@ -99,75 +157,39 @@ docker run -it --rm \
   atlas
 ```
 
-## Usage
+### Backing up the database
 
-![Atlas](img/atlas.png)
+The database lives in a Docker volume. Make sure the compose service is running, then:
 
-U can index, search, select groups, remove groups, and change config and indexer settings
+```bash
+docker compose -f docker_compose.yml exec atlas cp /app/data/atlas.db /app/atlas.db
+docker cp atlas:/app/atlas.db ./backup.db
+```
 
+### SABnzbd in Docker
 
----
+The bundled SABnzbd only ships with the normal install, not the container image. In Docker you can still search, index, and save NZBs — but to download, point your own SABnzbd at the NZB files instead.
 
-## How to use
+## FAQ
 
-### first time setup
+<details>
+<summary>AI search isn't working</summary>
 
-when u first run atlas it will ask for your usenet provider credentials
+Make sure [Ollama](https://ollama.com) is installed and running locally, with a compatible model pulled (`ollama pull qwen3:4b`). Atlas doesn't ship with Ollama — it calls the local Ollama API.
 
-![first time setup](img/login.png)
-
-fill in the fields like this:
-
-- **Host** - put your providers NNTP server address like `news.usenet.farm` (just the domain, no https or anything)
-- **Username** - your provider username
-- **Password** - your provider password
-- **Port (563)** - leave as `563` thats the SSL port
-
-press enter
-
-### selecting groups
-
-go to groups from the main menu, it'll show u all available groups on the server. search for what u want and add
-
-### indexing
-
-go back to the main menu and start indexer. atlas will start downloading headers from your selected groups. 
-
-### indexer modes 
-
-- **dynamic mode**:- it'll backfill old articles first then switch to live for new ones and repeats 
-- **backfill**:- it only indexes back from the latest release
--  **live**:- it only indexes after the latest release nothing before it
-
-### Searching 
-There are currently 2 search modes **current group** and **all groups**
-
-1) **current group** only searches stuff in the group u have selected 
-2) **all groups** searches in all the groups u have indexed  
+</details>
 
 
-### Downloading
+## Platform
 
-after picking a group and indexing it articles will start to appear u can select them and u have the option to make an NZB or download
+Tested on **Arch Linux, x86_64**. Other Linux distros may work but aren't officially verified.
 
-selecting download starts SABnzbd if it is not already running, generates an NZB for the selected release, and drops it into SABnzbd's watched directory which downloads it. it also opens SABnzbd in your browser so u can see the progress
+## Credits
 
+Built by [Me](https://github.com/Eraxty) — 50+ days and 70+ hours of work, and my largest project to date. Special thanks to the Hack Club community for the push to build something like this.
 
----
-
-## Release
-
-this release is intended for:
-
-- Architecture: x86_64
-- OS: Arch Linux
-
-## Special Thanks
-special thanks to hackclub community for inspiring me to make this project cuz ever since i was in this community it always pushed me to build something good this is my biggest and largest project yet it took me 40+ days and 50+ hours to make this 
-
-## AI usage 
-- AI was used to help stuff like fixing bugs, improve, refactor parts of the db, SABnzbd integration, making bg indexer and improving the terminal UI and Rich formatting and making dashboard look clean
+**AI was used for:** bug fixes, refactoring, SABnzbd integration, the background indexer, terminal UI/dashboard polish and assistance.
 
 ## License
-
-[WTFPL](LICENSE) 
+idrc jus give me credit ig 
+[WTFPL](LICENSE)
