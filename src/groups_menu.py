@@ -214,13 +214,12 @@ def groups_menu(config):
                     prompt("[enter]")
                     continue
 
-                #choices count from 1 on the current page only
-                if selected < 1 or selected > end - start:
+                if selected < 1 or selected > len(page_groups):
                     console.print("[red]invalid[/red]")
                     prompt("[enter]")
                     continue
 
-                chosen = groups[start + selected - 1]
+                chosen = page_groups[selected - 1]
 
                 if not client.server:
                     try:

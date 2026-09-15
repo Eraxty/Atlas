@@ -214,92 +214,125 @@ def main():
 
     update_status(True, ", ".join(groups), indexer, indexer.all_idle(groups), "running", error=error)
 
+    group = ""
+
     try:
         while not stop_requested:
-            config = load_config()
-
-            if config is None:
-                print(f"{red}error with config, stopped{reset}")
-                break
-
-            conn = (config.get("host"), config.get("username"), config.get("password"), config.get("port"))
-
-            if not all(conn):
-                print(f"{red}config missing required fields{reset}")
-                break
-
-            if conn != last_conn:
-                try:
-                    client.disconnect()
-                except Exception:
-                    pass
-
-                client.update_credentials(*conn)
-                last_conn = conn
-                print("config changed")
-
-            groups = tracked_groups(config)
-            failed &= set(groups)
-
-            for g in list(failed):
-                if g not in groups:
-                    failed.discard(g)
-
-            if not groups:
-                idle_sleep(10, lambda: stop_requested)
-                continue
-
-            mode = config.get("index_mode", "dynamic")
-
-            if mode != indexer.mode:
-                indexer.mode = mode
-
-                for st in indexer.state.values():
-                    st.update(phase ="backfill", idle = False, backfilling = False)
-
-                last_written_idle = None
-
-            group = groups[group_idx % len(groups)]
-            group_idx += 1
-
-            if group in failed:
-                continue
-
             try:
-                if not client.server:
-                    client.connect()
+                config = load_config()
 
-                indexer.index_group(group)
+                if config is None:
+                    print(f"{red}error with config, stopped{reset}")
+                    break
 
-                stats.tick(
-                    indexer.last_batch_articles,
-                    indexer.last_batch_bytes,
-                    indexer.last_batch_releases,
-                    group,
-                )
+                conn = (config.get("host"), config.get("username"), config.get("password"), config.get("port"))
 
-                now = time.time()
-                
-                if now - last_stats_write >= 1:
-                    idle_now = indexer.all_idle([g for g in groups if g not in failed]) and not any(indexer.is_backfilling(g) for g in groups if g not in failed)
-                    stats.write(group, indexer.mode, True, idle_now)
-                    last_stats_write = now
+                if not all(conn):
+                    print(f"{red}config missing required fields{reset}")
+                    break
 
-                recovered = errors.get(group, 0) > 0
-                errors[group] = 0
-                failed.discard(group)
+                if conn != last_conn:
+                    try:
+                        client.disconnect()
+                    except Exception:
+                        pass
 
-                active = [g for g in groups if g not in failed]
-                idle_now = indexer.all_idle(active) and not any(indexer.is_backfilling(g) for g in active)
+                    client.update_credentials(*conn)
+                    last_conn = conn
+                    print("config changed")
 
-                if idle_now != last_written_idle or recovered:
-                    update_status(True, ", ".join(groups), indexer, idle_now, "idle" if idle_now else "running", error=error, errors=sum(errors.values()))
-                    last_written_idle = idle_now
+                groups = tracked_groups(config)
+                failed &= set(groups)
 
-                if idle_now:
+                for g in list(failed):
+                    if g not in groups:
+                        failed.discard(g)
+
+                if not groups:
                     idle_sleep(10, lambda: stop_requested)
-                else:
-                    time.sleep(0.1)
+                    continue
+
+                mode = config.get("index_mode", "dynamic")
+
+                if mode != indexer.mode:
+                    indexer.mode = mode
+
+                    for st in indexer.state.values():
+                        st.update(phase ="backfill", idle = False, backfilling = False)
+
+                    last_written_idle = None
+
+                group = groups[group_idx % len(groups)]
+                group_idx += 1
+
+                if group in failed:
+                    idle_sleep(5, lambda: stop_requested)
+                    continue
+
+                try:
+                    if not client.server:
+                        client.connect()
+
+                    indexer.index_group(group)
+
+                    stats.tick(
+                        indexer.last_batch_articles,
+                        indexer.last_batch_bytes,
+                        indexer.last_batch_releases,
+                        group,
+                    )
+
+                    now = time.time()
+
+                    if now - last_stats_write >= 1:
+                        idle_now = indexer.all_idle([g for g in groups if g not in failed]) and not any(indexer.is_backfilling(g) for g in groups if g not in failed)
+                        stats.write(group, indexer.mode, True, idle_now)
+                        last_stats_write = now
+
+                    recovered = errors.get(group, 0) > 0
+                    errors[group] = 0
+                    failed.discard(group)
+
+                    active = [g for g in groups if g not in failed]
+                    idle_now = indexer.all_idle(active) and not any(indexer.is_backfilling(g) for g in active)
+
+                    if idle_now != last_written_idle or recovered:
+                        update_status(True, ", ".join(groups), indexer, idle_now, "idle" if idle_now else "running", error=error, errors=sum(errors.values()))
+                        last_written_idle = idle_now
+
+                    if idle_now:
+                        idle_sleep(10, lambda: stop_requested)
+                    else:
+                        time.sleep(0.1)
+
+                except Exception as e:
+                    if stop_requested:
+                        break
+
+                    stats.record_error()
+                    errors[group] = errors.get(group, 0) + 1
+
+                    if errors[group] < 3:
+                        update_status(True, ", ".join(groups), indexer, indexer.is_idle(group), "warning", error=error, errors=sum(errors.values()))
+
+                    if errors[group] >= 3:
+                        print(f"{red}Too many errors on {group}, skipping it{reset}")
+                        failed.add(group)
+                        continue
+
+                    print(f"{red}Indexing error ({group}): {e}{reset}")
+
+                    try:
+                        client.disconnect()
+                    except Exception:
+                        pass
+
+                    time.sleep(min(2 ** errors[group], 30))
+
+                    try:
+                        client.connect()
+                    except Exception as reconnect_error:
+                        print(f"{red}Reconnect failed: {reconnect_error}{reset}")
 
             except Exception as e:
                 if stop_requested:
@@ -307,23 +340,15 @@ def main():
 
                 stats.record_error()
                 errors[group] = errors.get(group, 0) + 1
-
-                if errors[group] < 3:
-                    update_status(True, ", ".join(groups), indexer, indexer.is_idle(group), "warning", error=error, errors=sum(errors.values()))
-
-                if errors[group] >= 3:
-                    print(f"{red}Too many errors on {group}, skipping it{reset}")
-                    failed.add(group)
-                    continue
-
-                print(f"{red}Indexing error ({group}): {e}{reset}")
+                
+                print(f"{red}Unexpected error ({group}): {e}{reset}")
 
                 try:
                     client.disconnect()
                 except Exception:
                     pass
 
-                time.sleep(min(2 ** errors[group], 30))
+                time.sleep(min(2 ** errors.get(group, 1), 30))
 
                 try:
                     client.connect()
