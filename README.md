@@ -11,6 +11,7 @@ Atlas is a Usenet indexer that indexes releases from NNTP newsgroups and stores 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![Platform](https://img.shields.io/badge/platform-Arch%20Linux%20(x86__64)-informational)
 ![Docker](https://img.shields.io/badge/docker-supported-2496ED?logo=docker&logoColor=white)
+![Hackatime](https://hackatime.hackclub.com/api/v1/badge/U09JP15EVQU/Eraxty/Atlas)
 
 [Features](#features) • [Install](#installation) • [Usage](#usage) • [Docker](#docker) • [FAQ](#faq)
 
@@ -186,7 +187,7 @@ Tested on **Arch Linux, x86_64**. Other Linux distros may work but aren't offici
 
 ## Credits
 
-Built by [Me](https://github.com/Eraxty) — 50+ days and 70+ hours of work, and my largest project to date. Special thanks to the Hack Club community for the push to build something like this.
+Built by [Me](https://github.com/Eraxty) — 50+ days and 80+ hours of work, and my largest project to date. Special thanks to the Hack Club community for the push to build something like this.
 
 **AI was used for:** bug fixes, refactoring, SABnzbd integration, the background indexer, terminal UI/dashboard polish and assistance.
 
