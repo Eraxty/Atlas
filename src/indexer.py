@@ -35,6 +35,10 @@ class Indexer:
         return not groups or all(self.is_idle(g) for g in groups)
 
     def index_group(self, group):
+        self.last_batch_articles = 0
+        self.last_batch_bytes = 0
+        self.last_batch_releases = 0
+
         count, first, last, name = self.client.select_group(group)
 
         state = get_group_state(group)

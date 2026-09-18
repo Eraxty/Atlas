@@ -764,6 +764,9 @@ def main():
                     chosen = groups[start + selected - 1]
                     config["groups"] = [g for g in config["groups"] if g != chosen]
 
+                    if config["group"] == chosen:
+                        config["group"] = config["groups"][0] if config["groups"] else ""
+
                     save_config(
                         config["host"],
                         config["username"],
