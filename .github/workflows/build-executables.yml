@@ -61,12 +61,15 @@ jobs:
       - name: Stage binaries
         shell: bash
         run: |
+          ls -R releases
           mkdir -p final
-          cp releases/atlas-linux/atlas final/atlas-linux
-          cp releases/atlas-windows/atlas.exe final/atlas-windows.exe
-          cp releases/atlas-macos/atlas final/atlas-macos
+          cp $(find releases/atlas-linux -type f -name 'atlas*' | head -1) final/atlas-linux
+          cp $(find releases/atlas-windows -type f -name 'atlas*' | head -1) final/atlas-windows.exe
+          cp $(find releases/atlas-macos -type f -name 'atlas*' | head -1) final/atlas-macos
+          ls -l final
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
+          allowUpdates: true
           files: final/*
