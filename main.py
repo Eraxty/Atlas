@@ -107,7 +107,7 @@ def _is_indexer_pid(pid):
         except OSError:
             return False
 
-        return b"bg_indexer" in cmdline
+        return b"bg_indexer.py" in cmdline or b"--bg-indexer" in cmdline
 
     return True
 
@@ -144,8 +144,7 @@ def start_background_indexer():
 
     try:
         if getattr(sys, "frozen", False):
-            indexer_exe = Path(sys.executable).with_name("bg_indexer" + (".exe" if os.name == "nt" else ""))
-            cmd = [str(indexer_exe)]
+            cmd = [sys.executable, "--bg-indexer"]
         else:
             cmd = [sys.executable, "-u", str(Path(__file__).resolve().parent / "bg_indexer.py")]
 
@@ -815,7 +814,13 @@ def main():
 
 if __name__ == "__main__":
     try:
+        if "--bg-indexer" in sys.argv:
+            import bg_indexer
+            bg_indexer.main()
+            sys.exit(0)
+
         main()
+
     except KeyboardInterrupt:
         #byee
         print("\nbyeee")

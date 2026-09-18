@@ -38,21 +38,15 @@ jobs:
         run: >
           pyinstaller --onefile --console --clean --name atlas
           --collect-submodules keyring
+          --hidden-import bg_indexer
           main.py
-
-      - name: Build bg_indexer
-        run: >
-          pyinstaller --onefile --console --clean --name bg_indexer
-          --collect-submodules keyring
-          bg_indexer.py
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
           path: |
-            dist/atlas${{ matrix.suffix }}
-            dist/bg_indexer${{ matrix.suffix }}
+            dist/atlas${{ matrix.suffix }}'
 
   release:
     if: startsWith(github.ref, 'refs/tags/')
@@ -64,19 +58,15 @@ jobs:
         with:
           path: releases
 
-      - name: Bundle binaries
+      - name: Stage binaries
         shell: bash
         run: |
           mkdir -p final
           cp releases/atlas-linux/atlas final/atlas-linux
-          cp releases/atlas-linux/bg_indexer final/bg_indexer-linux
           cp releases/atlas-windows/atlas.exe final/atlas-windows.exe
-          cp releases/atlas-windows/bg_indexer.exe final/bg_indexer-windows.exe
           cp releases/atlas-macos/atlas final/atlas-macos
-          cp releases/atlas-macos/bg_indexer final/bg_indexer-macos
-          cd final && tar czf atlas-release.tar.gz *
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          files: final/atlas-release.tar.gz
+          files: final/*
