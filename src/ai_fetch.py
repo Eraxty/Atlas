@@ -4,12 +4,19 @@ from src.mapper import headers_to_articles
 from src.database import save_releases_bulk
 
 
-def fmt_size(n):
-    for u in ["B", "KB", "MB", "GB", "TB"]:
-        if n < 1024:
-            return f"{n:.1f}{u}"
-        n /= 1024
-    return f"{n:.1f}PB"
+def fmt_size(size):
+    if size is None:
+        return "?"
+
+    if size <= 0:
+        return "0 B"
+
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if size < 1024:
+            return f"{size:.1f} {unit}"
+        size /= 1024
+
+    return f"{size:.1f} PB"
 
 
 def _get_password(config):
