@@ -1,0 +1,82 @@
+name: build-executables
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            suffix: ""
+            artifact: atlas-linux
+          - os: windows-latest
+            suffix: ".exe"
+            artifact: atlas-windows
+          - os: macos-latest
+            suffix: ""
+            artifact: atlas-macos
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: pip install -r requirements.txt pyinstaller
+
+      - name: Build atlas
+        run: >
+          pyinstaller --onefile --console --clean --name atlas
+          --collect-submodules keyring
+          main.py
+
+      - name: Build bg_indexer
+        run: >
+          pyinstaller --onefile --console --clean --name bg_indexer
+          --collect-submodules keyring
+          bg_indexer.py
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            dist/atlas${{ matrix.suffix }}
+            dist/bg_indexer${{ matrix.suffix }}
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: releases
+
+      - name: Bundle binaries
+        shell: bash
+        run: |
+          mkdir -p final
+          cp releases/atlas-linux/atlas final/atlas-linux
+          cp releases/atlas-linux/bg_indexer final/bg_indexer-linux
+          cp releases/atlas-windows/atlas.exe final/atlas-windows.exe
+          cp releases/atlas-windows/bg_indexer.exe final/bg_indexer-windows.exe
+          cp releases/atlas-macos/atlas final/atlas-macos
+          cp releases/atlas-macos/bg_indexer final/bg_indexer-macos
+          cd final && tar czf atlas-release.tar.gz *
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: final/atlas-release.tar.gz

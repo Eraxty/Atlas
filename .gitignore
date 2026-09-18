@@ -11,3 +11,6 @@ bg_indexer.pid
 config.json.tmp
 stats.json
 profile.json
+build/
+dist/
+*.spec

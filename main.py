@@ -7,6 +7,7 @@ from src.prompts import prompt
 from src.sab import rotate_log
 from src.search import count_all_releases, count_releases, get_articles, search_all_releases, search_releases
 from src.colors import reset, bold, dim, red, green, yellow, cyan
+from src.paths import app_dir
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -26,7 +27,7 @@ import time
 import select
 
 #paths
-BASE_DIR = Path(os.environ.get("ATLAS_HOME", Path(__file__).resolve().parent))
+BASE_DIR = app_dir()
 PID_FILE = BASE_DIR / "bg_indexer.pid"
 LOG_FILE = BASE_DIR / "bg_index.log"
 STATUS_FILE = BASE_DIR / "status.json"
@@ -106,7 +107,7 @@ def _is_indexer_pid(pid):
         except OSError:
             return False
 
-        return b"bg_indexer.py" in cmdline
+        return b"bg_indexer" in cmdline
 
     return True
 
@@ -142,8 +143,14 @@ def start_background_indexer():
         return False
 
     try:
+        if getattr(sys, "frozen", False):
+            indexer_exe = Path(sys.executable).with_name("bg_indexer" + (".exe" if os.name == "nt" else ""))
+            cmd = [str(indexer_exe)]
+        else:
+            cmd = [sys.executable, "-u", str(Path(__file__).resolve().parent / "bg_indexer.py")]
+
         subprocess.Popen(
-            [sys.executable, "-u", str(Path(__file__).resolve().parent / "bg_indexer.py")],
+            cmd,
             cwd = BASE_DIR,
             stdin = subprocess.DEVNULL,
             stdout = log_file,

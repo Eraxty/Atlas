@@ -4,6 +4,7 @@ from src.nntp_client import NNTPClient
 from src.indexer import Indexer
 from src.colors import red, yellow, reset
 from src.sab import start as start_sab, is_running as sab_running, wait_ready as sab_wait_ready, available as sab_available
+from src.paths import app_dir
 from pathlib import Path
 import os
 import signal
@@ -11,7 +12,7 @@ import sys
 import time
 import json
 
-BASE_DIR = Path(os.environ.get("ATLAS_HOME", Path(__file__).resolve().parent))
+BASE_DIR = app_dir()
 STATUS_FILE = BASE_DIR / "status.json"
 STATS_FILE = BASE_DIR / "stats.json"
 PID_FILE = BASE_DIR / "bg_indexer.pid"
