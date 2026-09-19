@@ -38,6 +38,7 @@ jobs:
         run: >
           pyinstaller --onefile --console --clean --name atlas
           --collect-submodules keyring
+          --collect-data certifi
           --hidden-import bg_indexer
           main.py
 

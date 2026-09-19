@@ -1,5 +1,16 @@
 import nntp
+import os
 import re
+
+
+def _ensure_ca_bundle():
+    try:
+        import certifi
+    except ImportError:
+        return
+
+    if not os.environ.get("SSL_CERT_FILE") and not os.environ.get("SSL_CERT_DIR"):
+        os.environ["SSL_CERT_FILE"] = certifi.where()
 
 
 def _wildmatch(name, pattern):
@@ -42,6 +53,7 @@ class NNTPClient:
         return True
 
     def connect(self):
+        _ensure_ca_bundle()
         self.server = nntp.NNTPClient(
             host=self.host,
             port=self.port,
