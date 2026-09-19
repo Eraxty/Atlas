@@ -170,21 +170,22 @@ docker cp atlas:/app/atlas.db ./backup.db
 ### SABnzbd in Docker
 
 The bundled SABnzbd only ships with the normal install, not the container image. In Docker you can still search, index, and save NZBs — but to download, point your own SABnzbd at the NZB files instead.
-
 ## FAQ
 
 <details>
 <summary>AI search isn't working</summary>
 
 Make sure [Ollama](https://ollama.com) is installed and running locally, with a compatible model pulled (`ollama pull qwen3:4b`). Atlas doesn't ship with Ollama — it calls the local Ollama API.
-<details>
 
-## Limitation
-No deobfuscation support yet
+</details>
+
 
 ## Platform
 
 Tested on **Arch Linux, x86_64**. Other Linux distros may work but aren't officially verified.
+
+## Limitation
+No deobfuscation support yet
 
 ## Credits
 
