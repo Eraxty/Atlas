@@ -10,8 +10,9 @@ import urllib.request
 
 from src.config import load_config as load_atlas_config
 from src.colors import red, green, yellow, reset
+from src.paths import app_dir
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = app_dir()
 SAB_DIR = BASE_DIR / "SABnzbd-5.0.4"
 LOG_FILE = BASE_DIR / "sabnzbd.log"
 

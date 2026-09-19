@@ -13,10 +13,10 @@ console = Console()
 
 
 def ai_search(config):
-    import math, shutil, os
+    import math, shutil
 
     while True:
-        os.system("cls" if os.name == "nt" else "clear")
+        print("\x1b[2J\x1b[3J\x1b[H", end="", flush = True)
         
         print("AI Search")
         print("tell me what u want\n")

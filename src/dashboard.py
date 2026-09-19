@@ -2,6 +2,7 @@ import json
 import time
 from pathlib import Path
 import plotext as plt
+from src.paths import app_dir
 from rich.live import Live
 from rich.panel import Panel
 from rich.layout import Layout
@@ -10,7 +11,7 @@ from rich.table import Table
 from rich.progress_bar import ProgressBar
 from rich.align import Align
 
-STATS_FILE = Path(__file__).resolve().parent.parent / "stats.json"
+STATS_FILE = app_dir() / "stats.json"
 
 
 def load():

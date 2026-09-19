@@ -1,4 +1,3 @@
-import os
 import time
 import nntp
 
@@ -18,7 +17,7 @@ def panel(content, border = "blue"):
 
 
 def clear():
-    os.system("cls" if os.name == "nt" else "clear")
+    print("\x1b[2J\x1b[3J\x1b[H", end="", flush = True)
 
 
 _groups_cache = {}
@@ -91,8 +90,8 @@ def groups_menu(config):
         if not client.server:
             client.connect()
 
-    except (OSError, nntp.NNTPReplyError):
-        console.print("[red]couldnt connect to server[/red]")
+    except (OSError, nntp.NNTPError) as e:
+        console.print(f"[red]couldnt connect to server: {e}[/red]")
         prompt("[enter]")
         return
 
@@ -225,8 +224,8 @@ def groups_menu(config):
                     try:
                         client.connect()
 
-                    except (OSError, nntp.NNTPError):
-                        console.print("[red]couldnt connect to server[/red]")
+                    except (OSError, nntp.NNTPError) as e:
+                        console.print(f"[red]couldnt connect to server: {e}[/red]")
                         prompt("[enter]")
                         continue
 

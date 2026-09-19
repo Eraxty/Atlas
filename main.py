@@ -51,7 +51,7 @@ def panel(content, border = "blue"):
 
 
 def clear():
-    os.system("cls" if os.name == "nt" else "clear")
+    print("\x1b[2J\x1b[3J\x1b[H", end="", flush = True)
 
 
 def fmt_size(size):
@@ -813,6 +813,26 @@ def main():
 
 
 if __name__ == "__main__":
+    import sys as _sys
+    if "--selftest" in _sys.argv:
+        from src.nntp_client import NNTPClient
+        from src.config import load_config
+        cfg = load_config()
+        if not cfg:
+            print("selftest: no config found (run Settings or set ATLAS_NNTP_* env)")
+            _sys.exit(1)
+        client = NNTPClient(cfg["host"], cfg["username"], cfg.get("password", ""), cfg["port"])
+        print(f"selftest: {cfg['host']}:{cfg['port']} ssl={client.use_ssl} user={cfg['username']}")
+        try:
+            client.connect()
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            _sys.exit(1)
+        print("selftest: connected OK")
+        client.disconnect()
+        _sys.exit(0)
+
     try:
         if "--bg-indexer" in sys.argv:
             import bg_indexer

@@ -3,7 +3,9 @@ import os
 import stat
 from pathlib import Path
 
-BASE_DIR = Path(os.environ.get("ATLAS_HOME", Path(__file__).resolve().parent.parent))
+from src.paths import app_dir
+
+BASE_DIR = app_dir()
 config_file = BASE_DIR / "config.json"
 DATA_DIR = BASE_DIR / "data"
 SERVICE = "atlas"
