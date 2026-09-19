@@ -101,10 +101,11 @@ def groups_menu(config):
 
             console.print(panel("[bold cyan]Groups[/bold cyan]", "cyan"))
             console.print("[dim]Search for newsgroups to add.[/dim]\n")
+            console.print("[dim]0. Back[/dim]\n")
 
             query = prompt("Search: ").strip()
 
-            if not query:
+            if not query or query == "0":
                 break
 
             if len(query) < 3:

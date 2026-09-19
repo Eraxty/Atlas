@@ -342,6 +342,8 @@ def do_search(config):
         if scope not in (1, 2):
             return
 
+        console.print("[dim]0. Back[/dim]\n")
+
         query = prompt("Search: ").strip()
 
         if not query or query == "0":

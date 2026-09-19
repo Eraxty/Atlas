@@ -19,7 +19,8 @@ def ai_search(config):
         print("\x1b[2J\x1b[3J\x1b[H", end="", flush = True)
         
         print("AI Search")
-        print("tell me what u want\n")
+        print("tell me what u want")
+        console.print("[dim]0. Back[/dim]\n")
 
         query = prompt("> ").strip()
         
