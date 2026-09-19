@@ -177,7 +177,7 @@ The bundled SABnzbd only ships with the normal install, not the container image.
 <summary>AI search isn't working</summary>
 
 Make sure [Ollama](https://ollama.com) is installed and running locally, with a compatible model pulled (`ollama pull qwen3:4b`). Atlas doesn't ship with Ollama — it calls the local Ollama API.
-
+<details>
 
 ## Limitation
 No deobfuscation support yet
