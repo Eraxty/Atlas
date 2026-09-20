@@ -26,6 +26,15 @@ import sys
 import time
 import select
 
+
+if sys.platform == "win32":
+    for _s in (sys.stdout, sys.stderr, sys.__stdout__, sys.__stderr__):
+        if _s is not None:
+            try:
+                _s.reconfigure(encoding = "utf-8", errors = "replace")
+            except (AttributeError, OSError, ValueError):
+                pass
+
 #paths
 BASE_DIR = app_dir()
 PID_FILE = BASE_DIR / "bg_indexer.pid"
