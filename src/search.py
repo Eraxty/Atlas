@@ -1,6 +1,11 @@
 import sqlite3
 from src.database import database, with_db
 
+VISIBLE_RELEASE = """(
+    r.display_name is not null
+    or (r.is_obfuscated = 0 and (length(r.name) < 16 or r.name glob '*[^A-Za-z0-9]*'))
+)"""
+
 
 def fts_query(query):
     terms = []
@@ -45,20 +50,28 @@ def search_releases(query, group, page = 0, page_size = 10):
     offset = page * page_size
 
     #fts table holds text, real data lives in releases
-    return _fts_or_like("""
-        select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
+    return _fts_or_like(f"""
+        with matches as (
+            select rowid, bm25(releases_fts) as rank from releases_fts where releases_fts match ?
+            union all
+            select id, 0 from releases where display_name like ? escape '\\'
+        ), ranked as (
+            select rowid, min(rank) as rank from matches group by rowid
+        )
+        select r.id, coalesce(r.display_name, r.name), r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
         from releases r
-        join releases_fts on releases_fts.rowid = r.id
-        where releases_fts match ? and r.group_name = ?
-        order by bm25(releases_fts)
+        join ranked on ranked.rowid = r.id
+        where r.group_name = ? and {VISIBLE_RELEASE}
+        order by ranked.rank
         limit ? offset ?
-    """, """
-        select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
+    """, f"""
+        select r.id, coalesce(r.display_name, r.name), r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
         from releases r
-        where r.name like ? escape '\\' and r.group_name = ?
+        where (r.name like ? escape '\\' or r.display_name like ? escape '\\')
+        and r.group_name = ? and {VISIBLE_RELEASE}
         order by r.name
         limit ? offset ?
-    """, (fts_query(query), group, page_size, offset), (like_query(query), group, page_size, offset))
+    """, (fts_query(query), like_query(query), group, page_size, offset), (like_query(query), like_query(query), group, page_size, offset))
 
 
 def search_all_releases(query, page = 0, page_size = 10):
@@ -66,20 +79,28 @@ def search_all_releases(query, page = 0, page_size = 10):
         return []
 
     offset = page * page_size
-    return _fts_or_like("""
-        select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
+    return _fts_or_like(f"""
+        with matches as (
+            select rowid, bm25(releases_fts) as rank from releases_fts where releases_fts match ?
+            union all
+            select id, 0 from releases where display_name like ? escape '\\'
+        ), ranked as (
+            select rowid, min(rank) as rank from matches group by rowid
+        )
+        select r.id, coalesce(r.display_name, r.name), r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
         from releases r
-        join releases_fts on releases_fts.rowid = r.id
-        where releases_fts match ?
-        order by bm25(releases_fts)
+        join ranked on ranked.rowid = r.id
+        where {VISIBLE_RELEASE}
+        order by ranked.rank
         limit ? offset ?
-    """, """
-        select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
+    """, f"""
+        select r.id, coalesce(r.display_name, r.name), r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
         from releases r
-        where r.name like ? escape '\\'
+        where (r.name like ? escape '\\' or r.display_name like ? escape '\\')
+        and {VISIBLE_RELEASE}
         order by r.name
         limit ? offset ?
-    """, (fts_query(query), page_size, offset), (like_query(query), page_size, offset))
+    """, (fts_query(query), like_query(query), page_size, offset), (like_query(query), like_query(query), page_size, offset))
 
 
 def count_releases(query, group):
@@ -87,14 +108,19 @@ def count_releases(query, group):
         return 0
 
     #same fts query but just counting
-    row = _fts_or_like("""
+    row = _fts_or_like(f"""
+        with matches as (
+            select rowid from releases_fts where releases_fts match ?
+            union
+            select id from releases where display_name like ? escape '\\'
+        )
+        select count(*) from releases r join matches on matches.rowid = r.id
+        where r.group_name = ? and {VISIBLE_RELEASE}
+    """, f"""
         select count(*) from releases r
-        join releases_fts on releases_fts.rowid = r.id
-        where releases_fts match ? and r.group_name = ?
-    """, """
-        select count(*) from releases r
-        where r.name like ? escape '\\' and r.group_name = ?
-    """, (fts_query(query), group), (like_query(query), group), fetch_one = True)
+        where (r.name like ? escape '\\' or r.display_name like ? escape '\\')
+        and r.group_name = ? and {VISIBLE_RELEASE}
+    """, (fts_query(query), like_query(query), group), (like_query(query), like_query(query), group), fetch_one = True)
 
     return row[0]
 
@@ -104,14 +130,19 @@ def count_all_releases(query):
         return 0
 
     #same again all groups
-    row = _fts_or_like("""
+    row = _fts_or_like(f"""
+        with matches as (
+            select rowid from releases_fts where releases_fts match ?
+            union
+            select id from releases where display_name like ? escape '\\'
+        )
+        select count(*) from releases r join matches on matches.rowid = r.id
+        where {VISIBLE_RELEASE}
+    """, f"""
         select count(*) from releases r
-        join releases_fts on releases_fts.rowid = r.id
-        where releases_fts match ?
-    """, """
-        select count(*) from releases r
-        where r.name like ? escape '\\'
-    """, (fts_query(query),), (like_query(query),), fetch_one = True)
+        where (r.name like ? escape '\\' or r.display_name like ? escape '\\')
+        and {VISIBLE_RELEASE}
+    """, (fts_query(query), like_query(query)), (like_query(query), like_query(query)), fetch_one = True)
 
     return row[0]
 
@@ -122,9 +153,9 @@ def search_obfuscated(conn, page = 0, page_size = 10):
     cur = conn.cursor()
 
     cur.execute("""
-        select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
+        select r.id, coalesce(r.display_name, r.name), r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
         from releases r
-        where r.obfuscated = 1
+        where r.is_obfuscated = 1
         order by r.id desc
         limit ? offset ?
     """, (page_size, offset))
@@ -134,7 +165,7 @@ def search_obfuscated(conn, page = 0, page_size = 10):
 
 @with_db
 def count_obfuscated(conn):
-    row = conn.execute("select count(*) from releases where obfuscated = 1").fetchone()
+    row = conn.execute("select count(*) from releases where is_obfuscated = 1").fetchone()
     return row[0]
 
 
@@ -143,7 +174,7 @@ def get_release(conn, id):
     cur = conn.cursor()
 
     cur.execute("""
-        select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
+        select r.id, coalesce(r.display_name, r.name), r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
         from releases r
         where r.id = ?
     """, (id,)
@@ -160,7 +191,7 @@ def recent_in_groups(conn, groups, page = 0, page_size = 20):
     offset = page * page_size
 
     cur.execute(f"""
-        select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
+        select r.id, coalesce(r.display_name, r.name), r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
         from releases r
         where r.group_name in ({qs})
         order by r.id desc

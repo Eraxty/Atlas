@@ -1,4 +1,5 @@
 pynntp
+-r SABnzbd-5.0.4/requirements.txt
 prompt_toolkit
 keyring
 colorama

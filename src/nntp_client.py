@@ -106,6 +106,9 @@ class NNTPClient:
         #xover fetches the whole header range in one shot
         return self.server.xover((start, end))
 
+    def fetch_body(self, message_id):
+        return self.server.body(message_id, decode = True)
+
     def list_groups(self, pattern = None):
         try:
             lines = self.server.list("ACTIVE", pattern)

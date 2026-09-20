@@ -2,6 +2,7 @@ import nntp
 
 from src.mapper import headers_to_articles
 from src.parser import group_articles, is_complete
+from src.par2 import display_name, is_base_par2
 from src.database import save_releases_bulk, get_group_state, init_group_state, update_live_cursor, update_backfill_cursor
 
 BACKFILL_SIZE = 5000
@@ -154,6 +155,19 @@ class Indexer:
         total_bytes = 0
 
         for release in releases.values():
+            for article in release["articles"]:
+                if not is_base_par2(article.subject):
+                    continue
+
+                try:
+                    name = display_name(self.client.fetch_body(article.message_id))
+                except (ImportError, OSError, nntp.NNTPError):
+                    continue
+
+                if name:
+                    release["display_name"] = name
+                    break
+
             release["complete"] = is_complete(release)
             release["group"] = group
             release["poster"] = release["articles"][0].author

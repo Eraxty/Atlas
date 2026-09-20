@@ -2,6 +2,10 @@ import re
 
 FILE_COUNT_RE = re.compile(r'\[(\d+)\s*/\s*(\d+)\]')
 
+
+def is_obfuscated(name):
+    return re.fullmatch(r'[A-Za-z0-9]{16,}', name or '') is not None
+
 def parse_subject(subject):
 
     if not subject:
@@ -48,23 +52,6 @@ def parse_subject(subject):
             break
 
         release_name = new_name
-
-    if re.search(r'[0-9a-f]{24,}', release_name.lower()):
-        return None
-
-    #remove random junk
-    stem = re.sub(r'\.[a-z0-9]{1,4}$', '', release_name, flags = re.IGNORECASE)
-
-    if not re.search(r'[\s._-]', stem):
-        
-        if re.match(r'^[0-9a-f]{15,}$', stem.lower()):
-            return None
-        
-        if len(re.findall(r'\d+', stem)) > 1 and re.fullmatch(r'[a-z0-9]+', stem.lower()) and len(stem) > 15:
-            return None
-        
-        if not re.search(r'[aeiouy]{2,}', stem.lower()):
-            return None
 
     #some formats only give filename no part numbers
     if len(match.groups()) >= 3:
@@ -141,6 +128,7 @@ def group_articles(articles):
                 "name": name,
                 "articles": [],
                 "size": 0,
+                "is_obfuscated": is_obfuscated(name),
             }
 
         #stash the parsed bits on the article soo the downloader can use em later

@@ -50,6 +50,15 @@ def migrate(conn):
     if "file_total" not in release_columns:
         cursor.execute("alter table releases add column file_total INTEGER")
 
+    if "display_name" not in release_columns:
+        cursor.execute("alter table releases add column display_name TEXT")
+
+    if "is_obfuscated" not in release_columns:
+        cursor.execute("alter table releases add column is_obfuscated INTEGER default 0")
+
+        if "obfuscated" in release_columns:
+            cursor.execute("update releases set is_obfuscated = obfuscated")
+
     cursor.execute("pragma table_info(articles)")
     
     article_columns = {column[1] for column in cursor.fetchall()}
@@ -132,7 +141,9 @@ def create_db():
                 size INTEGER,
                 complete INTEGER,
                 parts INTEGER,
-                file_total INTEGER
+                file_total INTEGER,
+                display_name TEXT,
+                is_obfuscated INTEGER default 0
             )
         """)
 
@@ -288,11 +299,13 @@ def save_releases_bulk(releases):
             for release in releases:
                 cur.execute("""
                     insert into releases
-                    (name, size, complete, group_name, poster, posted_date)
-                    values (?, ?, ?, ?, ?, ?)
+                    (name, size, complete, group_name, poster, posted_date, display_name, is_obfuscated)
+                    values (?, ?, ?, ?, ?, ?, ?, ?)
                     on conflict(name, group_name) do update set
                     poster = excluded.poster,
-                    posted_date = excluded.posted_date
+                    posted_date = excluded.posted_date,
+                    display_name = coalesce(excluded.display_name, releases.display_name),
+                    is_obfuscated = excluded.is_obfuscated
                     returning id
                 """, (
                     release["name"],
@@ -300,7 +313,9 @@ def save_releases_bulk(releases):
                     int(release["complete"]),
                     release["group"],
                     release["poster"],
-                    release["date"]
+                    release["date"],
+                    release.get("display_name"),
+                    int(release.get("is_obfuscated", False))
                 ))
 
                 row = cur.fetchone()
