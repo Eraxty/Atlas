@@ -7,7 +7,7 @@
 Atlas is a Usenet indexer that indexes releases from NNTP newsgroups and stores them locally in SQLite. It comes with features like AI-powered search, a live dashboard, direct NZB downloads through SABnzbd, and more.
 
 
-[![License: WTFPL](https://img.shields.io/badge/license-WTFPL-blue.svg)](LICENSE)
+[![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![Platform](https://img.shields.io/badge/platform-Arch%20Linux%20(x86__64)-informational)
 ![Docker](https://img.shields.io/badge/docker-supported-2496ED?logo=docker&logoColor=white)
@@ -194,5 +194,5 @@ Built by [Me](https://github.com/Eraxty) — 50+ days and 80+ hours of work, and
 **AI was used for:** bug fixes, refactoring, SABnzbd integration, the background indexer, terminal UI/dashboard polish and assistance.
 
 ## License
-idrc jus give me credit ig 
-[WTFPL](LICENSE)
+
+[GPL-3.0](LICENSE). Bundled SABnzbd is GPL-2.0-or-later and remains under its own license.
