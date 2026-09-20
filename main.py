@@ -5,7 +5,7 @@ from src.groups_menu import groups_menu
 from src.nzb import generate_nzb
 from src.prompts import prompt
 from src.sab import rotate_log
-from src.search import count_all_releases, count_releases, get_articles, search_all_releases, search_releases
+from src.search import count_all_releases, count_obfuscated, count_releases, get_articles, search_all_releases, search_obfuscated, search_releases
 from src.colors import reset, bold, dim, red, green, yellow, cyan
 from src.paths import app_dir
 from rich.console import Console
@@ -344,19 +344,23 @@ def do_search(config):
         menu.add_column("label", style = "white")
         menu.add_row("1.", "Current Group")
         menu.add_row("2.", "All Groups")
+        menu.add_row("3.", "Obfuscated Posts")
         menu.add_row("0.", "Back")
         console.print(panel(menu, "green"))
 
         scope = ask("\nChoice: ")
-        if scope not in (1, 2):
+        if scope not in (1, 2, 3):
             return
 
-        console.print("[dim]0. Back[/dim]\n")
+        if scope == 3:
+            query = "obfuscated"
+        else:
+            console.print("[dim]0. Back[/dim]\n")
 
-        query = prompt("Search: ").strip()
+            query = prompt("Search: ").strip()
 
-        if not query or query == "0":
-            continue
+            if not query or query == "0":
+                continue
 
         page = 0
 
@@ -368,17 +372,25 @@ def do_search(config):
                 if scope == 1:
                     total = count_releases(query, config["group"])
                     releases = search_releases(query, config["group"], page, page_size)
-                
-                else:
+
+                elif scope == 2:
                     total = count_all_releases(query)
                     releases = search_all_releases(query, page, page_size)
-            
+
+                else:
+                    total = count_obfuscated()
+                    releases = search_obfuscated(page, page_size)
+
             except sqlite3.Error:
                 console.print(panel("[red]couldnt search, db error[/red]", "red"))
                 return
 
             if not total:
                 console.print(panel("[red]no releases found[/red]", "red"))
+
+                if scope == 3:
+                    return
+
                 query = prompt("\nSearch: ").strip()
                 if not query or query == "0":
                     break

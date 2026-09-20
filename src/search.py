@@ -117,6 +117,28 @@ def count_all_releases(query):
 
 
 @with_db
+def search_obfuscated(conn, page = 0, page_size = 10):
+    offset = page * page_size
+    cur = conn.cursor()
+
+    cur.execute("""
+        select r.id, r.name, r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
+        from releases r
+        where r.obfuscated = 1
+        order by r.id desc
+        limit ? offset ?
+    """, (page_size, offset))
+
+    return cur.fetchall()
+
+
+@with_db
+def count_obfuscated(conn):
+    row = conn.execute("select count(*) from releases where obfuscated = 1").fetchone()
+    return row[0]
+
+
+@with_db
 def get_release(conn, id):
     cur = conn.cursor()
 
