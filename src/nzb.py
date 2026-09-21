@@ -29,17 +29,12 @@ def _article_timestamp(date_str):
         return int(time.time())
 
 
-def generate_nzb(release_id, output_dir=None):
+def build_nzb(release_id):
     release = get_release(release_id)
     articles = get_articles(release_id)
 
-    if release is None:
-        print(f"{red}Release not found{reset}")
-        return
-
-    if not articles:
-        print(f"{red}No articles found{reset}")
-        return
+    if release is None or not articles:
+        return None
 
     #root tag
     nzb = et.Element("nzb", {"xmlns": "http://www.newzbin.com/DTD/2003/nzb"})
@@ -87,25 +82,41 @@ def generate_nzb(release_id, output_dir=None):
 
     et.indent(nzb, space="  ")
 
+    #elementtree cant write doctype, so build the body ourselves
+    body = et.tostring(nzb, encoding="unicode")
+
+    return (
+        '<?xml version="1.0" encoding="utf-8"?>\n'
+        '<!DOCTYPE nzb PUBLIC "-//newzBin//DTD NZB 1.1//EN" '
+        '"http://www.newzbin.com/DTD/nzb/nzb-1.1.dtd">\n'
+        + body
+    )
+
+
+def generate_nzb(release_id, output_dir=None):
+    release = get_release(release_id)
+
+    if release is None:
+        print(f"{red}Release not found{reset}")
+        return
+
+    content = build_nzb(release_id)
+
+    if content is None:
+        print(f"{red}No articles found{reset}")
+        return
+
     filename = nzb_filename(release[1], release[0])
 
     if output_dir:
         filename = str(Path(output_dir) / filename)
-
-    #elementtree cant write doctype, so build the body ourselves
-    body = et.tostring(nzb, encoding="unicode")
 
     target = Path(filename)
     tmp = target.with_suffix(target.suffix + ".tmp")
 
     try:
         with open(tmp, "w", encoding="utf-8") as f:
-            f.write(
-                '<?xml version="1.0" encoding="utf-8"?>\n'
-                '<!DOCTYPE nzb PUBLIC "-//newzBin//DTD NZB 1.1//EN" '
-                '"http://www.newzbin.com/DTD/nzb/nzb-1.1.dtd">\n'
-                + body
-            )
+            f.write(content)
 
         os.replace(tmp, target)
 

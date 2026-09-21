@@ -4,7 +4,8 @@ from email.utils import format_datetime, parsedate_to_datetime
 from datetime import datetime, timezone
 from xml.sax.saxutils import escape
 
-from src.search import search_all_releases
+from src.search import search_all_releases, get_release
+from src.nzb import build_nzb, nzb_filename
 
 
 app = Flask(__name__)
@@ -86,6 +87,29 @@ def api():
 </rss>"""
 
         return Response(xml, mimetype = "application/xml")
+
+    if t == "get":
+        try:
+            release_id = int(request.args.get("id", 0))
+        except (TypeError, ValueError):
+            release_id = 0
+
+        release = get_release(release_id)
+
+        if release is None:
+            return Response("", status = 404)
+
+        content = build_nzb(release_id)
+
+        if content is None:
+            return Response("", status = 404)
+
+        filename = nzb_filename(release[1], release_id)
+
+        response = Response(content, mimetype = "application/x-nzb")
+        response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+        return response
 
     return Response("", status = 404)
 
