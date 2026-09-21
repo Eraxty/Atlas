@@ -148,6 +148,22 @@ def count_all_releases(query):
 
 
 @with_db
+def all_releases(conn, page = 0, page_size = 100):
+    offset = page * page_size
+    cur = conn.cursor()
+
+    cur.execute(f"""
+        select r.id, coalesce(r.display_name, r.name), r.group_name, r.poster, r.posted_date, r.size, r.complete, r.parts
+        from releases r
+        where {VISIBLE_RELEASE}
+        order by r.id desc
+        limit ? offset ?
+    """, (page_size, offset))
+
+    return cur.fetchall()
+
+
+@with_db
 def search_obfuscated(conn, page = 0, page_size = 10):
     offset = page * page_size
     cur = conn.cursor()

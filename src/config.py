@@ -1,5 +1,6 @@
 import json
 import os
+import secrets
 import stat
 from pathlib import Path
 
@@ -42,6 +43,33 @@ def _env_config():
         "groups": [],
         "index_mode": mode,
     }
+
+
+def get_api_key(config):
+    key = config.get("api_key")
+
+    if key:
+        return key, False
+
+    key = secrets.token_urlsafe(32)
+    config["api_key"] = key
+
+    try:
+        with open(config_file, "r") as f:
+            saved = json.load(f)
+
+        saved["api_key"] = key
+
+        tmp = config_file.with_suffix(".json.tmp")
+        with open(tmp, "w") as f:
+            json.dump(saved, f, indent=4)
+
+        os.replace(tmp, config_file)
+
+    except (OSError, ValueError, json.JSONDecodeError):
+        pass
+
+    return key, True
 
 
 def load_config():
