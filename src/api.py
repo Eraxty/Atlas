@@ -1,8 +1,23 @@
 from flask import Flask, Response, request
 from threading import Thread
+from email.utils import format_datetime, parsedate_to_datetime
+from datetime import datetime, timezone
 
 
 app = Flask(__name__)
+
+
+def _pub_date(value):
+    try:
+        return format_datetime(parsedate_to_datetime(value))
+    except (TypeError, ValueError):
+        pass
+
+    try:
+        return format_datetime(datetime.fromisoformat(value).replace(tzinfo = timezone.utc))
+
+    except (TypeError, ValueError):
+        return format_datetime(datetime.now(timezone.utc))
 
 
 @app.get("/api")
