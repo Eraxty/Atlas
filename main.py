@@ -14,6 +14,7 @@ from rich.table import Table
 from rich.text import Text
 from rich.console import Group
 from pathlib import Path
+from src.api import start as start_api
 
 import json
 import math
@@ -631,6 +632,9 @@ def main():
         if not config:
             console.print("[red]setup failed, no config found[/red]")
             return
+
+    
+    start_api(config)
 
     while True:
         clear()
