@@ -2,6 +2,9 @@ from flask import Flask, Response, request
 from threading import Thread
 from email.utils import format_datetime, parsedate_to_datetime
 from datetime import datetime, timezone
+from xml.sax.saxutils import escape
+
+from src.search import search_all_releases
 
 
 app = Flask(__name__)
@@ -22,17 +25,69 @@ def _pub_date(value):
 
 @app.get("/api")
 def api():
-    
-    if request.args.get("t") != "caps":
-        return Response("", status = 404)
+    t = request.args.get("t")
 
-    xml = """<?xml version="1.0" encoding="UTF-8"?>
+    if t == "caps":
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
 <caps xmlns="http://www.newznab.com/DTD/2010/feeds/attributes/">
   <server title="Atlas" version="1.0" url="http://127.0.0.1:8080/api" />
   <limits max="100" default="100" />
 </caps>"""
-    
-    return Response(xml, mimetype = "application/xml")
+
+        return Response(xml, mimetype = "application/xml")
+
+    if t == "search":
+        q = request.args.get("q", "")
+
+        try:
+            limit = int(request.args.get("limit", 100))
+        except (TypeError, ValueError):
+            limit = 100
+
+        try:
+            offset = int(request.args.get("offset", 0))
+        except (TypeError, ValueError):
+            offset = 0
+
+        limit = min(max(limit, 1), 100)
+        offset = max(offset, 0)
+
+        releases = search_all_releases(q, page = offset // limit, page_size = limit)
+
+        base = request.url_root.rstrip("/")
+
+        items = []
+
+        for r in releases:
+            nzb_url = f"{base}/api?t=get&id={r[0]}"
+            items.append(
+                "    <item>"
+                f"      <title>{escape(r[1] or '')}</title>"
+                f'      <guid isPermaLink="false">{r[0]}</guid>'
+                f"      <link>{escape(nzb_url)}</link>"
+                f"      <size>{r[5] or 0}</size>"
+                f"      <pubDate>{_pub_date(r[4])}</pubDate>"
+                f'      <enclosure url="{escape(nzb_url)}" type="application/x-nzb" length="{r[5] or 0}"/>'
+                "    </item>"
+            )
+
+        xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+     xmlns:atom="http://www.w3.org/2005/Atom"
+     xmlns:newznab="http://www.newznab.com/DTD/2010/feeds/attributes/">
+    <channel>
+        <title>Atlas</title>
+        <description>Atlas search results</description>
+        <link>{escape(base)}/api</link>
+        <language>en-gb</language>
+        <newznab:response offset="{offset}" total="{len(releases)}"/>
+        {"".join(items)}
+    </channel>
+</rss>"""
+
+        return Response(xml, mimetype = "application/xml")
+
+    return Response("", status = 404)
 
 
 def start(config):
