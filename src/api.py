@@ -42,7 +42,7 @@ def api():
   <retention days="0"/>
   <registration available="no" open="no"/>
   <searching>
-    <search available="yes" supportedParams="q"/>
+    <search available="yes" supportedParams="q,limit,offset"/>
     <tv-search available="no" supportedParams="q,season,ep"/>
     <movie-search available="no" supportedParams="q"/>
     <audio-search available="no" supportedParams="q"/>
@@ -109,7 +109,7 @@ def api():
         <description>Atlas search results</description>
         <link>{escape(base)}/api</link>
         <language>en-gb</language>
-        <newznab:response offset="{offset}" total="{len(releases)}"/>
+        <newznab:response offset="{offset}" total="{offset + len(releases)}"/>
         {"".join(items)}
     </channel>
 </rss>"""
@@ -151,10 +151,13 @@ def start(config):
         console.print(f"[yellow]api key: {api_key}[/yellow]")
 
     port = int(config.get("api_port", 9090))
-    
+    host = config.get("api_host", "127.0.0.1")
+
+    console.print(f"[dim]newznab api on http://{host}:{port} — apikey required for search/get[/dim]")
+
     thread = Thread(
         target = app.run,
-        kwargs = {"host": "0.0.0.0", "port": port, "use_reloader": False},
+        kwargs = {"host": host, "port": port, "use_reloader": False},
         daemon = True,
     )
   

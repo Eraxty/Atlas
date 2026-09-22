@@ -48,6 +48,7 @@ def _env_config():
         "groups": [],
         "index_mode": mode,
         "api_port": api_port,
+        "api_host": os.environ.get("ATLAS_API_HOST", "127.0.0.1"),
     }
 
 
@@ -104,6 +105,9 @@ def load_config():
 
     if not config.get("groups") and config.get("group"):
         config["groups"] = [config["group"]]
+
+    if not config.get("api_host"):
+        config["api_host"] = "127.0.0.1"
 
     return config
 

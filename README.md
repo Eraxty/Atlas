@@ -13,7 +13,7 @@ Atlas is a Usenet indexer that indexes releases from NNTP newsgroups and stores 
 ![Docker](https://img.shields.io/badge/docker-supported-2496ED?logo=docker&logoColor=white)
 ![Hackatime](https://hackatime.hackclub.com/api/v1/badge/U09JP15EVQU/Eraxty/Atlas)
 
-[Features](#features) • [Install](#installation) • [Usage](#usage) • [Docker](#docker) • [FAQ](#faq)
+[Features](#features) • [Install](#installation) • [Usage](#usage) • [Docker](#docker) • [Newznab API](#newznab-api-generic) • [FAQ](#faq)
 
 ![Atlas](img/main.png)
 
@@ -229,12 +229,13 @@ Already running SABnzbd and Prowlarr? You don't need the full stack, run Atlas a
      -e ATLAS_NNTP_PASS=yourpass \
      -e ATLAS_SAB_HOST=172.17.0.1 \
      -e ATLAS_SAB_PORT=8080 \
+     -e ATLAS_API_HOST=0.0.0.0 \
      -p 9090:9090 \
      -v atlas-data:/app/data \
      atlas
    ```
 
-   `ATLAS_SAB_HOST` is wherever your SABnzbd lives — `172.17.0.1` if it runs on the host, `host.docker.internal` on Docker Desktop, or your SABnzbd container's service name.
+   `ATLAS_SAB_HOST` is wherever your SABnzbd lives — `172.17.0.1` if it runs on the host, `host.docker.internal` on Docker Desktop, or your SABnzbd container's service name. `ATLAS_API_HOST=0.0.0.0` is required here so the API is reachable from outside the container through the published port, outside Docker it defaults to `127.0.0.1` (localhost only).
 
 2. Get the API key from the logs:
 
@@ -262,8 +263,69 @@ Set these in `docker_compose.yml` (fresh setup) or on `docker run` (existing sta
 | `ATLAS_NNTP_PASS` | Your password |
 | `ATLAS_INDEX_MODE` | `dynamic` / `live` / `backfill` |
 | `ATLAS_API_PORT` | Port Atlas's newznab API listens on — default `9090` |
+| `ATLAS_API_HOST` | Interface the API binds to — default `127.0.0.1` (localhost only). Set to `0.0.0.0` to accept connections from other hosts/containers. The compose stack sets this so Prowlarr can reach Atlas over the Docker network |
 | `ATLAS_SAB_HOST` | Hostname of your SABnzbd (`sabnzbd` in the compose stack) |
 | `ATLAS_SAB_PORT` | SABnzbd's port — default `8080` |
+
+## Newznab API (Generic)
+
+Atlas exposes a **Generic Newznab-compatible API** (the protocol Prowlarr, Sonarr, Radarr, SABnzbd and friends speak) so any Newznab client can search Atlas and grab releases.
+
+**Endpoint:** `http://<host>:<port>/api` — port defaults to `9090`.
+
+**Binding:** the API listens on `127.0.0.1` (localhost only) by default. To expose it to other machines or containers, set `ATLAS_API_HOST=0.0.0.0`.
+
+**Authentication:** `t=caps` works without a key. Every other operation requires the `apikey` parameter — a missing or wrong key returns a `401` newznab error.
+
+### Operations
+
+| `t=` | Meaning | Auth |
+|---|---|---|
+| `caps` | Capability discovery (server info, supported params, categories) | No |
+| `search` | Release search — `q` optional, empty returns recent releases | Yes |
+| `get` | Download the NZB for a release by `id` | Yes |
+
+### Parameters
+
+| Param | Applies to | Description |
+|---|---|---|
+| `apikey` | all (except `caps`) | Your API key |
+| `q` | `search` | Search terms — plain words, matched against release names |
+| `cat` | `search` | Accepted for compatibility; Atlas currently indexes category `7000` (Other) only |
+| `limit` | `search` | Max results, default `100`, clamped to `100` |
+| `offset` | `search` | Result offset for pagination |
+| `id` | `get` | Release ID from a search result's `<guid>` |
+
+### Examples
+
+```bash
+# capabilities (no auth)
+curl "http://localhost:9090/api?t=caps"
+
+# search releases, key required
+KEY=$(jq -r .api_key config.json)
+curl "http://localhost:9090/api?t=search&apikey=$KEY&q=matrix&limit=25"
+
+# download the NZB for a specific release
+curl -O "http://localhost:9090/api?t=get&id=1234&apikey=$KEY"
+```
+
+### Capabilities
+
+`t=caps` advertises search (`q`, `limit`, `offset`, max 100 results), one category (`7000` — Other), and no registration. That's why Prowlarr is told to use **Category: Other (7000)** during setup.
+
+### Search results
+
+Each `<item>` carries Newznab-compatible metadata:
+
+- `<title>` — release name
+- `<guid>` — the release ID (use with `t=get`)
+- `<link>` / `<enclosure>` — NZB download URL for the release
+- `<size>` — total size in bytes
+- `<pubDate>` — posted date (RFC 2822)
+- `<newznab:attr name="category" value="7000"/>` — category
+
+Prowlarr reads these to evaluate hits and hands the `<enclosure>` URL (Atlas's `t=get` endpoint) to the downloader. `t=get` responds with `application/x-nzb` and a `Content-Disposition` attachment header containing a valid NZB 1.1 file built from the indexed articles, so SABnzbd can grab it straight off the URL.
 
 ### Backing up the database
 
