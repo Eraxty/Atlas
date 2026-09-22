@@ -354,10 +354,14 @@ def job_in_sab(name, timeout = 10):
 
 
 def get_url():
-    config = load_config()
+    host = os.environ.get("ATLAS_SAB_HOST")
+    port = os.environ.get("ATLAS_SAB_PORT")
 
-    host = config["misc"].get("host", "127.0.0.1")
-    port = config["misc"].get("port", "8080")
+    if not host or not port:
+        config = load_config()
+
+        host = config["misc"].get("host", "127.0.0.1")
+        port = config["misc"].get("port", "8080")
 
     return f"http://{host}:{port}/"
 

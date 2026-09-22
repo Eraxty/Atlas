@@ -23,7 +23,11 @@ Atlas is a Usenet indexer that indexes releases from NNTP newsgroups and stores 
 
 ## Why Atlas
 
-Most Usenet indexers are either a paid service or a heavyweight self hosted stack (\*arr style) built for automation pipelines, not for someone who just wants to search and grab something from the terminal. Atlas is the middle ground: a single Python app, a local SQLite database, and a search you can describe in plain English.
+Most Usenet indexers are either paid services or heavyweight self-hosted stacks built primarily around automation. Atlas is designed to work either way: use it directly from the terminal when you want to search and grab something yourself, or plug it into an automated *arr stack through its Newznab API.
+
+Atlas handles NNTP indexing, release parsing, local SQLite storage, AI-powered search, NZB generation, and SABnzbd integration, while also supporting automation through Prowlarr and other Newznab compatible tools.
+
+It gives you a self hosted indexer that works just as well for an interactive terminal workflow as it does as part of a fully automated Usenet setup.
 
 ## Features
 
@@ -38,7 +42,7 @@ Most Usenet indexers are either a paid service or a heavyweight self hosted stac
 | **SABnzbd integration** | Bundled SABnzbd 5.0.4, auto configured, opens in browser on download |
 | **Background indexing** | Runs independently of the UI, start/stop without closing Atlas |
 | **Local database** | Groups, releases, articles, and indexing state all in `atlas.db` |
-| **Docker support** | Compose file included if you'd rather not manage a venv |
+| **Docker support** | Compose stack — Atlas + SABnzbd + Prowlarr on one network |
 
 ![Atlas dashboard](img/dash.png)
 
@@ -119,24 +123,136 @@ Finished files land in `~/Downloads/complete`.
 
 ## Docker
 
-### With Docker Compose
+### Fresh Setup (compose stack)
 
-Fill in your credentials in `docker_compose.yml`, then:
+The compose file brings up **Atlas + SABnzbd + Prowlarr** on the same Docker network, so they talk to each other by service name,no host IPs. Atlas talks to SABnzbd at `sabnzbd:8080` because it shares the SABnzbd config volume.
+
+1. Fill in your provider credentials in `docker_compose.yml`:
+   - `ATLAS_NNTP_HOST`, `ATLAS_NNTP_USER`, `ATLAS_NNTP_PASS`
+
+2. Bring it all up:
+
+   ```bash
+   docker compose -f docker_compose.yml up -d
+   ```
+
+3. Grab the Atlas API key (generated on first run, can also find in config.json):
+
+   ```bash
+   docker compose -f docker_compose.yml logs atlas | grep "api key"
+   ```
+
+4. Point Prowlarr at Atlas:
+   - Open Prowlarr at `http://localhost:9696`
+   - **Indexers → Add Indexer → Newznab**
+   - Name: `Atlas`
+   - URL: `http://atlas:9090` (service name, same network)
+   - API Path: `/api`
+   - API Key: the key from step 3
+   - Category: `Other` (7000)
+   - **Test** — should come back green — then **Save**
+
+Atlas is exposed on `http://localhost:9090` for Prowlarr-on-the-host setups too.
+
+#### Verifying everything came up
+
+**1. Containers running:**
 
 ```bash
-docker compose -f docker_compose.yml up -d
-docker compose -f docker_compose.yml exec atlas bash
+docker compose -f docker_compose.yml ps
 ```
 
-Stop with:
+All three should read `Up` (sabnzbd, prowlarr, atlas).
+
+**2. Atlas API is live:**
+
+```bash
+curl http://localhost:9090/api?t=caps
+```
+
+You should get a `<caps>` XML back with the server info. `t=caps` is the only endpoint without auth, so a `200` here means the API is up.
+
+**3. Services can reach each other by name** (this is the whole point of the shared network):
+
+```bash
+# prowlarr -> atlas
+docker exec prowlarr sh -c 'wget -q -S -O /dev/null "http://atlas:9090/api?t=caps" 2>&1 | grep -m1 HTTP/'
+
+# atlas -> sabnzbd
+docker exec atlas python -c "import urllib.request as u; print(u.urlopen('http://sabnzbd:8080', timeout=5).status)"
+```
+
+A `HTTP/1.1 200 OK` from the first and a `403` from the second are both correct — `403` is just SABnzbd's own API auth responding while the connection itself is fine.
+
+**4. Get the Atlas API key** (generated on first run, also written to config):
+
+```bash
+docker compose -f docker_compose.yml exec atlas grep api_key /app/data/config.json
+```
+
+**5. Search with auth** — the API now needs the key:
+
+```bash
+KEY=$(docker compose -f docker_compose.yml exec -T atlas grep api_key /app/data/config.json | cut -d'"' -f4)
+curl "http://localhost:9090/api?t=search&apikey=$KEY"
+```
+
+Expect an `<rss>` response with `<items>`. No key, or a wrong one, returns a `401` newznab error.
+
+**6. Prowlarr's test** — in the Prowlarr UI, the indexer Test should go green with `Indexer added successfully`.
+
+Stuck on step 2? Leave the NNTP creds empty and Atlas drops into its interactive setup wizard instead of starting the API — fill in `ATLAS_NNTP_USER` / `ATLAS_NNTP_PASS` in the compose file, then `docker compose up -d --force-recreate atlas`.
+
+Stop everything with:
 
 ```bash
 docker compose -f docker_compose.yml down
 ```
 
+Rebuild after code changes with:
+
+```bash
+docker compose -f docker_compose.yml up -d --build
+```
+
+### Existing arr stack (just add the Atlas indexer)
+
+Already running SABnzbd and Prowlarr? You don't need the full stack, run Atlas alone and point it at your existing services.
+
+1. Run only Atlas:
+
+   ```bash
+   docker build -t atlas .
+   docker run -d --name atlas \
+     -e ATLAS_NNTP_HOST=news.usenet.farm \
+     -e ATLAS_NNTP_USER=youruser \
+     -e ATLAS_NNTP_PASS=yourpass \
+     -e ATLAS_SAB_HOST=172.17.0.1 \
+     -e ATLAS_SAB_PORT=8080 \
+     -p 9090:9090 \
+     -v atlas-data:/app/data \
+     atlas
+   ```
+
+   `ATLAS_SAB_HOST` is wherever your SABnzbd lives — `172.17.0.1` if it runs on the host, `host.docker.internal` on Docker Desktop, or your SABnzbd container's service name.
+
+2. Get the API key from the logs:
+
+   ```bash
+   docker logs atlas | grep "api key"
+   ```
+
+3. Add Atlas to your existing Prowlarr as a **Newznab** indexer:
+   - Name: `Atlas`
+   - URL: `http://<host-or-ip>:9090`
+   - API Path: `/api`
+   - API Key: the key from step 2
+   - Category: `Other` (7000)
+   - **Test**, then **Save**
+
 ### Environment variables
 
-Set these in `docker_compose.yml` instead of using config files:
+Set these in `docker_compose.yml` (fresh setup) or on `docker run` (existing stack):
 
 | Variable | Description |
 |---|---|
@@ -145,18 +261,9 @@ Set these in `docker_compose.yml` instead of using config files:
 | `ATLAS_NNTP_USER` | Your username |
 | `ATLAS_NNTP_PASS` | Your password |
 | `ATLAS_INDEX_MODE` | `dynamic` / `live` / `backfill` |
-
-### Without Compose
-
-```bash
-docker build -t atlas .
-docker run -it --rm \
-  -e ATLAS_NNTP_HOST=news.usenet.farm \
-  -e ATLAS_NNTP_USER=youruser \
-  -e ATLAS_NNTP_PASS=yourpass \
-  -v atlas-data:/app/data \
-  atlas
-```
+| `ATLAS_API_PORT` | Port Atlas's newznab API listens on — default `9090` |
+| `ATLAS_SAB_HOST` | Hostname of your SABnzbd (`sabnzbd` in the compose stack) |
+| `ATLAS_SAB_PORT` | SABnzbd's port — default `8080` |
 
 ### Backing up the database
 
@@ -166,10 +273,6 @@ The database lives in a Docker volume. Make sure the compose service is running,
 docker compose -f docker_compose.yml exec atlas cp /app/data/atlas.db /app/atlas.db
 docker cp atlas:/app/atlas.db ./backup.db
 ```
-
-### SABnzbd in Docker
-
-The bundled SABnzbd only ships with the normal install, not the container image. In Docker you can still search, index, and save NZBs — but to download, point your own SABnzbd at the NZB files instead.
 ## FAQ
 
 <details>

@@ -7,13 +7,58 @@ services:
     tty: true
     volumes:
       - atlas-data:/app/data
+      - sabnzbd-config:/root/.sabnzbd
     environment:
       - ATLAS_NNTP_HOST=news.usenet.farm
       - ATLAS_NNTP_PORT=563
       - ATLAS_NNTP_USER=
       - ATLAS_NNTP_PASS=
       - ATLAS_INDEX_MODE=dynamic
-    network_mode: host
+      - ATLAS_API_PORT=9090
+      - ATLAS_SAB_HOST=sabnzbd
+      - ATLAS_SAB_PORT=8080
+    ports:
+      - "9090:9090"
+    networks:
+      - atlas-net
+
+  sabnzbd:
+    image: lscr.io/linuxserver/sabnzbd:latest
+    container_name: sabnzbd
+    restart: unless-stopped
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=Etc/UTC
+    volumes:
+      - sabnzbd-config:/config
+      - downloads:/downloads
+    ports:
+      - "8080:8080"
+    networks:
+      - atlas-net
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    volumes:
+      - prowlarr-config:/config
+    ports:
+      - "9696:9696"
+    networks:
+      - atlas-net
+
+networks:
+  atlas-net:
+    driver: bridge
 
 volumes:
   atlas-data:
+  sabnzbd-config:
+  downloads:
+  prowlarr-config:

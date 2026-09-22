@@ -34,6 +34,11 @@ def _env_config():
     except ValueError:
         port = 563
 
+    try:
+        api_port = int(os.environ.get("ATLAS_API_PORT", "9090"))
+    except ValueError:
+        api_port = 9090
+
     return {
         "host": host,
         "username": user,
@@ -42,6 +47,7 @@ def _env_config():
         "group": "",
         "groups": [],
         "index_mode": mode,
+        "api_port": api_port,
     }
 
 
