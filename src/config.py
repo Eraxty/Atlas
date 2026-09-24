@@ -68,6 +68,7 @@ def get_api_key(config):
         saved["api_key"] = key
 
         tmp = config_file.with_suffix(".json.tmp")
+        
         with open(tmp, "w") as f:
             json.dump(saved, f, indent=4)
 
@@ -81,6 +82,7 @@ def get_api_key(config):
 
 def load_config():
     env_cfg = _env_config()
+    
     if env_cfg:
         return env_cfg
 
@@ -140,6 +142,7 @@ def save_config(host, username, password, port, group, index_mode="dynamic", gro
     config_file.parent.mkdir(parents = True, exist_ok = True)
 
     tmp = config_file.with_suffix(".json.tmp")
+    
     with open(tmp, "w") as f:
         json.dump(config, f, indent=4)
 

@@ -41,9 +41,8 @@ def _page_nonempty(client, page_groups):
     return kept
 
 
-def load_groups(client, host, pattern = None):
+def load_groups(client, host, pattern = None): #refetch every 10 mins so new groups show up without restart
     cache_key = (host, pattern)
-    #refetch every 10 min so new groups show up without a restart
     cached = _groups_cache.get(cache_key)
 
     if cached and time.time() - cached[0] < 600:
@@ -60,8 +59,7 @@ def load_groups(client, host, pattern = None):
                 if item:
                     groups.append(item.split()[0])
 
-    except (OSError, nntp.NNTPError):
-        #server doesnt support wildcards soo load everything and filter client side
+    except (OSError, nntp.NNTPError): #server doesnt support wildcards soo load everything and filter client side
         if pattern:
             return load_groups(client, host, None)
         raise
@@ -86,8 +84,7 @@ def groups_menu(config):
     )
 
     try:
-        #always connect before talking to the server, cache or not
-        if not client.server:
+        if not client.server: #always connect before talking to the server, cache or not
             client.connect()
 
     except (OSError, nntp.NNTPError) as e:
@@ -230,7 +227,7 @@ def groups_menu(config):
                         prompt("[enter]")
                         continue
 
-                #add the group right away, emptiness was already checked before display
+                #add the group, emptiness was already checked before display
                 config["group"] = chosen
                 config["groups"] = list(dict.fromkeys((config.get("groups") or []) + [chosen]))
 

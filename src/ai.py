@@ -226,8 +226,10 @@ def main():
 
     for r in results:
         key = r["name"]
+        
         if key not in releases:
             releases[key] = {"info": r, "parts": 0, "groups": set()}
+        
         releases[key]["parts"] += 1
         releases[key]["groups"].add(r["group"])
 

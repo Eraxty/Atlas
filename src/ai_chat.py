@@ -39,8 +39,11 @@ def ask_ai(prompt, groups = None):
 
     try:
         return json.loads(raw.strip())
+    
     except json.JSONDecodeError:
         match = re.search(r"\{.*\}", raw, re.DOTALL)
+        
         if match:
             return json.loads(match.group())
+        
         return {"message": "couldnt understand ai response", "groups": [], "keywords": []}

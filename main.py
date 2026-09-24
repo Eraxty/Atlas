@@ -1,31 +1,38 @@
-from src.config import load_config, save_config
-from src.database import create_db, purge_broken
-from src.download import download_release
-from src.groups_menu import groups_menu
-from src.nzb import generate_nzb
-from src.prompts import prompt
-from src.sab import rotate_log
-from src.search import count_all_releases, count_obfuscated, count_releases, get_articles, search_all_releases, search_obfuscated, search_releases
-from src.colors import reset, bold, dim, red, green, yellow, cyan
-from src.paths import app_dir
-from rich.console import Console
-from rich.panel import Panel
-from rich.table import Table
-from rich.text import Text
-from rich.console import Group
-from pathlib import Path
-from src.api import start as start_api
-
 import json
 import math
 import os
+import select
 import shutil
 import signal
 import sqlite3
 import subprocess
 import sys
 import time
-import select
+import traceback
+from pathlib import Path
+
+import bg_indexer
+
+from rich.console import Console, Group
+from rich.live import Live
+from rich.panel import Panel
+from rich.table import Table
+from rich.text import Text
+
+from src.ai import ai_search
+from src.api import start as start_api
+from src.colors import reset, bold, dim, red, green, yellow, cyan
+from src.config import load_config, save_config
+from src.dashboard import render as dash_render
+from src.database import create_db, purge_broken
+from src.download import download_release
+from src.groups_menu import groups_menu
+from src.nntp_client import NNTPClient
+from src.nzb import generate_nzb
+from src.paths import app_dir
+from src.prompts import prompt
+from src.sab import rotate_log
+from src.search import count_all_releases, count_obfuscated, count_releases, get_articles, search_all_releases, search_obfuscated, search_releases
 
 
 if sys.platform == "win32":
@@ -177,6 +184,7 @@ def start_background_indexer():
     for _ in range(50):
         if indexer_alive():
             return True
+    
         time.sleep(0.1)
 
     console.print(f"[red]indexer didnt come up, check {LOG_FILE.name}[/red]")
@@ -280,6 +288,7 @@ def show_results(releases, query, page, total_pages, total, page_size):
         console.print("[cyan]p.[/cyan] Previous Page")
     if page < total_pages - 1:
         console.print("[cyan]n.[/cyan] Next Page")
+    
     console.print("[cyan]g.[/cyan] Go to Page")
 
 
@@ -293,6 +302,7 @@ def show_release(release, articles):
         info.append("complete", style = "green")
     else:
         info.append("incomplete", style = "red")
+    
     info.append("\n")
 
     console.print(panel(info))
@@ -333,6 +343,7 @@ def setup():
     port = ask("Port (563): ", 563)
 
     save_config(host, username, password, port, "")
+    
     console.print(panel("[yellow]group empty rn, select one from the Groups menu[/yellow]", "yellow"))
 
 
@@ -393,8 +404,10 @@ def do_search(config):
                     return
 
                 query = prompt("\nSearch: ").strip()
+                
                 if not query or query == "0":
                     break
+                
                 page = 0
                 continue
 
@@ -559,8 +572,10 @@ def do_settings():
     if choice == 3:
         try:
             freed = purge_broken()
+        
         except sqlite3.Error as e:
             console.print(f"[red]purge failed: {e}[/red]")
+        
         else:
             if freed:
                 console.print(f"[green]deleted broken releases, freed {fmt_size(freed)}[/green]")
@@ -649,26 +664,33 @@ def main():
 
         idx_text = Text()
         if indexing:
+        
             if st == "warning":
                 extra = f" ({err_count} errors)" if err_count else ""
                 idx_text.append(f"{label} ", style = "yellow")
                 idx_text.append("[WARNING]", style = "yellow bold")
                 idx_text.append(extra, style = "yellow")
+        
             elif status.get("idle"):
                 idx_text.append(f"{label} (idle)", style = "cyan")
+        
             else:
                 idx_text.append(f"{label} ", style = "green")
                 idx_text.append("[active]", style = "green bold")
+        
+        
         elif st == "error":
             if status.get("stale"):
                 idx_text.append("stopped (last run failed)", style = "dim")
             else:
                 idx_text.append("FAILED (error)", style = "red bold")
+        
         elif st == "warning":
             if status.get("stale"):
                 idx_text.append("stopped (last run: warning)", style = "dim")
             else:
                 idx_text.append("stopped (warning)", style = "yellow")
+        
         else:
             idx_text.append("stopped", style = "dim")
 
@@ -693,8 +715,10 @@ def main():
 
         menu.add_row("2.", "Search")
         menu.add_row("3.", "Groups")
+        
         if len(groups) > 1:
             menu.add_row("4.", "Remove group")
+        
         menu.add_row("5.", "Live Dashboard")
         menu.add_row("6.", "AI Search")
         menu.add_row("7.", "Settings")
@@ -809,13 +833,13 @@ def main():
                         config.get("index_mode", "dynamic"),
                         config["groups"],
                     )
+        
                     console.print(f"[green]removed {chosen}[/green]")
+        
                     prompt("[enter]")
                     break
 
         elif choice == "5":
-            from rich.live import Live
-            from src.dashboard import render as dash_render
             try:
                 with Live(dash_render(80, 24), console = console, refresh_per_second = 2, screen = True) as live:
                     while True:
@@ -826,7 +850,6 @@ def main():
                 pass
 
         elif choice == "6":
-            from src.ai import ai_search
             ai_search(config)
 
         elif choice == "7":
@@ -840,29 +863,30 @@ def main():
 
 
 if __name__ == "__main__":
-    import sys as _sys
-    if "--selftest" in _sys.argv:
-        from src.nntp_client import NNTPClient
-        from src.config import load_config
+    if "--selftest" in sys.argv:
         cfg = load_config()
+        
         if not cfg:
             print("selftest: no config found (run Settings or set ATLAS_NNTP_* env)")
-            _sys.exit(1)
+            sys.exit(1)
+        
         client = NNTPClient(cfg["host"], cfg["username"], cfg.get("password", ""), cfg["port"])
+        
         print(f"selftest: {cfg['host']}:{cfg['port']} ssl={client.use_ssl} user={cfg['username']}")
+        
         try:
             client.connect()
         except Exception as e:
-            import traceback
             traceback.print_exc()
-            _sys.exit(1)
+            sys.exit(1)
+        
         print("selftest: connected OK")
+        
         client.disconnect()
-        _sys.exit(0)
+        sys.exit(0)
 
     try:
         if "--bg-indexer" in sys.argv:
-            import bg_indexer
             bg_indexer.main()
             sys.exit(0)
 

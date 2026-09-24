@@ -76,12 +76,15 @@ def configure_servers():
         text = text[:section.start()] + f"[[s{section.group(1)}]]" + body + text[section.end():]
 
         CONFIG_DIR.mkdir(parents = True, exist_ok = True)
+        
         tmp = CONFIG_FILE.with_suffix(".ini.tmp")
         tmp.write_text(text, encoding = "utf-8")
+        
         os.replace(tmp, CONFIG_FILE)
         return
 
     sections = re.findall(r"^\[\[s(\d+)\]\]\s*$", text, re.MULTILINE)
+    
     #name it after the highest sN we already got
     index = max([int(n) for n in sections], default=-1) + 1
 
@@ -121,16 +124,17 @@ def configure_servers():
         text += "\n[servers]\n" + block
 
     CONFIG_DIR.mkdir(parents = True, exist_ok = True)
+    
     tmp = CONFIG_FILE.with_suffix(".ini.tmp")
     tmp.write_text(text, encoding = "utf-8")
+    
     os.replace(tmp, CONFIG_FILE)
 
 
 def start():
     global process
 
-    if process and process.poll() is None:
-        #already up so dont double start
+    if process and process.poll() is None: #already up so dont double start
         print(f"{yellow}sab already running{reset}")
         return True
 
@@ -219,7 +223,7 @@ def load_config():
     if CONFIG_FILE.exists():
         
         try:
-            with open(CONFIG_FILE, encoding="utf-8") as f:
+            with open(CONFIG_FILE, encoding = "utf-8") as f:
                 text = f.read()
         
         except OSError:
@@ -307,8 +311,7 @@ def get_complete_dir():
 
     path = Path(folder)
 
-    if not path.is_absolute():
-        #relative here means against the home dir
+    if not path.is_absolute():#relative means against the home dir
         path = Path.home() / path
 
     return path
@@ -330,8 +333,7 @@ def job_in_sab(name, timeout = 10):
             with urllib.request.urlopen(queue_url, timeout = 2) as r:
                 slots = json.load(r).get("queue", {}).get("slots", [])
 
-            if any(s.get("filename", "") in (name, name + ".nzb") for s in slots):
-                #still in the queue
+            if any(s.get("filename", "") in (name, name + ".nzb") for s in slots): #still in the queue
                 return "queued"
 
         except (OSError, ValueError):

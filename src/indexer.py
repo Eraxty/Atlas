@@ -9,7 +9,7 @@ BACKFILL_SIZE = 5000
 
 
 class Indexer:
-    def __init__(self, client, mode="dynamic", verbose=False):
+    def __init__(self, client, mode = "dynamic", verbose = False):
         self.client = client
         self.mode = mode
         self.verbose = verbose
@@ -44,8 +44,7 @@ class Indexer:
 
         state = get_group_state(group)
 
-        if state is None:
-            #both cursors start at the top
+        if state is None: #both cursors start at the top
             live_cursor = int(last)
             backfill_cursor = int(last)
 
@@ -55,6 +54,7 @@ class Indexer:
                 "live_cursor": live_cursor,
                 "backfill_cursor":backfill_cursor,
             }
+        
             self._gs(group)["phase"] = "backfill"
 
         #server renumbered, group got reset so start over
@@ -98,6 +98,7 @@ class Indexer:
             return
 
         end = min(last, start + BACKFILL_SIZE - 1)
+        
         self.process_range(group, start, end, "LIVE")
         update_live_cursor(group, end)
 
@@ -110,9 +111,11 @@ class Indexer:
 
         if end < first:
             st["backfilling"] = False
+            
             if not st["idle"]:
                 print(f"[BACKFILL] {group} {end} < first {first}, nothing to backfill, idle")
                 st["idle"] = True
+            
             st["phase"] = "live"
             return
 
@@ -130,17 +133,22 @@ class Indexer:
             #423 = range has no articles
             if e.code != 423:
                 raise
+            
             print(f"[{kind}] {start}-{end} empty, skipping")
+            
             self.last_batch_articles = 0
             self.last_batch_bytes = 0
             self.last_batch_releases = 0
+            
             return
         
         except nntp.NNTPPermanentError as e:
             print(f"[{kind}] {start}-{end} not available ({e.code}), skipping")
+            
             self.last_batch_articles = 0
             self.last_batch_bytes = 0
             self.last_batch_releases = 0
+            
             return
 
         self._gs(group)["idle"] = False
@@ -172,7 +180,9 @@ class Indexer:
             release["group"] = group
             release["poster"] = release["articles"][0].author
             release["date"] = release["articles"][0].date
+            
             to_save.append(release)
+            
             total_bytes += sum(a.bytes for a in release["articles"] if a.bytes)
 
         save_releases_bulk(to_save)

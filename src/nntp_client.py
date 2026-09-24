@@ -55,12 +55,12 @@ class NNTPClient:
     def connect(self):
         _ensure_ca_bundle()
         self.server = nntp.NNTPClient(
-            host=self.host,
-            port=self.port,
-            username=self.username,
-            password=self.password,
-            use_ssl=self.use_ssl,
-            timeout=self.timeout
+            host = self.host,
+            port = self.port,
+            username = self.username,
+            password = self.password,
+            use_ssl = self.use_ssl,
+            timeout = self.timeout
         )
 
     def update_credentials(self, host, username, password, port):

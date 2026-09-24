@@ -20,8 +20,7 @@ def with_db(func):
     return wrapper
 
 
-def migrate(conn):
-    #old db files are missing these columns, add em if they aint there
+def migrate(conn): #old db files are missing these columns, add em if they aint there
     cursor = conn.cursor()
 
     cursor.execute("pragma table_info(releases)")
@@ -127,9 +126,8 @@ def create_db():
     conn = sqlite3.connect(database, timeout = 30)
 
     try:
-        cursor = conn.cursor()
-        #wal soo the indexer can write while search reads
-        cursor.execute("pragma journal_mode = wal")
+        cursor = conn.cursor() 
+        cursor.execute("pragma journal_mode = wal") #wal soo the indexer can write while search reads
 
         cursor.execute("""
             create table if not exists releases (
@@ -236,8 +234,7 @@ def create_db():
             end
         """)
 
-        if fts_exists is None:
-            #fill fts with whatever rows already exist
+        if fts_exists is None: #fill fts with whatever rows already exist
             cursor.execute("insert into releases_fts(releases_fts) values ('rebuild')")
 
         conn.commit()
@@ -289,10 +286,9 @@ def save_releases_bulk(releases):
     if not releases:
         return
 
-    conn = sqlite3.connect(database, timeout=30)
+    conn = sqlite3.connect(database, timeout = 30)
 
-    try:
-        #transaction soo a half written batch rolls back
+    try: #transaction soo a half written batch rolls back
         with conn:
             cur = conn.cursor()
             
