@@ -65,12 +65,21 @@ jobs:
           ls -R releases
           mkdir -p final
           cp $(find releases/atlas-linux -type f -name 'atlas*' | head -1) final/atlas-linux
-          cp $(find releases/atlas-windows -type f -name 'atlas*' | head -1) final/atlas-windows.exe
           cp $(find releases/atlas-macos -type f -name 'atlas*' | head -1) final/atlas-macos
+
+          mkdir -p final/atlas-windows
+          cp $(find releases/atlas-windows -type f -name 'atlas*' | head -1) final/atlas-windows/atlas-windows.exe
+          cp atlas.bat final/atlas-windows/atlas.bat
+          (cd final/atlas-windows && zip -r ../atlas-windows.zip .)
+          rm -rf final/atlas-windows
+
           ls -l final
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          allowUpdates: true
-          files: final/*
+          overwrite_files: true
+          files: |
+            final/atlas-linux
+            final/atlas-macos
+            final/atlas-windows.zip
