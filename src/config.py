@@ -114,7 +114,7 @@ def load_config():
     return config
 
 
-def save_config(host, username, password, port, group, index_mode="dynamic", groups=None):
+def save_config(host, username, password, port, group, index_mode="dynamic", groups=None, api_port=None):
     store_password = True
 
     if KEYRING_AVAILABLE:
@@ -127,6 +127,13 @@ def save_config(host, username, password, port, group, index_mode="dynamic", gro
     if groups is None:
         groups = [group] if group else []
 
+    if api_port is None:
+        try:
+            with open(config_file, "r") as f:
+                api_port = json.load(f).get("api_port")
+        except (OSError, ValueError, json.JSONDecodeError):
+            pass
+
     config = {
         "host": host,
         "username": username,
@@ -135,6 +142,9 @@ def save_config(host, username, password, port, group, index_mode="dynamic", gro
         "groups": [g for g in groups if g],
         "index_mode": index_mode
     }
+
+    if api_port:
+        config["api_port"] = api_port
 
     if store_password:
         config["password"] = password

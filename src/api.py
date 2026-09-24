@@ -1,5 +1,7 @@
+import socket
 from flask import Flask, Response, request
 from threading import Thread
+from werkzeug.serving import make_server
 from email.utils import format_datetime, parsedate_to_datetime
 from datetime import datetime, timezone
 from xml.sax.saxutils import escape
@@ -15,6 +17,8 @@ app = Flask(__name__)
 console = Console()
 
 api_key = None
+api_thread = None
+wsgi_server = None
 
 
 def _pub_date(value):
@@ -143,7 +147,7 @@ def api():
 
 
 def start(config):
-    global api_key
+    global api_key, wsgi_server, api_thread
 
     api_key, created = get_api_key(config)
 
@@ -153,14 +157,37 @@ def start(config):
     port = int(config.get("api_port", 9090))
     host = config.get("api_host", "127.0.0.1")
 
+    if not _port_free(host, port):
+        console.print(f"[red]port {port} is already in use, api not started[/red]")
+        console.print("[dim]change it under Settings -> Change api port[/dim]")
+        return None
+
     console.print(f"[dim]newznab api on http://{host}:{port} — apikey required for search/get[/dim]")
 
-    thread = Thread(
-        target = app.run,
-        kwargs = {"host": host, "port": port, "use_reloader": False},
-        daemon = True,
-    )
-  
-    thread.start()
+    wsgi_server = make_server(host, port, app, threaded = True)
+    api_thread = Thread(target = wsgi_server.serve_forever, daemon = True)
+    api_thread.start()
 
-    return thread
+    return api_thread
+
+
+def _port_free(host, port):
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.bind((host, port))
+    except OSError:
+        return False
+
+    return True
+
+
+def stop():
+    global wsgi_server, api_thread
+
+    if wsgi_server is not None:
+        wsgi_server.shutdown()
+        wsgi_server.server_close()
+
+    wsgi_server = None
+    api_thread = None

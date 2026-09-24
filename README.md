@@ -136,6 +136,7 @@ Finished files land in `~/Downloads/complete`.
 - **Change indexer mode** — same three modes as above
 - **Purge broken releases** — deletes incomplete releases, frees space
 - **Wipe DB and cache** — full reset: database, logs, status, stats (stop the indexer first)
+- **Change api port** — move the newznab API off `9090` if it's taken (applies immediately)
 
 ## Docker
 

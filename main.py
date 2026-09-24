@@ -20,7 +20,7 @@ from rich.table import Table
 from rich.text import Text
 
 from src.ai import ai_search
-from src.api import start as start_api
+from src.api import start as start_api, stop as stop_api
 from src.colors import reset, bold, dim, red, green, yellow, cyan
 from src.config import load_config, save_config
 from src.dashboard import render as dash_render
@@ -343,7 +343,7 @@ def setup():
     port = ask("Port (563): ", 563)
 
     save_config(host, username, password, port, "")
-    
+
     console.print(panel("[yellow]group empty rn, select one from the Groups menu[/yellow]", "yellow"))
 
 
@@ -526,6 +526,7 @@ def do_settings():
     menu.add_row("2.", f"Change indexer mode ({config.get('index_mode', 'dynamic')})")
     menu.add_row("3.", "Purge broken releases")
     menu.add_row("4.", "Wipe db and cache")
+    menu.add_row("5.", f"Change api port ({config.get('api_port', 9090)})")
     menu.add_row("0.", "Back")
     console.print(panel(menu, "blue"))
 
@@ -605,6 +606,33 @@ def do_settings():
             f.unlink(missing_ok = True)
 
         console.print("[green]wiped db and cache[/green]")
+        prompt("[enter]")
+        return
+
+    if choice == 5: #api setting
+        current = config.get("api_port", 9090)
+        port = ask(f"API port ({current}): ", current)
+
+        if port < 1 or port > 65535:
+            console.print("[red]port must be between 1 and 65535[/red]")
+            prompt("[enter]")
+            return
+
+        save_config(
+            config["host"],
+            config["username"],
+            config.get("password", ""),
+            config["port"],
+            config["group"],
+            config.get("index_mode", "dynamic"),
+            config.get("groups"),
+            port,
+        )
+
+        stop_api()
+        start_api(load_config())
+
+        console.print(f"[green]api moved to port {port}[/green]")
         prompt("[enter]")
         return
 
