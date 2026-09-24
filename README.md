@@ -63,6 +63,20 @@ python main.py
 
 Prefer containers? Skip to [Docker](#docker).
 
+### macOS
+
+Atlas also ships pre-built binaries for macOS:
+
+1. Download the latest binary from [the releases page](https://github.com/Eraxty/Atlas/releases/tag/<version>) (replace `<version>` with the release tag, e.g. `v0.4.0`).
+2. Place `atlas-macos` in the location you want to run it from.
+3. Make it executable and run it:
+
+```bash
+cd <location>
+chmod 755 atlas-macos
+./atlas-macos
+```
+
 ## Usage
 
 ![Setup](img/login.png)
