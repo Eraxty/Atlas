@@ -86,6 +86,8 @@ Your password is stored in your OS keyring when possible. If keyring isn't avail
 
 ### Indexing
 
+> **Note:** Indexing means indexing the source server (the Usenet server) — not your local computer, in case you were wondering.
+
 Start the indexer from the main menu. Atlas begins pulling headers for every group you've selected. It also fires up the bundled SABnzbd in the background so downloads are ready when you want them. Pick a mode depending on what you need:
 
 | Mode | Behavior |
