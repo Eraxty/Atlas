@@ -102,7 +102,7 @@ On first run, Atlas asks for your provider credentials:
 
 | Field | What to enter |
 |---|---|
-| Host | Your provider's NNTP server. Use the domain only, e.g. `news.usenet.farm` |
+| Host | Your provider's NNTP server. Use the domain only, e.g. `news.your-provider.net` |
 | Username | Your provider username |
 | Password | Your provider password |
 | Port | `563` for SSL. Leave the default as it is |
@@ -154,6 +154,33 @@ Finished files land in `~/Downloads/complete`.
 - Change API port: move the Newznab API off `9090` if that port is taken
 
 ## Docker
+
+### Prebuilt image
+
+No need to build locally just pull and run:
+
+```bash
+docker pull ghcr.io/eraxty/atlas:latest
+```
+
+```bash
+docker run -dit --name atlas \
+  -e ATLAS_NNTP_HOST=news.your-provider.net \
+  -e ATLAS_NNTP_USER=youruser \
+  -e ATLAS_NNTP_PASS=yourpass \
+  -e ATLAS_API_HOST=0.0.0.0 \
+  -p 9090:9090 \
+  -v atlas-data:/app/data \
+  ghcr.io/eraxty/atlas:latest
+```
+
+needs `-it` because Atlas is a terminal app, and `ATLAS_API_HOST=0.0.0.0` lets the API be reached from outside the container.
+
+Check if it's running:
+
+```bash
+curl http://localhost:9090/api?t=caps
+```
 
 ### Fresh Setup (compose stack)
 
@@ -215,12 +242,12 @@ docker compose -f docker_compose.yml up -d --build
 
 Already running SABnzbd and Prowlarr? You don't need the full stack, run Atlas alone and point it at your existing services.
 
-1. Run only Atlas:
+1. Run only Atlas (swap `docker build` + `atlas` for `docker pull ghcr.io/eraxty/atlas:latest` if you don't want to build):
 
    ```bash
    docker build -t atlas .
    docker run -d --name atlas \
-     -e ATLAS_NNTP_HOST=news.usenet.farm \
+     -e ATLAS_NNTP_HOST=news.your-provider.net \
      -e ATLAS_NNTP_USER=youruser \
      -e ATLAS_NNTP_PASS=yourpass \
      -e ATLAS_SAB_HOST=172.17.0.1 \
@@ -336,7 +363,8 @@ Tested on Arch Linux, x86_64. Other Linux distros may work but aren't officially
 
 ## Limitation
 
-No deobfuscation support yet.
+Partial deobfuscation support via par2
+Windows exe and Mac build might not work properly
 
 ## Credits
 

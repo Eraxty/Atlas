@@ -9,7 +9,7 @@ services:
       - atlas-data:/app/data
       - sabnzbd-config:/root/.sabnzbd
     environment:
-      - ATLAS_NNTP_HOST=news.usenet.farm
+      - ATLAS_NNTP_HOST=news.your-provider.net
       - ATLAS_NNTP_PORT=563
       - ATLAS_NNTP_USER=
       - ATLAS_NNTP_PASS=
