@@ -19,6 +19,18 @@ except ImportError:
     pass
 
 
+def _stored_api_key():
+    if not config_file.exists():
+        return None
+
+    try:
+        with open(config_file, "r") as f:
+            return json.load(f).get("api_key")
+
+    except (OSError, ValueError, json.JSONDecodeError):
+        return None
+
+
 def _env_config():
     host = os.environ.get("ATLAS_NNTP_HOST")
     user = os.environ.get("ATLAS_NNTP_USER")
@@ -39,7 +51,7 @@ def _env_config():
     except ValueError:
         api_port = 9090
 
-    return {
+    env_cfg = {
         "host": host,
         "username": user,
         "password": pwd,
@@ -51,6 +63,13 @@ def _env_config():
         "api_host": os.environ.get("ATLAS_API_HOST", "127.0.0.1"),
     }
 
+    stored = _stored_api_key()
+
+    if stored:
+        env_cfg["api_key"] = stored
+
+    return env_cfg
+
 
 def get_api_key(config):
     key = config.get("api_key")
@@ -61,14 +80,28 @@ def get_api_key(config):
     key = secrets.token_urlsafe(32)
     config["api_key"] = key
 
+    tmp = config_file.with_suffix(".json.tmp")
+
+    if not config_file.exists():
+        try:
+            config_file.parent.mkdir(parents = True, exist_ok = True)
+
+            with open(tmp, "w") as f:
+                json.dump({"api_key": key}, f, indent=4)
+
+            os.replace(tmp, config_file)
+
+        except OSError:
+            pass
+
+        return key, True
+
     try:
         with open(config_file, "r") as f:
             saved = json.load(f)
 
         saved["api_key"] = key
 
-        tmp = config_file.with_suffix(".json.tmp")
-        
         with open(tmp, "w") as f:
             json.dump(saved, f, indent=4)
 
