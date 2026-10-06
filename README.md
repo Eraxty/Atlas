@@ -26,7 +26,7 @@ You can use it in the terminal. If you already run Prowlarr, SABnzbd, or the *ar
 
 ## Rust port
 
-Atlas also has a much faster Rust port now. Check out the [`Rust` branch](https://github.com/Eraxty/Atlas/tree/Rust).
+Atlas also has a much faster Rust port now. Check out the [Rust](https://github.com/Eraxty/Atlas/tree/Rust).
 
 ## Features
 
