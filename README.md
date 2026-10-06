@@ -10,7 +10,7 @@ A self hosted Usenet indexer that lives in your terminal
 ![Docker](https://img.shields.io/badge/docker-supported-2496ED?logo=docker&logoColor=white)
 ![Hackatime](https://hackatime.hackclub.com/api/v1/badge/U09JP15EVQU/Eraxty/Atlas)
 
-[Features](#features) • [Install](#installation) • [Usage](#usage) • [Docker](#docker) • [Newznab API](#newznab-api-generic) • [Backup](#backing-up-the-database)
+[Features](#features) • [Install](#installation) • [Usage](#usage) • [Docker](#docker) • [Newznab API](#newznab-api-generic) • [Backup](#backing-up-the-database) • [Rust port](#rust-port)
 
 ![Atlas](img/main.png)
 
@@ -23,6 +23,10 @@ A self hosted Usenet indexer that lives in your terminal
 I built Atlas because I wanted to make a Usenet indexer. A lot of indexers today are paid and expensive, Meanwhile atlas is opensource and free. Atlas keeps the useful parts in one place, it reads your provider, works out which posts belong together, stores them locally and makes an NZB or Download directly depending on your needs when you find something.
 
 You can use it in the terminal. If you already run Prowlarr, SABnzbd, or the *arr apps, its Newznab API gets into that setup too.
+
+## Rust port
+
+Atlas also has a much faster Rust port now. Check out the [`Rust` branch](https://github.com/Eraxty/Atlas/tree/Rust).
 
 ## Features
 
