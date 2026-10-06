@@ -1,0 +1,58 @@
+[package]
+name = "atlas"
+version = "0.2.0"
+edition = "2024"
+rust-version = "1.99"
+description = "A self hosted Usenet indexer that lives in your terminal"
+license = "GPL-3.0-only"
+repository = "https://github.com/Eraxty/Atlas"
+readme = "README.md"
+exclude = ["SABnzbd-5.0.4/", "img/"]
+
+[[bin]]
+name = "atlas"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+base64 = "0.22"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+flate2 = "1"
+getrandom = "0.3"
+indexmap = "2"
+ratatui = "0.30"
+regex = "1"
+rusqlite = { version = "0.40", features = ["bundled", "hooks"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12", "logging"] }
+rustyline = "18"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+sysinfo = { version = "0.39", default-features = false, features = ["system"] }
+tiny_http = "0.12"
+tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util", "time", "sync"] }
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12", "logging"] }
+unicode-width = "0.2"
+ureq = { version = "3", default-features = false, features = ["json", "rustls"] }
+webbrowser = "1"
+webpki-roots = "1"
+zstd = "0.13"
+
+[target.'cfg(unix)'.dependencies]
+signal-hook = "0.4"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+keyring = { version = "3.6", features = ["apple-native"] }
+
+[target.'cfg(windows)'.dependencies]
+keyring = { version = "3.6", features = ["windows-native"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+keyring = { version = "3.6", features = ["async-secret-service", "async-io", "crypto-rust"] }
+
+[dev-dependencies]
+tempfile = "3"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true

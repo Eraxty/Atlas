@@ -1,0 +1,6 @@
+# pinned to the latest stable release. rustup installs it on first use,
+# bump the version here (and rust-version in Cargo.toml) to upgrade.
+[toolchain]
+channel = "1.99.0"
+components = ["rustfmt", "clippy"]
+profile = "minimal"

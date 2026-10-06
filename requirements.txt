@@ -1,9 +1,0 @@
-pynntp
-flask
--r SABnzbd-5.0.4/requirements.txt
-prompt_toolkit
-keyring
-colorama
-rich
-plotext<6
-ollama

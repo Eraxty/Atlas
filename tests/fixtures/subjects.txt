@@ -1,0 +1,21 @@
+[01/10] - "Movie.2024.1080p.part01.rar" yEnc (1/50)
+"show.s01e01.vol03+04.par2" yEnc (2/3)
+[3/7] - file.name.mkv yEnc
+[1/2] "abc def"
+[1/2] "abc"def
+[1/4] "a.rar" yEnc (1/1)
+hello world
+yEnc "Some.Thing.r00" 12.5 MB (3/9)
+[12/34] - "Release.Name.2023.720p.WEB-DL.mkv.001" - 4.2 GB yEnc (12/900)
+"no part" (5/10)
+just.a.file.nfo yEnc (1/1)
+some.file.sfv (1/1)
+[1/3] - weird.bin (1/1)
+[2/3] - "a1B2c3D4e5F6g7H8i9J0.part2.rar" yEnc (10/20)
+Re: [5/6] "Ünïcödé.Fïlé.mkv" yEnc (1/2)
+[1/1] - "x" yEnc (1/1)
+"ab.0001" yEnc (1/1)
+"abc.part1.part2.rar" yEnc (1/1)
+[01/10] "QuotedNoYenc.zip" (02/22)
+[1/2] - "trailing.quote" more
+"Lazy" "Quotes.mkv" yEnc (1/2)

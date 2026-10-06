@@ -1,15 +1,7 @@
-.git
-__pycache__
-*.pyc
-*.pyo
-*.db
-*.log
-*.pid
-*.tmp
-.venv
-.env
-img/
-SABnzbd-5.0.4/
-agent/
-*.md
-LICENSE
+# build context is the repo root, the image only needs Cargo.toml, Cargo.lock,
+# src/ and the entrypoint
+*
+!Cargo.toml
+!Cargo.lock
+!src/
+!docker/docker-entrypoint.sh

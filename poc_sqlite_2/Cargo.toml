@@ -1,0 +1,18 @@
+[package]
+name = "poc_sqlite_2"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+publish = false
+description = "Proof of concept: a compact article layout and a split database for the Atlas indexer"
+
+# its own workspace, soo it builds on its own and never becomes part of atlas
+[workspace]
+
+[dependencies]
+atlas = { path = ".." }
+rusqlite = { version = "0.40", features = ["bundled"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1

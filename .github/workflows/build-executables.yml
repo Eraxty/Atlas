@@ -27,27 +27,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+      # installs the version pinned in rust-toolchain.toml (with rustfmt + clippy)
+      - name: Install Rust
+        run: rustup toolchain install
 
-      - name: Install deps
-        run: pip install -r requirements.txt pyinstaller
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Test
+        run: cargo test --locked
 
       - name: Build atlas
-        run: >
-          pyinstaller --onefile --console --clean --name atlas
-          --collect-submodules keyring
-          --collect-data certifi
-          --hidden-import bg_indexer
-          main.py
+        run: cargo build --release --locked
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
           path: |
-            dist/atlas${{ matrix.suffix }}
+            target/release/atlas${{ matrix.suffix }}
 
   release:
     if: startsWith(github.ref, 'refs/tags/')
@@ -68,6 +65,7 @@ jobs:
           mkdir -p final
           cp $(find releases/atlas-linux -type f -name 'atlas*' | head -1) final/atlas-linux
           cp $(find releases/atlas-macos -type f -name 'atlas*' | head -1) final/atlas-macos
+          chmod +x final/atlas-linux final/atlas-macos
 
           mkdir -p final/atlas-windows
           cp $(find releases/atlas-windows -type f -name 'atlas*' | head -1) final/atlas-windows/atlas-windows.exe

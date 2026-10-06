@@ -1,0 +1,9 @@
+# `cargo run` keeps config.json, atlas.db and the logs in the repo root
+# (same place the old python version kept them) instead of target/.
+[env]
+ATLAS_HOME = { value = ".", relative = true }
+
+# bundled sqlite without the process wide locks it takes by default around
+# every allocation (memory statistics) and every page cache access (one shared
+# cache group): with a writer per shard plus readers, threads queued on them
+LIBSQLITE3_FLAGS = "-USQLITE_ENABLE_MEMORY_MANAGEMENT -DSQLITE_DEFAULT_MEMSTATUS=0"

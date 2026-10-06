@@ -1,0 +1,18 @@
+[package]
+name = "poc_sqlite_1"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+publish = false
+description = "Proof of concept: faster SQLite writes for the Atlas indexer, measured on clones of a real database"
+
+# its own workspace, soo it builds on its own and never becomes part of atlas
+[workspace]
+
+[dependencies]
+atlas = { path = ".." }
+rusqlite = { version = "0.40", features = ["bundled"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1

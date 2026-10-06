@@ -1,18 +1,73 @@
-__pycache__/
-*.pyc
+# --- rust / cargo ---
+# build output (includes target/remote from `just build-remote*`)
+/target/
+debug/
+
+# rustfmt backups
+**/*.rs.bk
+# msvc debug symbols
+*.pdb
+# coverage (llvm-cov / grcov)
+*.profraw
+*.profdata
+lcov.info
+# cargo-mutants
+mutants.out*/
+# Cargo.lock stays tracked: atlas is a binary
+
+# --- editors / os ---
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# --- local settings ---
+.env
+
+# --- atlas runtime data (lives in ATLAS_HOME, the repo root for `cargo run`) ---
+# config.json holds usenet passwords, never commit it or its backups.
+# leading / = repo root only (the docker stack has its own rules below)
+/config.json
+/config.json.bak*
+# usenet logins to merge into config.json
+/news.txt
+/stats_cache.json
+
+# --- docker stack (docker/docker_compose.yml) ---
+# docker/config.json gets your usenet logins, docker/config.example.json is the template
+docker/config.json
+docker/atlas-data/
+docker/downloads/
+docker/prowlarr-config/
+docker/sabnzbd-config/
 atlas.db
 atlas.db-*
-mock_nntp_server.py
-config.json
+# the shards, and files the conversion and compaction leave while they run
+atlas.*.db
+atlas.*.db-*
+atlas.compacting
 status.json
-dev_nntp_server.py
-sabnzbd.log
-bg_index.log
-bg_indexer.pid
-config.json.tmp
 stats.json
-profile.json
-build/
-dist/
-*.spec
+*.json.tmp
+bg_indexer.pid
+bg_index.log
+bg_index.log.old
+sabnzbd.log
+sabnzbd.log.old
 atlas.log
+compact.log
+profile.json
+
+# --- leftovers from the python version ---
+__pycache__/
+*.pyc
+mock_nntp_server.py
+dev_nntp_server.py
+
+# git worktrees for isolated work
+/.worktrees/
+/.superpowers/

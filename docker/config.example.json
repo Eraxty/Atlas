@@ -1,0 +1,47 @@
+{
+    "usenet_servers": [
+        {
+            "host": "super.newsgroupdirect.com",
+            "username": "",
+            "password": "",
+            "port": 563,
+            "ssl": true,
+            "connections": 20,
+            "priority": 4
+        },
+        {
+            "host": "news.eweka.nl",
+            "username": "",
+            "password": "",
+            "port": 563,
+            "ssl": true,
+            "connections": 20,
+            "priority": 2
+        },
+        {
+            "host": "news.newshosting.com",
+            "username": "",
+            "password": "",
+            "port": 563,
+            "ssl": true,
+            "connections": 20,
+            "priority": 1
+        },
+        {
+            "host": "reader.xsnews.nl",
+            "username": "",
+            "password": "",
+            "port": 563,
+            "ssl": true,
+            "connections": 20,
+            "priority": 4
+        }
+    ],
+    "group": "alt.binaries.boneless",
+    "groups": [
+        "alt.binaries.boneless"
+    ],
+    "index_mode": "backfill",
+    "api_port": 9090,
+    "api_host": "0.0.0.0"
+}
